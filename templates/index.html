@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ozora Device Control</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        ozora: {
+                            bg: '#EAEAEA',
+                            teal: '#0F766E', // Teal-700
+                        }
+                    },
+                    boxShadow: {
+                        '3d-red': '0 20px 25px -5px rgba(220, 38, 38, 0.4), inset 0 2px 4px rgba(255,255,255,0.3)',
+                        '3d-green': '0 20px 25px -5px rgba(22, 163, 74, 0.4), inset 0 2px 4px rgba(255,255,255,0.3)',
+                        'inner-depth': 'inset 0 4px 6px rgba(0,0,0,0.1)',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        /* Custom Utilities for smoother animations mimicking Framer Motion */
+        .smooth-transition {
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .pulse-ring {
+            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); opacity: 0.5; }
+            100% { transform: scale(1.3); opacity: 0; }
+        }
+    </style>
+</head>
+<body class="bg-gray-200 min-h-screen flex flex-col font-sans overflow-hidden relative">
+
+    <header class="w-full px-6 py-5 flex justify-between items-center bg-transparent z-50 fixed top-0 left-0 right-0">
+        <div class="text-2xl font-extrabold tracking-tight text-teal-800">
+            Ozora
+        </div>
+
+        <nav class="hidden md:flex space-x-8">
+            <a href="#" class="text-gray-600 hover:text-teal-800 font-semibold transition">Home</a>
+            <a href="monitoring.html" class="text-gray-600 hover:text-teal-800 font-semibold transition">Monitoring</a>
+            <a href="#" class="text-red-500 hover:text-red-700 font-semibold transition">Logout</a>
+        </nav>
+
+        <button id="menu-btn" class="md:hidden focus:outline-none" onclick="toggleMenu()">
+            <svg class="w-8 h-8 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M4 6h16M4 12h16M4 18h16"></path>
+            </svg>
+        </button>
+    </header>
+
+    <div id="mobile-menu" class="fixed inset-0 bg-white z-[60] transform translate-x-full transition-transform duration-300 flex flex-col justify-center items-center space-y-8 md:hidden">
+        <button onclick="toggleMenu()" class="absolute top-6 right-6 focus:outline-none">
+            <svg class="w-8 h-8 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
+        <a href="#" class="text-2xl font-bold text-gray-800 hover:text-teal-800 transition">Home</a>
+        <a href="#" class="text-2xl font-bold text-gray-800 hover:text-teal-800 transition">Monitoring</a>
+        <a href="#" class="text-2xl font-bold text-red-600 hover:text-red-800 transition">Logout</a>
+    </div>
+
+    <main class="flex-grow flex flex-col justify-center items-center relative w-full h-full px-4">
+        
+        <div class="text-center mb-8 smooth-transition" id="text-container">
+            <h1 id="main-status" class="text-2xl md:text-3xl font-bold text-red-900 mb-2 tracking-wide">
+                Search for nearby devices
+            </h1>
+            <p id="sub-status" class="text-red-400 text-sm md:text-base italic">
+                *the process is not currently running
+            </p>
+        </div>
+
+        <div class="relative flex justify-center items-center">
+            
+            <div id="pulse-circle" class="absolute w-48 h-48 md:w-64 md:h-64 rounded-full border-4 border-gray-300 opacity-0"></div>
+
+            <button 
+                id="power-btn" 
+                onclick="handleMainAction()"
+                class="w-48 h-48 md:w-64 md:h-64 rounded-full flex justify-center items-center 
+                       bg-gradient-to-br from-red-600 to-red-800 
+                       text-white text-4xl md:text-5xl font-bold shadow-3d-red 
+                       transform transition-all duration-500 ease-out 
+                       hover:scale-105 active:scale-95 focus:outline-none z-10"
+            >
+                Off
+            </button>
+        </div>
+    </main>
+
+    <div id="scanning-overlay" class="fixed inset-0 bg-gray-900/70 backdrop-blur-sm z-30 hidden flex flex-col justify-center items-center transition-opacity duration-300">
+        <div class="absolute inset-0 flex flex-col justify-center items-center">
+             <div class="text-white text-lg font-semibold animate-pulse tracking-widest mt-64">
+                currently looking for hardware devices..
+             </div>
+        </div>
+    </div>
+
+    <div id="modal-backdrop" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex justify-center items-center px-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 relative transform scale-95 opacity-0 transition-all duration-300" id="modal-card">
+            
+            <button onclick="resetToOff()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+
+            <div class="text-center mt-2">
+                <h2 class="text-2xl font-bold text-green-600 mb-1">Hardware Device Found</h2>
+                <p class="text-gray-500 text-sm font-medium mb-6">ESP-32 Control Module</p>
+                <p class="text-gray-700 font-medium text-lg mb-8">Do you want to connect it?</p>
+                
+                <div class="flex space-x-4 justify-center">
+                    <button onclick="resetToOff()" class="flex-1 py-3 px-6 rounded-lg bg-gradient-to-r from-red-500 to-red-600 text-white font-bold shadow-lg hover:shadow-xl transform active:scale-95 transition">
+                        No
+                    </button>
+                    <button onclick="confirmConnection()" class="flex-1 py-3 px-6 rounded-lg bg-gradient-to-r from-green-500 to-green-600 text-white font-bold shadow-lg hover:shadow-xl transform active:scale-95 transition">
+                        Yes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State Management
+        // 0 = OFF, 1 = ON
+        let currentState = 0; 
+        
+        // DOM Elements
+        const btn = document.getElementById('power-btn');
+        const mainStatus = document.getElementById('main-status');
+        const subStatus = document.getElementById('sub-status');
+        const pulseCircle = document.getElementById('pulse-circle');
+        
+        const overlay = document.getElementById('scanning-overlay');
+        const modalBackdrop = document.getElementById('modal-backdrop');
+        const modalContent = document.getElementById('modal-card');
+        const mobileMenu = document.getElementById('mobile-menu');
+
+        // Toggle Mobile Menu
+        function toggleMenu() {
+            if (mobileMenu.classList.contains('translate-x-full')) {
+                mobileMenu.classList.remove('translate-x-full');
+            } else {
+                mobileMenu.classList.add('translate-x-full');
+            }
+        }
+
+        // Main Button Logic
+        function handleMainAction() {
+            if (currentState === 0) {
+                // Trigger Scanning Flow
+                startScanning();
+            } else {
+                // Turn OFF directly
+                resetToOff();
+            }
+        }
+
+        // State B: Scanning
+        function startScanning() {
+            // Show Overlay
+            overlay.classList.remove('hidden');
+            setTimeout(() => {
+                overlay.classList.add('hidden');
+                showModal();
+            }, 2500);
+        }
+
+        // State C: Show Modal
+        function showModal() {
+            modalBackdrop.classList.remove('hidden');
+            setTimeout(() => {
+                modalContent.classList.remove('scale-95', 'opacity-0');
+                modalContent.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        // Close Modal / Reset to State A (OFF)
+        function resetToOff() {
+            modalContent.classList.remove('scale-100', 'opacity-100');
+            modalContent.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modalBackdrop.classList.add('hidden');
+            }, 300);
+
+            currentState = 0;
+            btn.innerText = "OFF";
+            btn.classList.remove('from-green-500', 'to-green-700', 'shadow-3d-green');
+            btn.classList.add('from-red-600', 'to-red-800', 'shadow-3d-red');
+
+            mainStatus.innerText = "the device is turned off";
+            mainStatus.className = "text-2xl md:text-3xl font-bold text-red-900 mb-2 tracking-wide";
+            
+            subStatus.innerText = "*the process is not currently running";
+            subStatus.className = "text-red-400 text-sm md:text-base italic";
+
+            pulseCircle.classList.remove('pulse-ring');
+            pulseCircle.classList.add('opacity-0');
+        }
+
+        // State D: Confirm Connection (ON)
+        function confirmConnection() {
+            modalContent.classList.remove('scale-100', 'opacity-100');
+            modalContent.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modalBackdrop.classList.add('hidden');
+            }, 300);
+
+            currentState = 1;
+            btn.innerText = "ON";
+            btn.classList.remove('from-red-600', 'to-red-800', 'shadow-3d-red');
+            btn.classList.add('from-green-500', 'to-green-700', 'shadow-3d-green');
+
+            mainStatus.innerText = "The device has been connected.";
+            mainStatus.className = "text-2xl md:text-3xl font-bold text-green-800 mb-2 tracking-wide";
+            
+            subStatus.innerText = "*the process is currently underway";
+            subStatus.className = "text-green-500 text-sm md:text-base";
+
+            pulseCircle.classList.remove('opacity-0');
+            pulseCircle.classList.add('pulse-ring');
+        }
+    </script>
+</body>
+</html>
