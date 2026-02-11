@@ -1,0 +1,275 @@
+<!DOCTYPE html>{% load static %}
+<!-- Created By CodingLab - www.codinglabweb.com -->
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Register | Online Warung Makan Gresik</title>
+    <link rel="stylesheet" href="{% static 'css/iziToast.css' %}">
+<link rel="stylesheet" href="{% static 'css/iziToast.min.css' %}">
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@200;300;400;500;600;700&display=swap");
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Poppins", sans-serif;
+      }
+      body {
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 10px;
+        background: linear-gradient(135deg, #71b7e6, #9b59b6);
+      }
+      .container {
+        max-width: 700px;
+        width: 100%;
+        background-color: #fff;
+        padding: 25px 30px;
+        border-radius: 5px;
+        box-shadow: 0 5px 10px rgba(0, 0, 0, 0.15);
+      }
+      .container .title {
+        font-size: 25px;
+        font-weight: 500;
+        position: relative;
+      }
+
+      ul li {
+        list-style-type: none;
+      }
+      .container .title::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        height: 3px;
+        width: 30px;
+        border-radius: 5px;
+        background: linear-gradient(135deg, #71b7e6, #9b59b6);
+      }
+      .content form .user-details {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        margin: 20px 0 12px 0;
+      }
+      form .user-details .input-box {
+        margin-bottom: 15px;
+        width: calc(100% / 2 - 20px);
+      }
+      form .input-box span.details {
+        display: block;
+        font-weight: 500;
+        margin-bottom: 5px;
+      }
+      .user-details .input-box input {
+        height: 45px;
+        width: 100%;
+        outline: none;
+        font-size: 16px;
+        border-radius: 5px;
+        padding-left: 15px;
+        border: 1px solid #ccc;
+        border-bottom-width: 2px;
+        transition: all 0.3s ease;
+      }
+      .user-details .input-box input:focus,
+      .user-details .input-box input:valid {
+        border-color: #9b59b6;
+      }
+      form .gender-details .gender-title {
+        font-size: 20px;
+        font-weight: 500;
+      }
+      form .category {
+        display: flex;
+        width: 80%;
+        margin: 14px 0;
+        justify-content: space-between;
+      }
+      form .category label {
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+      }
+
+      form input:focus {
+        background: linear-gradient(135deg, #71b7e6, #9b59b6);
+        border:1px solid black;
+        
+      }
+      form input:focus::placeholder {
+        color:white;        
+      }
+      form .category label .dot {
+        height: 18px;
+        width: 18px;
+        border-radius: 50%;
+        margin-right: 10px;
+        background: #d9d9d9;
+        border: 5px solid transparent;
+        transition: all 0.3s ease;
+      }
+      #dot-1:checked ~ .category label .one,
+      #dot-2:checked ~ .category label .two,
+      #dot-3:checked ~ .category label .three {
+        background: #9b59b6;
+        border-color: #d9d9d9;
+      }
+      form input[type="radio"] {
+        display: none;
+      }
+      form .button {
+        height: 45px;
+        margin: 35px 0;
+      }
+      form .button input {
+        height: 100%;
+        width: 100%;
+        border-radius: 5px;
+        border: none;
+        color: #fff;
+        font-size: 18px;
+        font-weight: 500;
+        letter-spacing: 1px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: linear-gradient(135deg, #71b7e6, #9b59b6);
+      }
+      form .button input:hover {
+        /* transform: scale(0.99); */
+        background: linear-gradient(-135deg, #71b7e6, #9b59b6);
+      }
+      a {
+        color: black;
+        text-decoration: none;
+      }
+      a :hover {
+        color: purple;
+        transform: translateX(5px);
+      }
+      @media (max-width: 584px) {
+        .container {
+          max-width: 100%;
+        }
+        form .user-details .input-box {
+          margin-bottom: 15px;
+          width: 100%;
+        }
+        form .category {
+          width: 100%;
+        }
+        .content form .user-details {
+          max-height: 300px;
+          overflow-y: scroll;
+        }
+        .user-details::-webkit-scrollbar {
+          width: 5px;
+        }
+      }
+      @media (max-width: 459px) {
+        .container .content .category {
+          flex-direction: column;
+        }
+      }
+    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="title">Registration</div>
+      <div class="content">
+        <form action="#" method="post">
+          <div class="user-details">
+            <div class="input-box">
+              <span class="details">Email</span>
+              <input type="text" name="email" placeholder="Masukkan email anda" required />
+            </div>
+            <div class="input-box">
+              <span class="details">Username</span>
+              <input type="text" name="username" placeholder="Masukkan username anda" required />
+              <small id="hint_id_username" class="form-text text-muted">Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.</small>
+            </div>
+
+            <div class="input-box">
+              <span class="details">Password</span>
+              <input type="password" name="password1" placeholder="Masukkan password anda" required />
+            </div>
+            <div class="input-box">
+              <span class="details">Confirm Password</span>
+              <input type="password" name="password2" placeholder="Konfirmasi password anda" required />
+            </div>
+          </div>
+          <small id="hint_id_password1" class="form-text text-muted"
+          ><ul>
+            <li>Your password can’t be too similar to your other personal information.</li>
+            <li>Your password must contain at least 8 characters.</li>
+            <li>Your password can’t be a commonly used password.</li>
+            <li>Your password can’t be entirely numeric.</li>
+          </ul></small
+          <style></style>
+          <div class="button" style="display: flex; flex-direction: column; gap: 1rem">{% csrf_token %} <input type="submit" value="Register" / style="padding:0.6em"></div>
+          <a href="{% url 'customerlogin' %}" class="register"> kamu sudah punya akun? silahkan login</a>
+        </form>
+      </div>
+    </div>
+  </body>
+</html>
+
+{% comment %}
+<form method="post" action="">
+  <input type="hidden" name="csrfmiddlewaretoken" value="bobrIKbihtkRa6DpQ411OIERAW803uK4hmxrPQyl84S14MFwWn4n8TYP4KUVpzmL" />
+
+  <div id="div_id_email" class="form-group">
+    <label for="id_email" class=""> Email address </label>
+    <div class=""><input type="email" name="email" maxlength="254" class="emailinput form-control" id="id_email" /></div>
+  </div>
+  <div id="div_id_username" class="form-group">
+    <label for="id_username" class="requiredField"> Username<span class="asteriskField">*</span> </label>
+    <div class="">
+      <input type="text" name="username" maxlength="150" autofocus class="textinput textInput form-control" required id="id_username" />
+      <small id="hint_id_username" class="form-text text-muted">Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.</small>
+    </div>
+  </div>
+  <div id="div_id_password1" class="form-group">
+    <label for="id_password1" class="requiredField"> Password<span class="asteriskField">*</span> </label>
+    <div class="">
+      <input type="password" name="password1" autocomplete="new-password" class="textinput textInput form-control" required id="id_password1" />
+      <small id="hint_id_password1" class="form-text text-muted"
+        ><ul>
+          <li>Your password can’t be too similar to your other personal information.</li>
+          <li>Your password must contain at least 8 characters.</li>
+          <li>Your password can’t be a commonly used password.</li>
+          <li>Your password can’t be entirely numeric.</li>
+        </ul></small
+      >
+    </div>
+  </div>
+  <div id="div_id_password2" class="form-group">
+    <label for="id_password2" class="requiredField"> Password confirmation<span class="asteriskField">*</span> </label>
+    <div class="">
+      <input type="password" name="password2" autocomplete="new-password" class="textinput textInput form-control" required id="id_password2" />
+      <small id="hint_id_password2" class="form-text text-muted">Enter the same password as before, for verification.</small>
+    </div>
+  </div>
+  <br />
+  <div style="display: flex; flex-direction: column; gap: 2rem; justify-content: center; margin-top: 1rem">
+    <input type="submit" value="create an account" />
+    <a href="/account/login/">Do you already have a account? </a>
+  </div>
+</form>
+{% endcomment %}
+<script src="{% static 'js/iziToast.js' %}"></script>
+<script src="{% static 'js/iziToast.min.js' %}"></script>
+{% if messages %}
+{% for message in messages %}
+<script>
+
+iziToast.{{message.tags}}({
+title: '{{message}}',
+});  
+</script>
+  {% endfor %}
+  {% endif %}

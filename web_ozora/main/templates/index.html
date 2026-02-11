@@ -1,240 +1,315 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ozora Dashboard</title>
+    <title>Ozora Dashboard v2.0</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     
     <style>
         /* =========================================
-           1. VARIABLES & RESET
+           1. DESIGN TOKENS & VARIABLES
            ========================================= */
         :root {
-            --bg-body: #F0F4F8;
+            /* --- Light Theme (Default) --- */
+            --bg-body: #F8FAFC;
+            --bg-nav: #FFFFFF;
+            --bg-card: #FFFFFF;
+            --bg-hover: #F1F5F9;
             
-            /* Status Colors */
-            --color-active: #0052CC;
-            --color-unlinked: #E53E3E;
-            --color-standby: #718096;
+            --text-main: #0F172A;
+            --text-muted: #64748B;
+            --text-inverted: #FFFFFF;
 
-            /* Gradients */
-            --grad-temp-default: linear-gradient(180deg, #D31027 0%, #EA384D 40%, #2B32B2 100%);
-            --grad-temp-hot: linear-gradient(180deg, #FF416C 0%, #FF4B2B 100%); /* Merah Panas */
-            --grad-temp-cold: linear-gradient(180deg, #2193b0 0%, #6dd5ed 100%); /* Biru Dingin */
+            --border-color: #E2E8F0;
+            --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            --shadow-hover: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+            /* Brand Colors */
+            --primary: #3B82F6;
+            --primary-gradient: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
             
-            --grad-process: linear-gradient(180deg, #11998e 0%, #38ef7d 50%, #1A2980 100%);
-            --bg-dark-card: #2D2D2D;
-
+            /* Specific Gradients (Tetap sama di kedua mode untuk data visualization) */
+            --grad-temp-default: linear-gradient(180deg, #EF4444 0%, #F87171 40%, #3B82F6 100%);
+            --grad-process: linear-gradient(180deg, #10B981 0%, #34D399 50%, #1E40AF 100%);
+            
             /* Dimensions */
-            --nav-width: 260px;
-            --nav-height-mobile: 70px;
-            --radius-card: 24px;
+            --nav-width: 280px;
+            --radius-card: 20px;
+            --radius-btn: 12px;
+            
+            /* Transitions */
+            --trans-fast: 0.2s ease;
+            --trans-theme: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        /* --- Dark Theme Overrides --- */
+        [data-theme="dark"] {
+            --bg-body: #0F172A;
+            --bg-nav: #1E293B;
+            --bg-card: #1E293B;
+            --bg-hover: #334155;
+
+            --text-main: #F8FAFC;
+            --text-muted: #94A3B8;
+            --text-inverted: #FFFFFF; /* Tetap putih untuk kartu berwarna */
+
+            --border-color: #334155;
+            --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+            --shadow-hover: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
 
         body {
             background-color: var(--bg-body);
-            color: #333;
+            color: var(--text-main);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            overflow-x: hidden;
+            transition: var(--trans-theme);
         }
 
         /* =========================================
            2. NAVIGATION
            ========================================= */
         .nav-container {
-            position: fixed; background: #fff; z-index: 100;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            position: fixed; background: var(--bg-nav); z-index: 100;
+            border-right: 1px solid var(--border-color);
+            transition: var(--trans-theme);
         }
-        .nav-logo { font-weight: 800; font-size: 1.5rem; color: #0052CC; display: flex; align-items: center; gap: 10px; }
+        
+        .nav-logo { 
+            font-weight: 800; font-size: 1.5rem; color: var(--primary); 
+            display: flex; align-items: center; gap: 12px; 
+            letter-spacing: -0.5px;
+        }
+
         .nav-links { list-style: none; display: flex; }
+        
         .nav-item {
-            cursor: pointer; transition: all 0.3s ease; color: #64748B; font-weight: 600; border-radius: 12px;
-            display: flex; align-items: center; justify-content: center; gap: 10px;
+            cursor: pointer; transition: all 0.2s ease; 
+            color: var(--text-muted); font-weight: 600; border-radius: var(--radius-btn);
+            display: flex; align-items: center; justify-content: center; gap: 12px;
+            position: relative; overflow: hidden;
         }
-        .nav-item:hover { color: #0052CC; background: #F0F7FF; }
-        .nav-item.active { background: linear-gradient(135deg, #4D96FF 0%, #0052CC 100%); color: white; }
-        .nav-item.disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; filter: grayscale(1); }
+        
+        .nav-item:hover:not(.disabled) { color: var(--primary); background: var(--bg-hover); }
+        
+        .nav-item.active { 
+            background: var(--primary-gradient); 
+            color: white; 
+            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.4);
+        }
+        
+        .nav-item.disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(1); }
 
         @media (min-width: 768px) {
             body { flex-direction: row; }
             .nav-container { left: 0; top: 0; height: 100vh; width: var(--nav-width); padding: 2rem; flex-direction: column; }
-            .nav-links { flex-direction: column; margin-top: 3rem; gap: 1rem; }
+            .nav-links { flex-direction: column; margin-top: 3rem; gap: 0.8rem; }
             .nav-item { padding: 1rem; justify-content: flex-start; }
             main { margin-left: var(--nav-width); width: calc(100% - var(--nav-width)); }
         }
         @media (max-width: 767px) {
-            .nav-container { bottom: 0; left: 0; width: 100%; height: var(--nav-height-mobile); padding: 0 1rem; justify-content: space-around; align-items: center; }
+            .nav-container { bottom: 0; left: 0; width: 100%; height: 80px; padding: 0 1rem; justify-content: space-around; align-items: center; border-right: none; border-top: 1px solid var(--border-color); }
             .nav-logo { display: none; }
             .nav-links { width: 100%; justify-content: space-around; }
-            .nav-item { flex-direction: column; font-size: 0.8rem; padding: 0.5rem; gap: 4px; background: transparent !important; color: #64748B; }
-            .nav-item.active { color: #0052CC; }
-            .nav-item.active i { color: #0052CC; font-size: 1.2rem; }
-            main { margin-bottom: var(--nav-height-mobile); width: 100%; }
+            .nav-item { flex-direction: column; font-size: 0.75rem; padding: 0.5rem; gap: 6px; background: transparent !important; }
+            .nav-item.active { color: var(--primary); box-shadow: none; }
+            .nav-item.active i { background: var(--primary-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 1.4rem; transform: translateY(-5px); transition: transform 0.2s; }
+            main { margin-bottom: 80px; width: 100%; }
         }
 
         /* =========================================
-           3. MAIN LAYOUT & SECTIONS
+           3. MAIN LAYOUT & HEADER
            ========================================= */
-        main { padding: 2rem; position: relative; min-height: 100vh; }
-        header { margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; }
-        h1 { color: #1A202C; font-size: 1.8rem; }
+        main { padding: 2rem 3rem; position: relative; min-height: 100vh; transition: var(--trans-theme); }
         
-        .section-view { display: none; animation: fadeIn 0.5s ease-out; }
+        @media (max-width: 767px) { main { padding: 1.5rem; } }
+
+        header { margin-bottom: 2.5rem; display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;}
+        
+        .header-content h1 { color: var(--text-main); font-size: 2rem; letter-spacing: -1px; margin-bottom: 0.5rem;}
+        .header-content p { color: var(--text-muted); font-size: 1rem; }
+
+        /* THEME SWITCHER */
+        .theme-switch-wrapper {
+            background: var(--bg-nav);
+            border: 1px solid var(--border-color);
+            padding: 4px;
+            border-radius: 50px;
+            display: flex;
+            gap: 4px;
+        }
+        .theme-btn {
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s;
+        }
+        .theme-btn:hover { color: var(--text-main); }
+        .theme-btn.active { background: var(--bg-hover); color: var(--primary); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+
+        /* SECTIONS */
+        .section-view { display: none; animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
         .section-view.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
         /* =========================================
-           4. MONITORING CARDS
+           4. CARDS & DASHBOARD
            ========================================= */
         .ozora-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
-            margin-bottom: 3rem;
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.5rem; margin-bottom: 3rem;
         }
 
         .ozora-card {
             border-radius: var(--radius-card);
-            padding: 1.5rem;
-            color: white;
-            position: relative;
-            overflow: hidden;
-            height: 320px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
-            transition: transform 0.3s, background 0.5s ease; /* Added transition for background */
+            padding: 2rem;
+            color: var(--text-inverted);
+            position: relative; overflow: hidden;
+            height: 340px;
+            display: flex; flex-direction: column; justify-content: space-between;
+            box-shadow: var(--shadow-card);
+            transition: transform 0.3s, box-shadow 0.3s;
+            border: 1px solid rgba(255,255,255,0.1); /* Subtle border for dark mode compatibility */
         }
-        .ozora-card:hover { transform: translateY(-5px); }
+        .ozora-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-hover); }
 
-        /* --- Card 1: Temperature --- */
+        /* Card Typography */
+        .card-label { font-size: 1rem; font-weight: 600; opacity: 0.9; text-transform: uppercase; letter-spacing: 1px;}
+        .card-value { font-size: 4rem; font-weight: 800; letter-spacing: -2px; margin-top: 0.5rem; font-family: 'JetBrains Mono', monospace;}
+        .card-unit { font-size: 1.5rem; font-weight: 600; opacity: 0.8; font-family: 'Plus Jakarta Sans', sans-serif;}
+
+        /* Specific Cards */
         .card-temp { background: var(--grad-temp-default); }
-        .temp-title { font-size: 1.2rem; font-weight: 700; opacity: 0.9; }
-        .temp-value { font-size: 3.5rem; font-weight: 800; margin-top: 0.5rem; }
-        .temp-unit { font-size: 1.5rem; opacity: 0.8; }
+        .card-process { background: var(--grad-process); }
         
-        /* Wave Animation Graphic */
-        .wave-container {
-            position: absolute; bottom: 0; left: 0; width: 100%; height: 100px;
-            opacity: 0.6;
-        }
-        .wave-path { fill: rgba(255,255,255,0.2); }
-
-        /* --- Card 2: Color Sensor --- */
-        .card-color { background: var(--bg-dark-card); color: #fff; }
-        .color-content { display: flex; gap: 1.5rem; margin-top: 1rem; align-items: center; }
+        /* Color Sensor Card (Special Theming) */
+        .card-color { background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-color); }
+        .card-color .card-label { color: var(--text-muted); }
+        .card-color .color-name { color: var(--text-main); font-size: 1.5rem; font-weight: 700; margin-top: 0.5rem;}
         
         .color-preview-box {
-            width: 100px; height: 100px;
-            background-color: #CCCC00;
-            border-radius: 12px;
-            border: 4px solid rgba(255,255,255,0.2);
-            box-shadow: 0 0 20px rgba(0,0,0,0.3);
-            transition: background-color 0.3s ease;
+            width: 100%; height: 80px;
+            background-color: #CBD5E1;
+            border-radius: 16px;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border-color);
+            transition: background-color 0.2s;
         }
-
-        .rgb-data { display: flex; flex-direction: column; gap: 0.5rem; font-family: 'Share Tech Mono', monospace; }
-        .rgb-row { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.9rem; }
-        .rgb-label { color: rgba(255,255,255,0.6); font-weight: 600; width: 50px;}
-        .rgb-val { font-weight: 800; text-align: right; width: 40px; }
         
-        .text-red { color: #FF6B6B; }
-        .text-green { color: #4ECDC4; }
-        .text-blue { color: #4D96FF; }
-
-        .color-status-text { margin-top: 1rem; font-size: 0.9rem; color: rgba(255,255,255,0.7); }
-        .color-name { display: block; font-size: 1.1rem; font-weight: 700; color: white; margin-top: 5px;}
-
-        /* --- Card 3: Process Time --- */
-        .card-process { background: var(--grad-process); }
-        .process-title { font-size: 1.2rem; font-weight: 700; opacity: 0.9; }
-        
-        .timer-display {
-            font-family: 'Inter', sans-serif;
-            font-size: 3.5rem;
-            font-weight: 800;
-            margin: auto 0;
-            letter-spacing: -2px;
-            text-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        .rgb-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: auto; }
+        .rgb-item { 
+            background: var(--bg-hover); padding: 10px; border-radius: 12px; 
+            text-align: center; display: flex; flex-direction: column;
         }
-        .timer-ms { font-size: 1.5rem; opacity: 0.7; font-weight: 600; }
-        
-        .process-status {
-            font-size: 1rem; font-weight: 600; 
-            letter-spacing: 1px; text-transform: uppercase;
-            background: rgba(255,255,255,0.2);
-            padding: 5px 15px; border-radius: 20px;
-            width: fit-content;
-        }
+        .rgb-val { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 1.1rem; }
+        .rgb-lbl { font-size: 0.75rem; font-weight: 700; margin-top: 4px; }
+        .text-r { color: #EF4444; } .text-g { color: #10B981; } .text-b { color: #3B82F6; }
+
+        /* Wave Decoration */
+        .wave-container { position: absolute; bottom: 0; left: 0; width: 100%; height: 120px; opacity: 0.4; pointer-events: none; }
+        .wave-path { fill: #FFFFFF; }
 
         /* =========================================
-           5. TABLE STYLES (NEW)
+           5. DATA TABLE
            ========================================= */
-        .table-container {
-            background: white;
-            padding: 1.5rem;
-            border-radius: 16px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        .table-wrapper {
+            background: var(--bg-card);
+            padding: 1.5rem; border-radius: var(--radius-card);
+            box-shadow: var(--shadow-card);
+            border: 1px solid var(--border-color);
             overflow-x: auto;
-            margin-bottom: 2rem;
-            animation: fadeIn 0.8s ease-out;
+            animation: slideUp 0.6s ease-out;
+            transition: var(--trans-theme);
         }
-        .table-header { margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
-        .table-title { font-size: 1.2rem; font-weight: 700; color: #1A202C; }
+        
+        .table-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+        .table-title { font-size: 1.25rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 10px; }
         
         table { width: 100%; border-collapse: collapse; min-width: 600px; }
-        th { text-align: left; padding: 1rem; color: #64748B; font-size: 0.85rem; font-weight: 600; border-bottom: 2px solid #F0F4F8; }
-        td { padding: 1rem; border-bottom: 1px solid #F0F4F8; color: #334155; font-size: 0.95rem; }
+        th { 
+            text-align: left; padding: 1rem; color: var(--text-muted); 
+            font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+            border-bottom: 2px solid var(--border-color);
+        }
+        td { padding: 1.2rem 1rem; border-bottom: 1px solid var(--border-color); color: var(--text-main); font-size: 0.95rem; font-weight: 500;}
         tr:last-child td { border-bottom: none; }
         
-        .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; display: inline-block; }
-        .status-normal { background: #C6F6D5; color: #22543D; }
-        .status-hot { background: #FED7D7; color: #C53030; }
-        .status-cold { background: #BEE3F8; color: #2A4365; }
+        .status-badge { 
+            padding: 6px 12px; border-radius: 50px; font-size: 0.75rem; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;
+        }
+        .status-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+        
+        .status-normal { background: rgba(16, 185, 129, 0.15); color: #10B981; }
+        [data-theme="dark"] .status-normal { background: rgba(16, 185, 129, 0.2); color: #34D399; }
+        
+        .status-hot { background: rgba(239, 68, 68, 0.15); color: #EF4444; }
+        [data-theme="dark"] .status-hot { background: rgba(239, 68, 68, 0.2); color: #F87171; }
+        
+        .status-cold { background: rgba(59, 130, 246, 0.15); color: #3B82F6; }
+        [data-theme="dark"] .status-cold { background: rgba(59, 130, 246, 0.2); color: #60A5FA; }
 
         /* =========================================
-           6. CONTROL PAGE STYLES
+           6. CONTROL & CONNECTION
            ========================================= */
-        .control-wrapper { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; }
-        .hardware-btn {
-            width: 180px; height: 180px; border-radius: 50%; border: none; cursor: pointer;
-            color: white; font-size: 1.5rem; font-weight: 800; display: flex; flex-direction: column;
-            align-items: center; justify-content: center; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        .control-wrapper { 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center;
         }
+        
+        .hardware-btn {
+            width: 200px; height: 200px; border-radius: 50%; border: none; cursor: pointer;
+            color: white; font-size: 1.5rem; font-weight: 800; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative; z-index: 2;
+        }
+        .hardware-btn:hover { transform: scale(1.05); }
         .hardware-btn:active { transform: scale(0.95); }
-        .hardware-btn i { font-size: 3rem; margin-bottom: 10px; }
-        
-        .btn-unlinked { background: linear-gradient(135deg, #FF512F 0%, #DD2476 100%); }
-        .btn-standby { background: #CBD5E0; color: #718096; }
-        .btn-active { background: linear-gradient(135deg, #4D96FF 0%, #0052CC 100%); }
-        
+        .hardware-btn i { font-size: 3.5rem; margin-bottom: 12px; }
+
+        .btn-unlinked { background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); box-shadow: 0 15px 30px rgba(245, 158, 11, 0.4); }
+        .btn-active { background: var(--primary-gradient); box-shadow: 0 15px 30px rgba(59, 130, 246, 0.4); }
+        .btn-standby { background: var(--bg-hover); color: var(--text-muted); box-shadow: none; border: 2px solid var(--border-color); }
+
         .pulse-ring {
-            position: absolute; width: 220px; height: 220px; border-radius: 50%;
-            border: 2px solid #4D96FF; opacity: 0; pointer-events: none;
+            position: absolute; width: 240px; height: 240px; border-radius: 50%;
+            border: 2px solid var(--primary); opacity: 0; pointer-events: none; z-index: 1;
         }
         .pulse-ring.active { animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { transform: scale(0.8); opacity: 0.8; } 100% { transform: scale(1.5); opacity: 0; } }
+        @keyframes pulse { 0% { transform: scale(0.8); opacity: 0.6; } 100% { transform: scale(1.6); opacity: 0; } }
+
+        /* Small Control Panel */
+        .control-panel-row {
+            background: var(--bg-card); padding: 1.5rem; border-radius: var(--radius-card); 
+            margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between; 
+            box-shadow: var(--shadow-card); border: 1px solid var(--border-color);
+            transition: var(--trans-theme);
+        }
 
         .overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8);
-            display: none; justify-content: center; align-items: center; z-index: 999; backdrop-filter: blur(5px);
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.8);
+            display: none; justify-content: center; align-items: center; z-index: 999; backdrop-filter: blur(8px);
         }
-        .overlay.visible { display: flex; }
+        .overlay.visible { display: flex; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
     </style>
 </head>
 <body>
 
     <nav class="nav-container">
         <div class="nav-logo">
-            <i class="fa-solid fa-cube"></i> <span>Ozora</span>
+            <i class="fa-solid fa-cube fa-xl"></i> 
+            <span>Ozora<span style="font-weight:400; color:var(--text-muted);">UI</span></span>
         </div>
         <ul class="nav-links">
             <li class="nav-item active" id="nav-control" onclick="switchTab('control')">
@@ -248,36 +323,53 @@
 
     <main>
         <header>
-            <div>
+            <div class="header-content">
                 <h1 id="page-title">Device Connection</h1>
-                <p id="page-subtitle" style="color: #718096;">Manage Web to Hardware Link</p>
+                <p id="page-subtitle">Manage Web to Hardware Link</p>
             </div>
-            <div id="header-status" style="padding: 5px 15px; border-radius: 20px; background: #FED7D7; color: #C53030; font-weight: bold; font-size: 0.8rem;">
-                DISCONNECTED
+            
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <div class="theme-switch-wrapper">
+                    <button class="theme-btn active" onclick="setTheme('light')" id="btn-theme-light" title="Light Mode">
+                        <i class="fa-solid fa-sun"></i>
+                    </button>
+                    <button class="theme-btn" onclick="setTheme('system')" id="btn-theme-system" title="System Default">
+                        <i class="fa-solid fa-desktop"></i>
+                    </button>
+                    <button class="theme-btn" onclick="setTheme('dark')" id="btn-theme-dark" title="Dark Mode">
+                        <i class="fa-solid fa-moon"></i>
+                    </button>
+                </div>
+
+                <div id="header-status" class="status-badge status-hot">
+                    DISCONNECTED
+                </div>
             </div>
         </header>
 
-        <section id="control" class="section-view active" style="height: 70vh;">
+        <section id="control" class="section-view active" style="min-height: 60vh;">
             <div class="control-wrapper">
                 <div style="position: relative; display: flex; justify-content: center; align-items: center;">
                     <div id="ctl-pulse" class="pulse-ring"></div>
                     <button id="ctl-btn" class="hardware-btn btn-unlinked" onclick="handleControlAction()">
                         <i class="fa-solid fa-wifi" id="ctl-icon"></i>
-                        <span id="ctl-text">CONNECT</span>
+                        <span id="ctl-text" style="font-size: 1rem; font-weight: 700;">CONNECT</span>
                     </button>
                 </div>
-                <h3 id="ctl-status-text" style="margin-top: 2rem; color: #4A5568;">Device Unlinked</h3>
+                <h3 id="ctl-status-text" style="margin-top: 2.5rem; color: var(--text-muted); font-weight: 500;">
+                    Click to scan for hardware
+                </h3>
             </div>
         </section>
 
         <section id="monitoring" class="section-view">
             
-            <div style="background: white; padding: 1.5rem; border-radius: 16px; margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+            <div class="control-panel-row">
                 <div>
-                    <h3 style="margin-bottom: 0.2rem;">System Control</h3>
-                    <p style="color: #718096; font-size: 0.9rem;">Start scanning color sensors</p>
+                    <h3 style="margin-bottom: 0.4rem; color: var(--text-main);">Sensor Control</h3>
+                    <p style="color: var(--text-muted); font-size: 0.9rem;">Toggle real-time data acquisition</p>
                 </div>
-                <button id="mon-btn" class="hardware-btn btn-standby" style="width: 60px; height: 60px; font-size: 0.8rem;" onclick="toggleHardware()">
+                <button id="mon-btn" class="hardware-btn btn-standby" style="width: 50px; height: 50px; font-size: 0.8rem; border-radius: 12px;" onclick="toggleHardware()">
                     <i class="fa-solid fa-power-off" style="font-size: 1.2rem; margin:0;"></i>
                 </button>
             </div>
@@ -286,9 +378,9 @@
                 
                 <div class="ozora-card card-temp" id="card-temp-visual">
                     <div>
-                        <div class="temp-title">Temperature</div>
-                        <div class="temp-value">
-                            <span id="val-temp">0</span><span class="temp-unit">°C</span>
+                        <div class="card-label">Temperature</div>
+                        <div class="card-value">
+                            <span id="val-temp">0</span><span class="card-unit">°C</span>
                         </div>
                     </div>
                     <div class="wave-container">
@@ -299,46 +391,60 @@
                 </div>
 
                 <div class="ozora-card card-color">
-                    <div>
-                        <div class="temp-title">Color Sensor</div>
-                        <div class="color-content">
+                    <div style="width: 100%; height: 100%; display: flex; flex-direction: column;">
+                        <div class="card-label">Color Sensor</div>
+                        <span id="color-name" class="color-name">Detecting...</span>
+                        
+                        <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: center; margin: 1rem 0;">
                             <div id="color-preview" class="color-preview-box"></div>
-                            <div class="rgb-data">
-                                <div class="rgb-row"><span class="rgb-label text-red">Red</span><span class="rgb-val" id="val-r">0</span></div>
-                                <div class="rgb-row"><span class="rgb-label text-green">Green</span><span class="rgb-val" id="val-g">0</span></div>
-                                <div class="rgb-row"><span class="rgb-label text-blue">Blue</span><span class="rgb-val" id="val-b">0</span></div>
-                            </div>
                         </div>
-                        <div class="color-status-text">
-                            Monochromatic Scale <span id="color-name" class="color-name">Not Clear</span>
+
+                        <div class="rgb-grid">
+                            <div class="rgb-item">
+                                <span class="rgb-lbl text-r">RED</span>
+                                <span class="rgb-val" id="val-r">0</span>
+                            </div>
+                            <div class="rgb-item">
+                                <span class="rgb-lbl text-g">GREEN</span>
+                                <span class="rgb-val" id="val-g">0</span>
+                            </div>
+                            <div class="rgb-item">
+                                <span class="rgb-lbl text-b">BLUE</span>
+                                <span class="rgb-val" id="val-b">0</span>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <div class="ozora-card card-process">
                     <div>
-                        <div class="process-title">Process Time</div>
-                        <div class="timer-display">
-                            <span id="timer-sec">00</span>.<span id="timer-ms">00</span>.<span id="timer-micro" class="timer-ms">00</span>
+                        <div class="card-label">Execution Time</div>
+                        <div class="card-value" style="font-size: 3.5rem;">
+                            <span id="timer-sec">00</span><span style="opacity:0.5; font-size:2rem;">.</span><span id="timer-ms" style="font-size: 2.5rem;">00</span>
+                        </div>
+                        <div style="opacity: 0.8; font-family: 'JetBrains Mono'; margin-top: 5px;">
+                            MICRO: <span id="timer-micro">00</span>
                         </div>
                     </div>
-                    <div class="process-status" id="process-status-text">Standby</div>
+                    <div id="process-status-text" style="background: rgba(255,255,255,0.2); padding: 5px 12px; border-radius: 20px; width: fit-content; font-size: 0.8rem; font-weight: 700;">
+                        STANDBY
+                    </div>
                 </div>
 
             </div>
 
-            <div class="table-container">
+            <div class="table-wrapper">
                 <div class="table-header">
-                    <div class="table-title">Sensor Log History</div>
-                    <div style="font-size: 0.9rem; color: #718096;"><i class="fa-solid fa-list-ul"></i> Latest Readings</div>
+                    <div class="table-title"><i class="fa-solid fa-list-check" style="color: var(--primary)"></i> Log History</div>
+                    <button style="border:none; background:none; color: var(--primary); cursor: pointer; font-weight: 600;">Export CSV</button>
                 </div>
                 <table>
                     <thead>
                         <tr>
-                            <th>TIME</th>
-                            <th>TEMP</th>
-                            <th>COLOR DETECTED</th>
-                            <th>STATUS</th>
+                            <th>Time Log</th>
+                            <th>Temp</th>
+                            <th>Color Detected</th>
+                            <th>Condition</th>
                         </tr>
                     </thead>
                     <tbody id="log-table-body">
@@ -347,18 +453,6 @@
                             <td>33.2 °C</td>
                             <td>Blue</td>
                             <td><span class="status-badge status-cold">COOL</span></td>
-                        </tr>
-                        <tr>
-                            <td>10:00:04</td>
-                            <td>34.5 °C</td>
-                            <td>Yellow</td>
-                            <td><span class="status-badge status-normal">NORMAL</span></td>
-                        </tr>
-                        <tr>
-                            <td>10:00:03</td>
-                            <td>35.1 °C</td>
-                            <td>Red</td>
-                            <td><span class="status-badge status-hot">HOT</span></td>
                         </tr>
                     </tbody>
                 </table>
@@ -370,72 +464,121 @@
 
     <div id="overlay-scan" class="overlay">
         <div style="color: white; text-align: center;">
-            <i class="fa-solid fa-satellite-dish fa-spin" style="font-size: 3rem; margin-bottom: 1rem;"></i>
-            <h3>Looking for hardware devices..</h3>
+            <i class="fa-solid fa-satellite-dish fa-spin" style="font-size: 3rem; margin-bottom: 1.5rem; color: #3B82F6;"></i>
+            <h3>Establishing Handshake...</h3>
+            <p style="opacity: 0.7; margin-top: 5px;">Searching for ESP32/Arduino via Serial</p>
         </div>
     </div>
 
     <script>
         // =========================================
-        // LOGIC JAVASCRIPT
+        // 1. THEME LOGIC
         // =========================================
-        
+        function setTheme(mode) {
+            const html = document.documentElement;
+            const btnLight = document.getElementById('btn-theme-light');
+            const btnDark = document.getElementById('btn-theme-dark');
+            const btnSystem = document.getElementById('btn-theme-system');
+            
+            // Reset active states
+            [btnLight, btnDark, btnSystem].forEach(btn => btn.classList.remove('active'));
+
+            if (mode === 'system') {
+                btnSystem.classList.add('active');
+                localStorage.removeItem('theme');
+                applySystemTheme();
+            } else {
+                if (mode === 'dark') btnDark.classList.add('active');
+                else btnLight.classList.add('active');
+                
+                html.setAttribute('data-theme', mode);
+                localStorage.setItem('theme', mode);
+            }
+        }
+
+        function applySystemTheme() {
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+        }
+
+        // Initialize Theme
+        (function initTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme) {
+                setTheme(savedTheme);
+            } else {
+                setTheme('system');
+            }
+            
+            // Listen for system changes
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+                if (!localStorage.getItem('theme')) { // Only if system mode is active
+                    applySystemTheme();
+                }
+            });
+        })();
+
+        // =========================================
+        // 2. APP LOGIC
+        // =========================================
         let isLinked = false;
         let isHardwareOn = false;
-        let timerInterval = null;
-        let sensorInterval = null;
-        let startTime = 0;
-        let elapsedTime = 0;
+        let timerInterval, sensorInterval;
+        let startTime = 0, elapsedTime = 0;
 
         // Elements
-        const navControl = document.getElementById('nav-control');
-        const navMonitoring = document.getElementById('nav-monitoring');
-        const headerStatus = document.getElementById('header-status');
-        const ctlBtn = document.getElementById('ctl-btn');
-        const ctlIcon = document.getElementById('ctl-icon');
-        const ctlText = document.getElementById('ctl-text');
-        const ctlStatusText = document.getElementById('ctl-status-text');
-        const monBtn = document.getElementById('mon-btn');
-        const processStatusText = document.getElementById('process-status-text');
+        const ui = {
+            navControl: document.getElementById('nav-control'),
+            navMonitoring: document.getElementById('nav-monitoring'),
+            headerStatus: document.getElementById('header-status'),
+            ctlBtn: document.getElementById('ctl-btn'),
+            ctlIcon: document.getElementById('ctl-icon'),
+            ctlText: document.getElementById('ctl-text'),
+            ctlStatus: document.getElementById('ctl-status-text'),
+            pulse: document.getElementById('ctl-pulse'),
+            monBtn: document.getElementById('mon-btn'),
+            
+            // Sensors
+            valTemp: document.getElementById('val-temp'),
+            cardTemp: document.getElementById('card-temp-visual'),
+            valR: document.getElementById('val-r'),
+            valG: document.getElementById('val-g'),
+            valB: document.getElementById('val-b'),
+            colorPreview: document.getElementById('color-preview'),
+            colorName: document.getElementById('color-name'),
+            
+            // Timer
+            timerSec: document.getElementById('timer-sec'),
+            timerMs: document.getElementById('timer-ms'),
+            timerMicro: document.getElementById('timer-micro')
+        };
 
-        const valTemp = document.getElementById('val-temp');
-        const cardTempVisual = document.getElementById('card-temp-visual'); // Target Kartu Temp
-
-        const valR = document.getElementById('val-r');
-        const valG = document.getElementById('val-g');
-        const valB = document.getElementById('val-b');
-        const colorPreview = document.getElementById('color-preview');
-        const colorName = document.getElementById('color-name');
-        
-        const timerSec = document.getElementById('timer-sec');
-        const timerMs = document.getElementById('timer-ms');
-        const timerMicro = document.getElementById('timer-micro');
-
-        // Nav Logic
         function switchTab(tab) {
             if (tab === 'monitoring' && !isLinked) return;
+            
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.section-view').forEach(el => el.classList.remove('active'));
+            
             if (tab === 'control') {
-                navControl.classList.add('active');
+                ui.navControl.classList.add('active');
+                document.getElementById('control').classList.add('active');
                 document.getElementById('page-title').innerText = "Device Connection";
                 document.getElementById('page-subtitle').innerText = "Manage Web to Hardware Link";
             } else {
-                navMonitoring.classList.add('active');
-                document.getElementById('page-title').innerText = "Monitoring";
-                document.getElementById('page-subtitle').innerText = "Real-time Sensor Data";
+                ui.navMonitoring.classList.add('active');
+                document.getElementById('monitoring').classList.add('active');
+                document.getElementById('page-title').innerText = "Monitoring Dashboard";
+                document.getElementById('page-subtitle').innerText = "Real-time Sensor Data Analysis";
             }
-            document.querySelectorAll('.section-view').forEach(el => el.classList.remove('active'));
-            document.getElementById(tab).classList.add('active');
         }
 
-        // Control Logic
         function handleControlAction() {
             if (!isLinked) {
                 document.getElementById('overlay-scan').classList.add('visible');
                 setTimeout(() => {
                     document.getElementById('overlay-scan').classList.remove('visible');
                     setSystemLinked(true);
-                }, 1500);
+                }, 1200);
             } else {
                 if (isHardwareOn) toggleHardware();
                 setSystemLinked(false);
@@ -445,40 +588,47 @@
         function setSystemLinked(status) {
             isLinked = status;
             if (status) {
-                ctlBtn.className = "hardware-btn btn-standby";
-                ctlIcon.className = "fa-solid fa-link";
-                ctlText.innerText = "LINKED";
-                ctlStatusText.innerText = "Hardware Connected. ESP32.";
-                headerStatus.style.background = "#C6F6D5";
-                headerStatus.style.color = "#22543D";
-                headerStatus.innerText = "CONNECTED";
-                navMonitoring.classList.remove('disabled');
-                setTimeout(() => switchTab('monitoring'), 500);
+                ui.ctlBtn.className = "hardware-btn btn-active";
+                ui.ctlIcon.className = "fa-solid fa-link";
+                ui.ctlText.innerText = "LINKED";
+                ui.ctlStatus.innerText = "Connected to ESP32 Gateway";
+                ui.pulse.classList.add('active');
+                
+                ui.headerStatus.className = "status-badge status-normal";
+                ui.headerStatus.innerText = "CONNECTED";
+                
+                ui.navMonitoring.classList.remove('disabled');
+                setTimeout(() => switchTab('monitoring'), 600);
             } else {
-                ctlBtn.className = "hardware-btn btn-unlinked";
-                ctlIcon.className = "fa-solid fa-wifi";
-                ctlText.innerText = "CONNECT";
-                ctlStatusText.innerText = "Device Unlinked";
-                headerStatus.style.background = "#FED7D7";
-                headerStatus.style.color = "#C53030";
-                headerStatus.innerText = "DISCONNECTED";
-                navMonitoring.classList.add('disabled');
+                ui.ctlBtn.className = "hardware-btn btn-unlinked";
+                ui.ctlIcon.className = "fa-solid fa-wifi";
+                ui.ctlText.innerText = "CONNECT";
+                ui.ctlStatus.innerText = "Click to scan for hardware";
+                ui.pulse.classList.remove('active');
+
+                ui.headerStatus.className = "status-badge status-hot";
+                ui.headerStatus.innerText = "DISCONNECTED";
+                
+                ui.navMonitoring.classList.add('disabled');
             }
         }
 
-        // Hardware Toggle
         function toggleHardware() {
             isHardwareOn = !isHardwareOn;
             if (isHardwareOn) {
-                monBtn.className = "hardware-btn btn-active";
-                processStatusText.innerText = "Running";
+                ui.monBtn.className = "hardware-btn btn-active";
+                ui.monBtn.innerHTML = '<i class="fa-solid fa-pause" style="font-size: 1.2rem; margin:0;"></i>';
+                document.getElementById('process-status-text').innerText = "RUNNING";
+                
                 startTime = Date.now() - elapsedTime;
                 timerInterval = setInterval(updateTimer, 10);
                 sensorInterval = setInterval(updateSensors, 800);
                 updateSensors();
             } else {
-                monBtn.className = "hardware-btn btn-standby";
-                processStatusText.innerText = "Stopped";
+                ui.monBtn.className = "hardware-btn btn-standby";
+                ui.monBtn.innerHTML = '<i class="fa-solid fa-power-off" style="font-size: 1.2rem; margin:0;"></i>';
+                document.getElementById('process-status-text').innerText = "PAUSED";
+                
                 clearInterval(timerInterval);
                 clearInterval(sensorInterval);
             }
@@ -487,51 +637,45 @@
         function updateTimer() {
             let now = Date.now();
             elapsedTime = now - startTime;
-            let diffDate = new Date(elapsedTime);
-            let sec = diffDate.getUTCSeconds().toString().padStart(2, '0');
-            let ms = Math.floor(diffDate.getUTCMilliseconds() / 10).toString().padStart(2, '0');
-            let micro = (diffDate.getUTCMilliseconds() % 10).toString() + "0";
-            timerSec.innerText = sec;
-            timerMs.innerText = ms;
-            timerMicro.innerText = micro;
+            let date = new Date(elapsedTime);
+            
+            ui.timerSec.innerText = date.getUTCSeconds().toString().padStart(2, '0');
+            ui.timerMs.innerText = Math.floor(date.getUTCMilliseconds() / 10).toString().padStart(2, '0');
+            ui.timerMicro.innerText = (date.getUTCMilliseconds() % 10).toString() + "0";
         }
 
-        // === LOGIKA BARU UNTUK SENSOR ===
         function updateSensors() {
-            // 1. Temperature Simulation (Range diperlebar 28 - 36 agar kena logika Hot)
+            // Simulation Logic
             let temp = (Math.random() * (36 - 28) + 28).toFixed(1);
-            valTemp.innerText = temp;
+            ui.valTemp.innerText = temp;
 
-            // Logika Warna Background Temperature
+            // Update Card Gradient based on temp logic (Physics override themes)
             if (temp >= 35.0) {
-                // PANAS -> Merah
-                cardTempVisual.style.background = "linear-gradient(180deg, #FF416C 0%, #FF4B2B 100%)";
-            } else if (temp < 34.0) {
-                // DINGIN/BAWAH -> Biru
-                cardTempVisual.style.background = "linear-gradient(180deg, #2193b0 0%, #6dd5ed 100%)";
+                ui.cardTemp.style.background = "linear-gradient(180deg, #EF4444 0%, #B91C1C 100%)"; // Hot Red
+            } else if (temp < 30.0) {
+                ui.cardTemp.style.background = "linear-gradient(180deg, #0EA5E9 0%, #3B82F6 100%)"; // Cold Blue
             } else {
-                // DEFAULT (Antara 34 - 35) -> Gradient Original
-                cardTempVisual.style.background = "linear-gradient(180deg, #D31027 0%, #EA384D 40%, #2B32B2 100%)";
+                ui.cardTemp.style.background = "linear-gradient(180deg, #EF4444 0%, #F87171 40%, #3B82F6 100%)"; // Mixed
             }
 
-            // 2. Color Sensor Simulation
+            // RGB
             let r = Math.floor(Math.random() * 255);
             let g = Math.floor(Math.random() * 255);
             let b = Math.floor(Math.random() * 255);
 
-            valR.innerText = r;
-            valG.innerText = g;
-            valB.innerText = b;
-            colorPreview.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+            ui.valR.innerText = r;
+            ui.valG.innerText = g;
+            ui.valB.innerText = b;
+            ui.colorPreview.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
 
-            if (r > 200 && g > 200 && b < 100) colorName.innerText = "Yellow";
-            else if (r > 200 && g < 100 && b < 100) colorName.innerText = "Red";
-            else if (r < 100 && g > 200 && b < 100) colorName.innerText = "Green";
-            else if (r < 100 && g < 100 && b > 200) colorName.innerText = "Blue";
-            else if (r > 200 && g > 200 && b > 200) colorName.innerText = "White";
-            else colorName.innerText = "Mixed";
+            // Simple Color Classifier
+            if (r > 200 && g > 200 && b < 100) ui.colorName.innerText = "Yellow Sample";
+            else if (r > 200 && g < 100 && b < 100) ui.colorName.innerText = "Red Sample";
+            else if (r < 100 && g > 200 && b < 100) ui.colorName.innerText = "Green Sample";
+            else if (r < 100 && g < 100 && b > 200) ui.colorName.innerText = "Blue Sample";
+            else if (r > 200 && g > 200 && b > 200) ui.colorName.innerText = "White Sample";
+            else ui.colorName.innerText = "Unknown Alloy";
         }
-
     </script>
 </body>
 </html>
