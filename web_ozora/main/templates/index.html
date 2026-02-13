@@ -752,6 +752,26 @@
             background: rgba(239, 68, 68, 0.15);
             color: #EF4444;
         }
+
+        .token-status{
+            color:#005c14
+        }
+
+        [data-theme="dark"] .token-status {
+            color: rgb(165, 255, 161);
+        }
+
+
+        
+        .status-success {
+            background: rgba(68, 239, 119, 0.15);
+            color: rgb(37, 221, 0);
+        }
+
+        [data-theme="dark"] .status-success {
+            background: rgba(74, 239, 68, 0.2);
+            color: #76f871ff;
+        }
         
         [data-theme="dark"] .status-hot {
             background: rgba(239, 68, 68, 0.2);
@@ -1127,6 +1147,9 @@
                     <button class="theme-btn" onclick="setTheme('dark')" id="btn-theme-dark" title="Dark Mode">
                         <i class="fa-solid fa-moon"></i>
                     </button>
+                </div>
+                <div class="status-badge status-success">
+                    <code class="token-status">Token {{ api_token }}</code>
                 </div>
 
                 <div id="header-status" class="status-badge status-hot">
