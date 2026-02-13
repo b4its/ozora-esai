@@ -3,7 +3,7 @@
 <html lang="en" dir="ltr">
   <head>
     <meta charset="UTF-8" />
-    <title>Register | Online Warung Makan Gresik</title>
+    <title>Register | OZORA</title>
     <link rel="stylesheet" href="{% static 'css/iziToast.css' %}">
 <link rel="stylesheet" href="{% static 'css/iziToast.min.css' %}">
     <style>
@@ -211,7 +211,7 @@
           </ul></small
           <style></style>
           <div class="button" style="display: flex; flex-direction: column; gap: 1rem">{% csrf_token %} <input type="submit" value="Register" / style="padding:0.6em"></div>
-          <a href="{% url 'customerlogin' %}" class="register"> kamu sudah punya akun? silahkan login</a>
+          <a href="{% url 'customerLogin' %}" class="register"> Do you already have an account?, Please login.</a>
         </form>
       </div>
     </div>

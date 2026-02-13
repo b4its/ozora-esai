@@ -3,12 +3,12 @@
 <html lang="en" dir="ltr">
   <head>
     <meta charset="UTF-8" />
-    <title>Login | Online Warung Makan Gresik</title>
+    <title>Login | OZORA</title>
     <link rel="stylesheet" href="{% static 'css/iziToast.css' %}">
 <link rel="stylesheet" href="{% static 'css/iziToast.min.css' %}">
     <style>
       @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@200;300;400;500;600;700&display=swap");
-      * {
+      * { 
         margin: 0;
         padding: 0;
         box-sizing: border-box;
@@ -203,7 +203,7 @@
           </ul></small
           <style></style>
           <div class="button" style="display: flex; flex-direction: column; gap: 1rem">{% csrf_token %} <input type="submit" value="Login" / style="padding:0.6em"></div>
-          <a href="{% url 'register' %}" class="register">kamu belum memiliki akun? silahkan untuk register</a>
+          <a href="{% url 'register' %}" class="register">You don't have an account yet?, please register!</a>
         </form>
       </div>
     </div>
@@ -215,6 +215,7 @@
   
   iziToast.{{message.tags}}({
     title: '{{message}}',
+    position: 'topRight'
   });  
   </script>
       {% endfor %}

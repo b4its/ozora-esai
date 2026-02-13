@@ -17,11 +17,11 @@ def register(request):
             form = RegistrationForm(request.POST)
             if form.is_valid():
                 form.save()
-                messages.success(request,'Proses registrasi anda telah berhasil, silahkan untuk login!')
-                return redirect('customerlogin')
+                messages.success(request,'Your registration process has been successful, please log in!')
+                return redirect('customerLogin')
 
             else:
-                messages.error(request,'Password kamu mungkin tidak sama atau password sesuai dengan username!')
+                messages.error(request,'Your password may not be the same or the password may not match the username!')
                 return redirect('register')
     context = {
         'form':form
@@ -30,7 +30,8 @@ def register(request):
 
 def customerlogin (request):
     if request.user.is_authenticated:
-        return HttpResponse("you're already login ")
+        messages.info(request,"you're already login")
+        return redirect('home')
     else:
         if request.method == 'post' or request.method == 'POST':
             username = request.POST.get('username')    
@@ -38,17 +39,20 @@ def customerlogin (request):
             customer = authenticate(request,username=username,password=password)
             if customer is not None:
                 login(request,customer)
-                messages.info(request,'Selamat Datang '+str(request.user)+'!')
+                messages.info(request,'Welcome '+str(request.user)+'!')
                 return redirect('home')
             else:
-                messages.error(request,'Username atau password kamu salah!')
-                return redirect('home')
+                messages.error(request,"Username or Password that you've entered is incorrect.!")
+                return redirect('customerLogin')
 
     return render(request,'login.html')
 
-@login_required
 def logout_view(request):
-	if request.method =="POST":
-		logout(request)
-		return redirect("customerLogin")
-	return render(request, "logout.html")
+    # Proses logout user
+    logout(request)
+    
+    # Berikan pesan sukses, bukan error
+    messages.info(request, "please login to your account")
+    
+    # Arahkan kembali ke halaman login atau beranda
+    return redirect("customerLogin")
