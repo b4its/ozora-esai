@@ -1,0 +1,139 @@
+(env) root@srv1141370:~/deploy/ozora# ls
+env  site
+(env) root@srv1141370:~/deploy/ozora# tree site
+site
+├── iot
+│   ├── ColorSensor
+│   │   └── ColorSensor.ino
+│   └── example.cpp
+├── noteIoT
+├── requirements.txt
+├── templates
+│   └── index.html
+└── web_ozora
+    ├── account
+    │   ├── admin.py
+    │   ├── apps.py
+    │   ├── forms.py
+    │   ├── __init__.py
+    │   ├── migrations
+    │   │   ├── 0001_initial.py
+    │   │   ├── 0002_delete_profile.py
+    │   │   ├── 0003_profile.py
+    │   │   ├── 0004_alter_profile_id.py
+    │   │   ├── 0005_alter_profile_user.py
+    │   │   ├── 0006_alter_profile_user.py
+    │   │   ├── __init__.py
+    │   │   └── __pycache__
+    │   │       ├── 0001_initial.cpython-314.pyc
+    │   │       ├── 0001_initial.cpython-37.pyc
+    │   │       ├── 0002_delete_profile.cpython-314.pyc
+    │   │       ├── 0002_delete_profile.cpython-37.pyc
+    │   │       ├── 0003_profile.cpython-314.pyc
+    │   │       ├── 0003_profile.cpython-37.pyc
+    │   │       ├── 0004_alter_profile_id.cpython-314.pyc
+    │   │       ├── 0005_alter_profile_user.cpython-314.pyc
+    │   │       ├── 0006_alter_profile_user.cpython-314.pyc
+    │   │       ├── __init__.cpython-314.pyc
+    │   │       └── __init__.cpython-37.pyc
+    │   ├── models.py
+    │   ├── __pycache__
+    │   │   ├── admin.cpython-314.pyc
+    │   │   ├── admin.cpython-37.pyc
+    │   │   ├── apps.cpython-314.pyc
+    │   │   ├── apps.cpython-37.pyc
+    │   │   ├── forms.cpython-314.pyc
+    │   │   ├── forms.cpython-37.pyc
+    │   │   ├── __init__.cpython-314.pyc
+    │   │   ├── __init__.cpython-37.pyc
+    │   │   ├── models.cpython-314.pyc
+    │   │   ├── models.cpython-37.pyc
+    │   │   ├── urls.cpython-314.pyc
+    │   │   ├── urls.cpython-37.pyc
+    │   │   ├── views.cpython-314.pyc
+    │   │   └── views.cpython-37.pyc
+    │   ├── signals.py
+    │   ├── templates
+    │   │   ├── login.html
+    │   │   └── register.html
+    │   ├── tests.py
+    │   ├── urls.py
+    │   └── views.py
+    ├── db.sqlite3
+    ├── iot_service
+    │   ├── admin.py
+    │   ├── apps.py
+    │   ├── __init__.py
+    │   ├── migrations
+    │   │   ├── 0001_initial.py
+    │   │   ├── __init__.py
+    │   │   └── __pycache__
+    │   │       ├── 0001_initial.cpython-314.pyc
+    │   │       └── __init__.cpython-314.pyc
+    │   ├── models.py
+    │   ├── __pycache__
+    │   │   ├── admin.cpython-314.pyc
+    │   │   ├── apps.cpython-314.pyc
+    │   │   ├── __init__.cpython-314.pyc
+    │   │   ├── models.cpython-314.pyc
+    │   │   ├── serializers.cpython-314.pyc
+    │   │   ├── urls.cpython-314.pyc
+    │   │   └── views.cpython-314.pyc
+    │   ├── serializers.py
+    │   ├── tests.py
+    │   ├── urls.py
+    │   └── views.py
+    ├── main
+    │   ├── admin.py
+    │   ├── apps.py
+    │   ├── __init__.py
+    │   ├── migrations
+    │   │   ├── __init__.py
+    │   │   └── __pycache__
+    │   │       ├── __init__.cpython-313.pyc
+    │   │       └── __init__.cpython-314.pyc
+    │   ├── models.py
+    │   ├── __pycache__
+    │   │   ├── admin.cpython-313.pyc
+    │   │   ├── admin.cpython-314.pyc
+    │   │   ├── apps.cpython-313.pyc
+    │   │   ├── apps.cpython-314.pyc
+    │   │   ├── __init__.cpython-313.pyc
+    │   │   ├── __init__.cpython-314.pyc
+    │   │   ├── models.cpython-313.pyc
+    │   │   ├── models.cpython-314.pyc
+    │   │   ├── urls.cpython-313.pyc
+    │   │   ├── urls.cpython-314.pyc
+    │   │   ├── views.cpython-313.pyc
+    │   │   └── views.cpython-314.pyc
+    │   ├── templates
+    │   │   └── index.html
+    │   ├── tests.py
+    │   ├── urls.py
+    │   └── views.py
+    ├── manage.py
+    ├── static
+    │   ├── css
+    │   │   ├── iziToast.css
+    │   │   └── iziToast.min.css
+    │   └── js
+    │       ├── iziToast.js
+    │       └── iziToast.min.js
+    └── web_ozora
+        ├── asgi.py
+        ├── __init__.py
+        ├── __pycache__
+        │   ├── __init__.cpython-313.pyc
+        │   ├── __init__.cpython-314.pyc
+        │   ├── settings.cpython-313.pyc
+        │   ├── settings.cpython-314.pyc
+        │   ├── urls.cpython-313.pyc
+        │   ├── urls.cpython-314.pyc
+        │   ├── wsgi.cpython-313.pyc
+        │   └── wsgi.cpython-314.pyc
+        ├── settings.py
+        ├── urls.py
+        └── wsgi.py
+
+24 directories, 109 files
+(env) root@srv1141370:~/deploy/ozora# 

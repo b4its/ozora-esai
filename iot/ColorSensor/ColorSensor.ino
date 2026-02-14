@@ -1,117 +1,194 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
-#include <WiFiManager.h>
-#include <ArduinoJson.h>
+#include <WiFiManager.h> // https://github.com/tzapu/WiFiManager
+#include <ArduinoJson.h> // https://github.com/bblanchon/ArduinoJson
+#include <LittleFS.h>
 #include <Wire.h>
 #include "Adafruit_TCS34725.h"
 
-// ================= KONFIGURASI =================
-// Ganti dengan URL endpoint Django kamu
-// Pastikan tidak menggunakan 'localhost', gunakan IP Public VPS atau Domain
+// ================= KONFIGURASI PENGGUNA =================
+const char* apSSID = "ESP32_Sensor_Color"; // Nama Hotspot saat konfigurasi
+const char* apPASS = "Admin1234";          // Password Hotspot (Wajib 8 char)
 const char* serverName = "http://domain-vps-kamu.com/api/receive-data/";
 
-// PENTING: Token User dari Django
-// Format string harus: "Token <paste_token_disini>"
-// Contoh: "Token 9944b09199c62bcf9418ad846dd0e4bbdfc6ee4b"
-const char* apiToken = "Token 9944b09199c62bcf9418ad846dd0e4bbdfc6ee4b"; 
+// Pin untuk Reset WiFi (Gunakan tombol BOOT di ESP32 biasanya GPIO 0)
+#define TRIGGER_PIN 0 
 
-// ================= HARDWARE =================
-// Inisialisasi Sensor TCS34725
+// Variable Token
+char apiToken[128] = "Token "; // Buffer diperbesar untuk keamanan
+
+// Flag config
+bool shouldSaveConfig = false;
+
+// Inisialisasi Sensor
 Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_50MS, TCS34725_GAIN_4X);
+
+// Callback notifikasi simpan config
+void saveConfigCallback() {
+  Serial.println(F("New configuration detected, preparing storage..."));
+  shouldSaveConfig = true;
+}
 
 void setup() {
   Serial.begin(115200);
+  pinMode(TRIGGER_PIN, INPUT_PULLUP);
   
-  // ------------------------------------------------
-  // 1. WiFiManager Setup (Mode Hotspot -> WiFi)
-  // ------------------------------------------------
-  WiFiManager wm;
-  
-  // Reset settingan wifi yang tersimpan (Hapus comment di bawah ini untuk testing ulang dari nol)
-  // wm.resetSettings();
+  // Tunggu serial sebentar
+  delay(1000);
+  Serial.println(F("\n\n--- ESP32 IoT System Start ---"));
 
-  // Ini membuat ESP32 jadi Hotspot bernama "ESP32_Config_Portal"
-  // Jika user connect ke sini, akan muncul pop-up untuk pilih WiFi rumah/kantor
-  bool res;
-  res = wm.autoConnect("ESP32_Config_Portal"); // password opsional, misal: "12345678"
+  // --- 1. Mount File System ---
+  if (!LittleFS.begin(true)) {
+    Serial.println(F("LittleFS Mount Failed"));
+    return;
+  }
 
-  if (!res) {
-    Serial.println("Gagal connect atau timeout");
-    // Restart supaya mencoba lagi
+  // --- 2. Load Config dari File ---
+  if (LittleFS.exists("/config.json")) {
+    File configFile = LittleFS.open("/config.json", "r");
+    if (configFile) {
+      size_t size = configFile.size();
+      std::unique_ptr<char[]> buf(new char[size]);
+      configFile.readBytes(buf.get(), size);
+
+      StaticJsonDocument<512> json;
+      DeserializationError error = deserializeJson(json, buf.get());
+
+      if (!error) {
+        if(json.containsKey("apiToken")) strcpy(apiToken, json["apiToken"]);
+        Serial.println(F("Tokens are loaded from memory."));
+      }
+      configFile.close();
+    }
+  }
+
+  // --- 3. Cek Tombol Reset (Force Config Portal) ---
+  // Tahan tombol BOOT saat menyalakan/restart untuk mereset WiFi
+  if (digitalRead(TRIGGER_PIN) == LOW) {
+    Serial.println(F("Reset button pressed! Deleting WiFi settings..."));
+    WiFiManager wm;
+    wm.resetSettings();
+    // Hapus juga file config jika perlu benar-benar bersih
+    // LittleFS.remove("/config.json"); 
+    Serial.println(F("Reset complete. Restarting..."));
+    delay(1000);
     ESP.restart();
-  } 
+  }
+
+  // --- 4. WiFiManager Setup ---
+  WiFiManager wm;
+  wm.setSaveConfigCallback(saveConfigCallback);
   
-  Serial.println("");
-  Serial.println("Berhasil terhubung ke WiFi!");
-  Serial.print("IP Address ESP32: ");
+  // Set Timeout (jika tidak ada yang konek dalam 3 menit, dia akan mencoba reconnect ulang)
+  wm.setConfigPortalTimeout(180); 
+
+  // Custom Parameter (Token)
+  // Argumen: ID, Label, Default Value, Length
+  WiFiManagerParameter custom_api_token("token", "Enter Full Token (eg: Token abc12345)", apiToken, 120);
+  wm.addParameter(&custom_api_token);
+
+  // Buat Hotspot dengan Password
+  // IP Default biasanya 192.168.4.1
+  Serial.print(F("Trying to connect... If it fails, Hotspot will be active: "));
+  Serial.println(apSSID);
+
+  pinMode(0, INPUT_PULLUP);
+  if (digitalRead(0) == LOW) { // Jika tombol ditekan saat menyala
+      Serial.println("Resetting WiFi & Token...");
+      wm.resetSettings(); // Hapus WiFi
+      LittleFS.format();    // Hapus Token
+      delay(1000);
+      ESP.restart();
+  }
+  
+  if (!wm.autoConnect(apSSID, apPASS)) {
+    Serial.println(F("Failed to connect and timeout. Restarting..."));
+    delay(3000);
+    ESP.restart();
+  }
+
+  // --- 5. Simpan Config Baru (Jika ada) ---
+  strcpy(apiToken, custom_api_token.getValue());
+
+  if (shouldSaveConfig) {
+    Serial.println(F("Saved configuration."));
+    StaticJsonDocument<512> json;
+    json["apiToken"] = apiToken;
+
+    File configFile = LittleFS.open("/config.json", "w");
+    if (!configFile) {
+      Serial.println(F("failed to open config file for writing"));
+    } else {
+      serializeJson(json, configFile);
+      configFile.close();
+      Serial.println(F("Saved configuration."));
+    }
+  }
+
+  Serial.println(F("Connect to WiFi!"));
+  Serial.print(F("IP Address: "));
   Serial.println(WiFi.localIP());
 
-  // ------------------------------------------------
-  // 2. Cek Sensor
-  // ------------------------------------------------
+  // Init Sensor
   if (!tcs.begin()) {
-    Serial.println("Error: Sensor TCS34725 tidak ditemukan! Cek kabel.");
-    while (1); // Stop di sini jika sensor rusak
+    Serial.println(F("Error: TCS34725 sensor not found! Check I2C wiring."));
+    while (1); // Halt
   }
 }
 
 void loop() {
-  // Cek apakah WiFi masih terhubung sebelum kirim data
+  // Cek Status WiFi
   if (WiFi.status() == WL_CONNECTED) {
     
-    // --- Ambil Data Sensor ---
+    // Baca Sensor
     uint16_t r, g, b, c, colorTemp, lux;
     tcs.getRawData(&r, &g, &b, &c);
     colorTemp = tcs.calculateColorTemperature(r, g, b);
     lux = tcs.calculateLux(r, g, b);
 
-    // --- Format Data ke JSON ---
-    // Pastikan key ("red", "green", dll) SAMA PERSIS dengan field di Serializer Django
-    StaticJsonDocument<200> doc;
+    // Buat JSON Payload
+    StaticJsonDocument<256> doc;
     doc["red"] = r;
     doc["green"] = g;
     doc["blue"] = b;
-    // doc["clear"] = c; // Hapus ini jika di Model Django tidak ada field 'clear'
+    doc["clear"] = c;
     doc["temp"] = colorTemp;
     doc["lux"] = lux;
+    
+    // Tambahkan info device (opsional, agar backend tahu ini alat yang mana)
+    doc["device_ip"] = WiFi.localIP().toString(); 
 
     String requestBody;
     serializeJson(doc, requestBody);
 
-    // --- Debugging di Serial Monitor ---
-    Serial.println("Mengirim data: " + requestBody);
-
-    // --- Kirim ke Django ---
+    // Kirim HTTP POST
     HTTPClient http;
     http.begin(serverName);
-
-    // Header Wajib untuk Django REST Framework
     http.addHeader("Content-Type", "application/json");
     
-    // Header Autentikasi (Agar Django tahu ini User siapa)
-    http.addHeader("Authorization", apiToken);
+    // Header Authorization
+    // Pastikan user memasukkan format yang benar di portal atau format disini
+    // Disini diasumsikan user memasukkan string lengkap "Token xxxxx" atau kita kirim raw
+    http.addHeader("Authorization", apiToken); 
+    
+    // Timeout agar tidak blocking terlalu lama jika server down
+    http.setTimeout(5000); 
 
-    // Eksekusi POST
     int httpResponseCode = http.POST(requestBody);
 
     if (httpResponseCode > 0) {
-      String response = http.getString();
-      Serial.print("Sukses! Kode Respon: ");
-      Serial.println(httpResponseCode);
-      Serial.println("Balasan Server: " + response);
+      Serial.printf("HTTP Code: %d | Response: ", httpResponseCode);
+      Serial.println(http.getString());
     } else {
-      Serial.print("Error saat mengirim POST: ");
-      Serial.println(httpResponseCode);
+      Serial.printf("HTTP Error: %s\n", http.errorToString(httpResponseCode).c_str());
     }
-
-    // Bebaskan resource
+    
     http.end();
-
   } else {
-    Serial.println("WiFi Terputus! Mencoba reconnect...");
-    WiFi.reconnect();
+    Serial.println(F("WiFi Disconnected. Try reconnecting..."));
+    WiFi.reconnect(); // Coba paksa reconnect
   }
 
-  // Kirim data setiap 5 detik
-  delay(5000);
+  // Delay pengiriman (sesuaikan kebutuhan, misal 10 detik)
+  delay(10000); 
 }

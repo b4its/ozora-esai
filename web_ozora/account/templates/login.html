@@ -1,11 +1,15 @@
-<!DOCTYPE html> {% load static %}
-<!-- Created By CodingLab - www.codinglabweb.com -->
+<!DOCTYPE html>
+{% load static %}
 <html lang="en" dir="ltr">
   <head>
     <meta charset="UTF-8" />
     <title>Login | OZORA</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
     <link rel="stylesheet" href="{% static 'css/iziToast.css' %}">
-<link rel="stylesheet" href="{% static 'css/iziToast.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/iziToast.min.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
     <style>
       @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@200;300;400;500;600;700&display=swap");
       * { 
@@ -23,27 +27,24 @@
         background: linear-gradient(135deg, #71b7e6, #9b59b6);
       }
       .container {
-        max-width: 700px;
+        max-width: 450px; /* UX: Lebih kecil dari register agar lebih fokus untuk login */
         width: 100%;
         background-color: #fff;
         padding: 25px 30px;
-        border-radius: 5px;
+        border-radius: 10px; /* Sedikit lebih rounded */
         box-shadow: 0 5px 10px rgba(0, 0, 0, 0.15);
       }
       .container .title {
         font-size: 25px;
         font-weight: 500;
         position: relative;
-      }
-
-      ul li {
-        list-style-type: none;
+        margin-bottom: 20px;
       }
       .container .title::before {
         content: "";
         position: absolute;
         left: 0;
-        bottom: 0;
+        bottom: -3px;
         height: 3px;
         width: 30px;
         border-radius: 5px;
@@ -55,15 +56,39 @@
         justify-content: space-between;
         margin: 20px 0 12px 0;
       }
+      
+      /* UX Change: Full width untuk Login Form agar lebih rapi */
       form .user-details .input-box {
         margin-bottom: 15px;
-        width: calc(100% / 2 - 20px);
+        width: 100%; 
       }
+      
       form .input-box span.details {
         display: block;
         font-weight: 500;
         margin-bottom: 5px;
       }
+      
+      /* --- Start: Perbaikan UI Password --- */
+      .password-container {
+        position: relative;
+        width: 100%;
+      }
+      .password-container i {
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #707070;
+        cursor: pointer;
+        font-size: 18px;
+        z-index: 10;
+      }
+      .password-container i:hover {
+        color: #9b59b6;
+      }
+      /* --- End: Perbaikan UI Password --- */
+
       .user-details .input-box input {
         height: 45px;
         width: 100%;
@@ -79,51 +104,19 @@
       .user-details .input-box input:valid {
         border-color: #9b59b6;
       }
-      form .gender-details .gender-title {
-        font-size: 20px;
-        font-weight: 500;
-      }
-      form .category {
-        display: flex;
-        width: 80%;
-        margin: 14px 0;
-        justify-content: space-between;
-      }
-      form .category label {
-        display: flex;
-        align-items: center;
-        cursor: pointer;
-      }
-
+      
       form input:focus {
         background: linear-gradient(135deg, #71b7e6, #9b59b6);
         border:1px solid black;
-        
+        color: white; 
       }
       form input:focus::placeholder {
         color:white;        
       }
-      form .category label .dot {
-        height: 18px;
-        width: 18px;
-        border-radius: 50%;
-        margin-right: 10px;
-        background: #d9d9d9;
-        border: 5px solid transparent;
-        transition: all 0.3s ease;
-      }
-      #dot-1:checked ~ .category label .one,
-      #dot-2:checked ~ .category label .two,
-      #dot-3:checked ~ .category label .three {
-        background: #9b59b6;
-        border-color: #d9d9d9;
-      }
-      form input[type="radio"] {
-        display: none;
-      }
+      
       form .button {
         height: 45px;
-        margin: 35px 0;
+        margin: 25px 0 15px 0;
       }
       form .button input {
         height: 100%;
@@ -139,43 +132,23 @@
         background: linear-gradient(135deg, #71b7e6, #9b59b6);
       }
       form .button input:hover {
-        /* transform: scale(0.99); */
         background: linear-gradient(-135deg, #71b7e6, #9b59b6);
       }
       a {
         color: black;
         text-decoration: none;
+        font-size: 14px;
       }
-      a :hover {
+      a:hover {
         color: purple;
-        transform: translateX(5px);
+        text-decoration: underline;
       }
-      @media (max-width: 584px) {
-        .container {
-          max-width: 100%;
-        }
-        form .user-details .input-box {
-          margin-bottom: 15px;
-          width: 100%;
-        }
-        form .category {
-          width: 100%;
-        }
-        .content form .user-details {
-          max-height: 300px;
-          overflow-y: scroll;
-        }
-        .user-details::-webkit-scrollbar {
-          width: 5px;
-        }
-      }
-      @media (max-width: 459px) {
-        .container .content .category {
-          flex-direction: column;
-        }
+      .register-link {
+        text-align: center;
+        display: block;
+        margin-top: 10px;
       }
     </style>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   </head>
   <body>
     <div class="container">
@@ -186,83 +159,59 @@
             <div class="input-box">
               <span class="details">Username</span>
               <input type="text" name="username" placeholder="Masukkan username anda" required />
-              <small id="hint_id_username" class="form-text text-muted">Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.</small>
             </div>
 
             <div class="input-box">
               <span class="details">Password</span>
-              <input type="password" name="password" placeholder="Masukkan password anda" required />
+              <div class="password-container">
+                <input type="password" name="password" id="id_password" placeholder="Masukkan password anda" required />
+                <i class="fa-solid fa-eye" id="togglePassword" onclick="togglePassword()"></i>
+              </div>
             </div>
           </div>
-          <small id="hint_id_password1" class="form-text text-muted"
-          ><ul>
-            <li>Your password can’t be too similar to your other personal information.</li>
-            <li>Your password must contain at least 8 characters.</li>
-            <li>Your password can’t be a commonly used password.</li>
-            <li>Your password can’t be entirely numeric.</li>
-          </ul></small
-          <style></style>
-          <div class="button" style="display: flex; flex-direction: column; gap: 1rem">{% csrf_token %} <input type="submit" value="Login" / style="padding:0.6em"></div>
-          <a href="{% url 'register' %}" class="register">You don't have an account yet?, please register!</a>
+          
+          <div class="button">
+            {% csrf_token %} 
+            <input type="submit" value="Login">
+          </div>
+          
+          <div class="register-link">
+             <a href="{% url 'register' %}">You don't have an account yet? Please register!</a>
+          </div>
         </form>
       </div>
     </div>
+
     <script src="{% static 'js/iziToast.js' %}"></script>
     <script src="{% static 'js/iziToast.min.js' %}"></script>
+    
+    <script>
+      // Fungsi Toggle Password Single
+      function togglePassword() {
+        const passwordInput = document.getElementById('id_password');
+        const icon = document.getElementById('togglePassword');
+
+        if (passwordInput.type === "password") {
+            passwordInput.type = "text";
+            icon.classList.remove("fa-eye");
+            icon.classList.add("fa-eye-slash");
+        } else {
+            passwordInput.type = "password";
+            icon.classList.remove("fa-eye-slash");
+            icon.classList.add("fa-eye");
+        }
+      }
+    </script>
+
     {% if messages %}
     {% for message in messages %}
-  <script>
-  
-  iziToast.{{message.tags}}({
-    title: '{{message}}',
-    position: 'topRight'
-  });  
-  </script>
-      {% endfor %}
-      {% endif %}
+    <script>
+      iziToast.{{message.tags}}({
+        title: '{{message}}',
+        position: 'topRight'
+      });  
+    </script>
+    {% endfor %}
+    {% endif %}
   </body>
 </html>
-
-{% comment %}
-<form method="post" action="">
-  <input type="hidden" name="csrfmiddlewaretoken" value="bobrIKbihtkRa6DpQ411OIERAW803uK4hmxrPQyl84S14MFwWn4n8TYP4KUVpzmL" />
-
-  <div id="div_id_email" class="form-group">
-    <label for="id_email" class=""> Email address </label>
-    <div class=""><input type="email" name="email" maxlength="254" class="emailinput form-control" id="id_email" /></div>
-  </div>
-  <div id="div_id_username" class="form-group">
-    <label for="id_username" class="requiredField"> Username<span class="asteriskField">*</span> </label>
-    <div class="">
-      <input type="text" name="username" maxlength="150" autofocus class="textinput textInput form-control" required id="id_username" />
-      <small id="hint_id_username" class="form-text text-muted">Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.</small>
-    </div>
-  </div>
-  <div id="div_id_password1" class="form-group">
-    <label for="id_password1" class="requiredField"> Password<span class="asteriskField">*</span> </label>
-    <div class="">
-      <input type="password" name="password1" autocomplete="new-password" class="textinput textInput form-control" required id="id_password1" />
-      <small id="hint_id_password1" class="form-text text-muted"
-        ><ul>
-          <li>Your password can’t be too similar to your other personal information.</li>
-          <li>Your password must contain at least 8 characters.</li>
-          <li>Your password can’t be a commonly used password.</li>
-          <li>Your password can’t be entirely numeric.</li>
-        </ul></small
-      >
-    </div>
-  </div>
-  <div id="div_id_password2" class="form-group">
-    <label for="id_password2" class="requiredField"> Password confirmation<span class="asteriskField">*</span> </label>
-    <div class="">
-      <input type="password" name="password2" autocomplete="new-password" class="textinput textInput form-control" required id="id_password2" />
-      <small id="hint_id_password2" class="form-text text-muted">Enter the same password as before, for verification.</small>
-    </div>
-  </div>
-  <br />
-  <div style="display: flex; flex-direction: column; gap: 2rem; justify-content: center; margin-top: 1rem">
-    <input type="submit" value="create an account" />
-    <a href="/account/login/">Do you already have a account? </a>
-  </div>
-</form>
-{% endcomment %}
