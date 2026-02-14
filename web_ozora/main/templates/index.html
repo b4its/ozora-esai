@@ -1,1123 +1,249 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="id" data-theme="light">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ozora Panel</title>
+    <title>Ozora Panel - Textile Wastewater Treatment</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
     <link rel="stylesheet" href="{% static 'css/iziToast.css' %}">
     <link rel="stylesheet" href="{% static 'css/iziToast.min.css' %}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* =========================================
-           1. DESIGN TOKENS & VARIABLES
-           ========================================= */
         :root {
-            /* --- Light Theme (Default) --- */
             --bg-body: #F8FAFC;
             --bg-nav: #FFFFFF;
             --bg-card: #FFFFFF;
             --bg-hover: #F1F5F9;
-            
             --text-main: #0F172A;
             --text-muted: #64748B;
             --text-inverted: #FFFFFF;
-
             --border-color: #E2E8F0;
             --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
             --shadow-hover: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-
-            /* Brand Colors */
             --primary: #3B82F6;
             --primary-gradient: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
-            
-            /* Specific Gradients */
             --grad-temp-default: linear-gradient(180deg, #EF4444 0%, #F87171 40%, #3B82F6 100%);
             --grad-process: linear-gradient(180deg, #10B981 0%, #34D399 50%, #1E40AF 100%);
-            
-            /* Dimensions */
+            --grad-speed: linear-gradient(180deg, #8B5CF6 0%, #A78BFA 100%);
             --nav-width: 280px;
             --radius-card: 20px;
             --radius-btn: 12px;
-            
-            /* Transitions */
             --trans-fast: 0.2s ease;
             --trans-theme: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
         }
-
-        /* --- Dark Theme Overrides --- */
         [data-theme="dark"] {
             --bg-body: #0F172A;
             --bg-nav: #1E293B;
             --bg-card: #1E293B;
             --bg-hover: #334155;
-
             --text-main: #F8FAFC;
             --text-muted: #94A3B8;
             --text-inverted: #FFFFFF;
-
             --border-color: #334155;
             --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
             --shadow-hover: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
         }
-
-        * { 
-            margin: 0; 
-            padding: 0; 
-            box-sizing: border-box; 
-            font-family: 'Plus Jakarta Sans', sans-serif; 
-        }
-
-        body {
-            background-color: var(--bg-body);
-            color: var(--text-main);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            transition: var(--trans-theme);
-        }
-
-        /* =========================================
-           2. NAVIGATION - RESPONSIVE
-           ========================================= */
-        .nav-container {
-            position: fixed;
-            background: var(--bg-nav);
-            z-index: 100;
-            border-right: 1px solid var(--border-color);
-            transition: var(--trans-theme);
-            display: flex;
-        }
-        
-        .nav-logo { 
-            font-weight: 800;
-            font-size: 1.5rem;
-            color: var(--primary); 
-            display: flex;
-            align-items: center;
-            gap: 12px; 
-            letter-spacing: -0.5px;
-        }
-
-        .nav-links { 
-            list-style: none;
-            display: flex;
-        }
-        
-        .nav-item {
-            cursor: pointer;
-            transition: all 0.2s ease; 
-            color: var(--text-muted);
-            font-weight: 600;
-            border-radius: var(--radius-btn);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .nav-item:hover:not(.disabled) {
-            color: var(--primary);
-            background: var(--bg-hover);
-        }
-        
-        .nav-item.active { 
-            background: var(--primary-gradient); 
-            color: white; 
-            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.4);
-        }
-        
-        .nav-item.disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            filter: grayscale(1);
-        }
-
-        /* Desktop Navigation */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { background-color: var(--bg-body); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; transition: var(--trans-theme); }
+        .nav-container { position: fixed; background: var(--bg-nav); z-index: 100; border-right: 1px solid var(--border-color); transition: var(--trans-theme); display: flex; }
+        .nav-logo { font-weight: 800; font-size: 1.5rem; color: var(--primary); display: flex; align-items: center; gap: 12px; letter-spacing: -0.5px; }
+        .nav-links { list-style: none; display: flex; }
+        .nav-item { cursor: pointer; transition: all 0.2s ease; color: var(--text-muted); font-weight: 600; border-radius: var(--radius-btn); display: flex; align-items: center; justify-content: center; gap: 12px; position: relative; overflow: hidden; }
+        .nav-item:hover:not(.disabled) { color: var(--primary); background: var(--bg-hover); }
+        .nav-item.active { background: var(--primary-gradient); color: white; box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.4); }
+        .nav-item.disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(1); }
         @media (min-width: 768px) {
             body { flex-direction: row; }
-            
-            .nav-container {
-                left: 0;
-                top: 0;
-                height: 100vh;
-                width: var(--nav-width);
-                padding: 2rem;
-                flex-direction: column;
-            }
-            
-            .nav-links {
-                flex-direction: column;
-                margin-top: 3rem;
-                gap: 0.8rem;
-            }
-            
-            .nav-item {
-                padding: 1rem;
-                justify-content: flex-start;
-            }
-            
-            main {
-                margin-left: var(--nav-width);
-                width: calc(100% - var(--nav-width));
-            }
+            .nav-container { left: 0; top: 0; height: 100vh; width: var(--nav-width); padding: 2rem; flex-direction: column; }
+            .nav-links { flex-direction: column; margin-top: 3rem; gap: 0.8rem; }
+            .nav-item { padding: 1rem; justify-content: flex-start; }
+            main { margin-left: var(--nav-width); width: calc(100% - var(--nav-width)); }
         }
-
-        /* Mobile Navigation */
         @media (max-width: 767px) {
-            .nav-container {
-                bottom: 0;
-                left: 0;
-                width: 100%;
-                height: 70px;
-                padding: 0.5rem 1rem;
-                justify-content: space-around;
-                align-items: center;
-                border-right: none;
-                border-top: 1px solid var(--border-color);
-            }
-            
+            .nav-container { bottom: 0; left: 0; width: 100%; height: 70px; padding: 0.5rem 1rem; justify-content: space-around; align-items: center; border-right: none; border-top: 1px solid var(--border-color); }
             .nav-logo { display: none; }
-            
-            .nav-links {
-                width: 100%;
-                justify-content: space-around;
-                gap: 0.5rem;
-            }
-            
-            .nav-item {
-                flex-direction: column;
-                font-size: 0.7rem;
-                padding: 0.5rem 0.8rem;
-                gap: 4px;
-                background: transparent !important;
-                flex: 1;
-                max-width: 120px;
-            }
-            
-            .nav-item i {
-                font-size: 1.2rem;
-            }
-            
-            .nav-item.active {
-                color: var(--primary);
-                box-shadow: none;
-            }
-            
-            .nav-item.active i {
-                background: var(--primary-gradient);
-                -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;
-                font-size: 1.5rem;
-                transform: translateY(-3px);
-                transition: transform 0.2s;
-            }
-            
-            main {
-                margin-bottom: 70px;
-                width: 100%;
-            }
+            .nav-links { width: 100%; justify-content: space-around; gap: 0.5rem; }
+            .nav-item { flex-direction: column; font-size: 0.7rem; padding: 0.5rem 0.8rem; gap: 4px; background: transparent !important; flex: 1; max-width: 120px; }
+            .nav-item i { font-size: 1.2rem; }
+            .nav-item.active { color: var(--primary); box-shadow: none; }
+            .nav-item.active i { background: var(--primary-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 1.5rem; transform: translateY(-3px); transition: transform 0.2s; }
+            main { margin-bottom: 70px; width: 100%; }
         }
-
-        /* =========================================
-           3. MAIN LAYOUT & HEADER - RESPONSIVE
-           ========================================= */
-        main {
-            padding: 2rem 3rem;
-            position: relative;
-            min-height: 100vh;
-            transition: var(--trans-theme);
-        }
-        
-        /* Tablet Layout */
-        @media (max-width: 1024px) {
-            main { padding: 1.5rem 2rem; }
-        }
-
-        /* Mobile Layout */
-        @media (max-width: 767px) {
-            main { padding: 1rem; }
-        }
-
-        @media (max-width: 480px) {
-            main { padding: 0.75rem; }
-        }
-
-        header {
-            margin-bottom: 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-        
-        .header-content h1 {
-            color: var(--text-main);
-            font-size: 2rem;
-            letter-spacing: -1px;
-            margin-bottom: 0.5rem;
-        }
-        
-        .header-content p {
-            color: var(--text-muted);
-            font-size: 1rem;
-        }
-
-        /* Responsive Header */
+        main { padding: 2rem 3rem; position: relative; min-height: 100vh; transition: var(--trans-theme); }
+        @media (max-width: 1024px) { main { padding: 1.5rem 2rem; } }
+        @media (max-width: 767px) { main { padding: 1rem; } }
+        @media (max-width: 480px) { main { padding: 0.75rem; } }
+        header { margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; }
+        .header-content h1 { color: var(--text-main); font-size: 2rem; letter-spacing: -1px; margin-bottom: 0.5rem; }
+        .header-content p { color: var(--text-muted); font-size: 1rem; }
         @media (max-width: 768px) {
-            header {
-                flex-direction: column;
-                gap: 1rem;
-            }
-            
-            .header-content h1 {
-                font-size: 1.5rem;
-            }
-            
-            .header-content p {
-                font-size: 0.9rem;
-            }
-
-            .header-actions {
-                width: 100%;
-                display: flex;
-                flex-direction: column;
-                gap: 0.75rem;
-            }
+            header { flex-direction: column; gap: 1rem; }
+            .header-content h1 { font-size: 1.5rem; }
+            .header-content p { font-size: 0.9rem; }
+            .header-actions { width: 100%; display: flex; flex-direction: column; gap: 0.75rem; }
         }
-
-        @media (max-width: 480px) {
-            .header-content h1 {
-                font-size: 1.25rem;
-            }
-        }
-
-        /* THEME SWITCHER - RESPONSIVE */
-        .theme-switch-wrapper {
-            background: var(--bg-nav);
-            border: 1px solid var(--border-color);
-            padding: 4px;
-            border-radius: 50px;
-            display: flex;
-            gap: 4px;
-        }
-        
-        .theme-btn {
-            border: none;
-            background: transparent;
-            color: var(--text-muted);
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-        }
-        
-        .theme-btn:hover {
-            color: var(--text-main);
-        }
-        
-        .theme-btn.active {
-            background: var(--bg-hover);
-            color: var(--primary);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        @media (max-width: 480px) {
-            .theme-btn {
-                width: 32px;
-                height: 32px;
-            }
-        }
-
-        /* SECTIONS */
-        .section-view {
-            display: none;
-            animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        
-        .section-view.active {
-            display: block;
-        }
-        
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* =========================================
-           4. CARDS & DASHBOARD - RESPONSIVE
-           ========================================= */
-        .ozora-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 3rem;
-        }
-
-        /* Responsive Grid */
-        @media (max-width: 1024px) {
-            .ozora-grid {
-                grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-                gap: 1.25rem;
-            }
-        }
-
+        @media (max-width: 480px) { .header-content h1 { font-size: 1.25rem; } }
+        .theme-switch-wrapper { background: var(--bg-nav); border: 1px solid var(--border-color); padding: 4px; border-radius: 50px; display: flex; gap: 4px; }
+        .theme-btn { border: none; background: transparent; color: var(--text-muted); width: 36px; height: 36px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .theme-btn:hover { color: var(--text-main); }
+        .theme-btn.active { background: var(--bg-hover); color: var(--primary); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        @media (max-width: 480px) { .theme-btn { width: 32px; height: 32px; } }
+        .section-view { display: none; animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        .section-view.active { display: block; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .ozora-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 3rem; }
+        @media (max-width: 1024px) { .ozora-grid { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; } }
+        @media (max-width: 768px) { .ozora-grid { grid-template-columns: 1fr; gap: 1rem; } }
+        .ozora-card { border-radius: var(--radius-card); padding: 2rem; color: var(--text-inverted); position: relative; overflow: hidden; min-height: 300px; height: auto; display: flex; flex-direction: column; justify-content: space-between; box-shadow: var(--shadow-card); transition: transform 0.3s, box-shadow 0.3s; border: 1px solid rgba(255,255,255,0.1); }
+        @media (hover: hover) { .ozora-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-hover); } }
+        @media (max-width: 768px) { .ozora-card { padding: 1.5rem; min-height: 280px; } }
+        @media (max-width: 480px) { .ozora-card { padding: 1.25rem; min-height: 260px; } }
+        .card-label { font-size: 1rem; font-weight: 600; opacity: 0.9; text-transform: uppercase; letter-spacing: 1px; }
+        .card-value { font-size: 4rem; font-weight: 800; letter-spacing: -2px; margin-top: 0.5rem; font-family: 'JetBrains Mono', monospace; }
+        .card-unit { font-size: 1.5rem; font-weight: 600; opacity: 0.8; font-family: 'Plus Jakarta Sans', sans-serif; }
         @media (max-width: 768px) {
-            .ozora-grid {
-                grid-template-columns: 1fr;
-                gap: 1rem;
-            }
+            .card-label { font-size: 0.9rem; }
+            .card-value { font-size: 3rem; }
+            .card-unit { font-size: 1.25rem; }
         }
-
-        .ozora-card {
-            border-radius: var(--radius-card);
-            padding: 2rem;
-            color: var(--text-inverted);
-            position: relative;
-            overflow: hidden;
-            min-height: 300px;
-            height: auto;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            box-shadow: var(--shadow-card);
-            transition: transform 0.3s, box-shadow 0.3s;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-
-        @media (hover: hover) {
-            .ozora-card:hover {
-                transform: translateY(-5px);
-                box-shadow: var(--shadow-hover);
-            }
-        }
-
-        /* Responsive Card Sizing */
-        @media (max-width: 768px) {
-            .ozora-card {
-                padding: 1.5rem;
-                min-height: 280px;
-            }
-        }
-
         @media (max-width: 480px) {
-            .ozora-card {
-                padding: 1.25rem;
-                min-height: 260px;
-            }
+            .card-label { font-size: 0.85rem; }
+            .card-value { font-size: 2.5rem; }
+            .card-unit { font-size: 1rem; }
         }
-
-        /* Card Typography - Responsive */
-        .card-label {
-            font-size: 1rem;
-            font-weight: 600;
-            opacity: 0.9;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        
-        .card-value {
-            font-size: 4rem;
-            font-weight: 800;
-            letter-spacing: -2px;
-            margin-top: 0.5rem;
-            font-family: 'JetBrains Mono', monospace;
-        }
-        
-        .card-unit {
-            font-size: 1.5rem;
-            font-weight: 600;
-            opacity: 0.8;
-            font-family: 'Plus Jakarta Sans', sans-serif;
-        }
-
-        @media (max-width: 768px) {
-            .card-label {
-                font-size: 0.9rem;
-            }
-            
-            .card-value {
-                font-size: 3rem;
-            }
-            
-            .card-unit {
-                font-size: 1.25rem;
-            }
-        }
-
+        .card-temp { background: var(--grad-temp-default); }
+        .card-process { background: var(--grad-process); }
+        .card-speed { background: var(--grad-speed); }
+        .card-color { background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-color); }
+        .card-color .card-label { color: var(--text-muted); }
+        .card-color .color-name { color: var(--text-main); font-size: 1.5rem; font-weight: 700; margin-top: 0.5rem; }
+        @media (max-width: 768px) { .card-color .color-name { font-size: 1.25rem; } }
+        @media (max-width: 480px) { .card-color .color-name { font-size: 1.1rem; } }
+        .color-preview-box { width: 100%; height: 80px; background-color: #1E40AF; border-radius: 16px; margin-bottom: 1.5rem; border: 1px solid var(--border-color); transition: background-color 0.2s; }
+        @media (max-width: 480px) { .color-preview-box { height: 60px; margin-bottom: 1rem; } }
+        .rgb-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: auto; }
+        @media (max-width: 480px) { .rgb-grid { gap: 8px; } }
+        .rgb-item { background: var(--bg-hover); padding: 10px; border-radius: 12px; text-align: center; display: flex; flex-direction: column; }
+        @media (max-width: 480px) { .rgb-item { padding: 8px; } }
+        .rgb-val { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 1.1rem; }
+        .rgb-lbl { font-size: 0.75rem; font-weight: 700; margin-top: 4px; }
         @media (max-width: 480px) {
-            .card-label {
-                font-size: 0.85rem;
-            }
-            
-            .card-value {
-                font-size: 2.5rem;
-            }
-            
-            .card-unit {
-                font-size: 1rem;
-            }
+            .rgb-val { font-size: 1rem; }
+            .rgb-lbl { font-size: 0.65rem; }
         }
-
-        /* Specific Cards */
-        .card-temp {
-            background: var(--grad-temp-default);
-        }
-        
-        .card-process {
-            background: var(--grad-process);
-        }
-        
-        /* Color Sensor Card */
-        .card-color {
-            background: var(--bg-card);
-            color: var(--text-main);
-            border: 1px solid var(--border-color);
-        }
-        
-        .card-color .card-label {
-            color: var(--text-muted);
-        }
-        
-        .card-color .color-name {
-            color: var(--text-main);
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-top: 0.5rem;
-        }
-
-        @media (max-width: 768px) {
-            .card-color .color-name {
-                font-size: 1.25rem;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .card-color .color-name {
-                font-size: 1.1rem;
-            }
-        }
-        
-        .color-preview-box {
-            width: 100%;
-            height: 80px;
-            background-color: #CBD5E1;
-            border-radius: 16px;
-            margin-bottom: 1.5rem;
-            border: 1px solid var(--border-color);
-            transition: background-color 0.2s;
-        }
-
-        @media (max-width: 480px) {
-            .color-preview-box {
-                height: 60px;
-                margin-bottom: 1rem;
-            }
-        }
-        
-        .rgb-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 10px;
-            margin-top: auto;
-        }
-
-        @media (max-width: 480px) {
-            .rgb-grid {
-                gap: 8px;
-            }
-        }
-        
-        .rgb-item { 
-            background: var(--bg-hover);
-            padding: 10px;
-            border-radius: 12px; 
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-        }
-
-        @media (max-width: 480px) {
-            .rgb-item {
-                padding: 8px;
-            }
-        }
-        
-        .rgb-val {
-            font-family: 'JetBrains Mono', monospace;
-            font-weight: 700;
-            font-size: 1.1rem;
-        }
-        
-        .rgb-lbl {
-            font-size: 0.75rem;
-            font-weight: 700;
-            margin-top: 4px;
-        }
-
-        @media (max-width: 480px) {
-            .rgb-val {
-                font-size: 1rem;
-            }
-            
-            .rgb-lbl {
-                font-size: 0.65rem;
-            }
-        }
-        
         .text-r { color: #EF4444; }
         .text-g { color: #10B981; }
         .text-b { color: #3B82F6; }
-
-        /* Wave Decoration */
-        .wave-container {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 120px;
-            opacity: 0.4;
-            pointer-events: none;
-        }
-        
-        .wave-path {
-            fill: #FFFFFF;
-        }
-
-        /* =========================================
-           5. DATA TABLE - RESPONSIVE
-           ========================================= */
-        .table-wrapper {
-            background: var(--bg-card);
-            padding: 1.5rem;
-            border-radius: var(--radius-card);
-            box-shadow: var(--shadow-card);
-            border: 1px solid var(--border-color);
-            overflow-x: auto;
-            animation: slideUp 0.6s ease-out;
-            transition: var(--trans-theme);
-        }
-
-        @media (max-width: 768px) {
-            .table-wrapper {
-                padding: 1rem;
-            }
-        }
-
+        .wave-container { position: absolute; bottom: 0; left: 0; width: 100%; height: 120px; opacity: 0.4; pointer-events: none; }
+        .wave-path { fill: #FFFFFF; }
+        .card-ph { background: linear-gradient(180deg, #EC4899 0%, #8B5CF6 100%); }
+        .table-wrapper { background: var(--bg-card); padding: 1.5rem; border-radius: var(--radius-card); box-shadow: var(--shadow-card); border: 1px solid var(--border-color); overflow-x: auto; animation: slideUp 0.6s ease-out; transition: var(--trans-theme); }
+        @media (max-width: 768px) { .table-wrapper { padding: 1rem; } }
+        @media (max-width: 480px) { .table-wrapper { padding: 0.75rem; border-radius: 16px; } }
+        .table-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
+        .table-title { font-size: 1.25rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 10px; }
+        @media (max-width: 768px) { .table-title { font-size: 1.1rem; } }
         @media (max-width: 480px) {
-            .table-wrapper {
-                padding: 0.75rem;
-                border-radius: 16px;
-            }
+            .table-header { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
+            .table-title { font-size: 1rem; }
         }
-        
-        .table-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-        
-        .table-title {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--text-main);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        @media (max-width: 768px) {
-            .table-title {
-                font-size: 1.1rem;
-            }
-        }
-
+        table { width: 100%; border-collapse: collapse; min-width: 700px; }
+        @media (max-width: 768px) { table { min-width: 600px; } }
+        th { text-align: left; padding: 1rem; color: var(--text-muted); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 2px solid var(--border-color); }
+        @media (max-width: 768px) { th { padding: 0.75rem; font-size: 0.7rem; } }
+        td { padding: 1.2rem 1rem; border-bottom: 1px solid var(--border-color); color: var(--text-main); font-size: 0.95rem; font-weight: 500; }
+        @media (max-width: 768px) { td { padding: 0.9rem 0.75rem; font-size: 0.85rem; } }
+        tr:last-child td { border-bottom: none; }
+        .status-badge { padding: 6px 12px; border-radius: 50px; font-size: 0.75rem; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+        @media (max-width: 480px) { .status-badge { padding: 4px 10px; font-size: 0.7rem; gap: 4px; } }
+        .status-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+        .status-normal { background: rgba(16, 185, 129, 0.15); color: #10B981; }
+        [data-theme="dark"] .status-normal { background: rgba(16, 185, 129, 0.2); color: #34D399; }
+        .status-hot { background: rgba(239, 68, 68, 0.15); color: #EF4444; }
+        .token-status { color:#005c14 }
+        [data-theme="dark"] .token-status { color: rgb(165, 255, 161); }
+        .status-success { background: rgba(68, 239, 119, 0.15); color: rgb(37, 221, 0); }
+        [data-theme="dark"] .status-success { background: rgba(74, 239, 68, 0.2); color: #76f871ff; }
+        .status-polluted { background: rgba(239, 68, 68, 0.15); color: #EF4444; }
+        [data-theme="dark"] .status-polluted { background: rgba(239, 68, 68, 0.2); color: #F87171; }
+        .status-clean { background: rgba(16, 185, 129, 0.15); color: #10B981; }
+        [data-theme="dark"] .status-clean { background: rgba(16, 185, 129, 0.2); color: #34D399; }
+        .status-completed { background: rgba(16, 185, 129, 0.15); color: #10B981; }
+        [data-theme="dark"] .status-completed { background: rgba(16, 185, 129, 0.2); color: #34D399; }
+        [data-theme="dark"] .status-hot { background: rgba(239, 68, 68, 0.2); color: #F87171; }
+        .status-cold { background: rgba(59, 130, 246, 0.15); color: #3B82F6; }
+        [data-theme="dark"] .status-cold { background: rgba(59, 130, 246, 0.2); color: #60A5FA; }
+        .chart-wrapper { background: var(--bg-card); padding: 1.5rem; border-radius: var(--radius-card); box-shadow: var(--shadow-card); border: 1px solid var(--border-color); margin-bottom: 2rem; transition: var(--trans-theme); }
+        @media (max-width: 768px) { .chart-wrapper { padding: 1rem; } }
+        @media (max-width: 480px) { .chart-wrapper { padding: 0.75rem; } }
+        .control-wrapper { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; padding: 2rem 1rem; }
+        .hardware-btn { width: 200px; height: 200px; border-radius: 50%; border: none; cursor: pointer; color: white; font-size: 1.5rem; font-weight: 800; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 20px 40px rgba(0,0,0,0.2); transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; z-index: 2; }
+        @media (max-width: 768px) { .hardware-btn { width: 160px; height: 160px; font-size: 1.25rem; } }
+        @media (max-width: 480px) { .hardware-btn { width: 140px; height: 140px; font-size: 1.1rem; } }
+        @media (hover: hover) { .hardware-btn:hover { transform: scale(1.05); } }
+        .hardware-btn:active { transform: scale(0.95); }
+        .hardware-btn i { font-size: 3.5rem; margin-bottom: 12px; }
+        @media (max-width: 768px) { .hardware-btn i { font-size: 2.5rem; margin-bottom: 8px; } }
+        @media (max-width: 480px) { .hardware-btn i { font-size: 2rem; } }
+        .btn-unlinked { background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); box-shadow: 0 15px 30px rgba(245, 158, 11, 0.4); }
+        .btn-active { background: var(--primary-gradient); box-shadow: 0 15px 30px rgba(59, 130, 246, 0.4); }
+        .btn-standby { background: var(--bg-hover); color: var(--text-muted); box-shadow: none; border: 2px solid var(--border-color); }
+        .btn-completed { background: linear-gradient(135deg, #10B981 0%, #059669 100%); box-shadow: 0 15px 30px rgba(16, 185, 129, 0.4); }
+        .pulse-ring { position: absolute; width: 240px; height: 240px; border-radius: 50%; border: 2px solid var(--primary); opacity: 0; pointer-events: none; z-index: 1; }
+        @media (max-width: 768px) { .pulse-ring { width: 200px; height: 200px; } }
+        @media (max-width: 480px) { .pulse-ring { width: 180px; height: 180px; } }
+        .pulse-ring.active { animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { transform: scale(0.8); opacity: 0.6; } 100% { transform: scale(1.6); opacity: 0; } }
+        #ctl-status-text { margin-top: 2.5rem; color: var(--text-muted); font-weight: 500; font-size: 1.1rem; }
+        @media (max-width: 768px) { #ctl-status-text { margin-top: 2rem; font-size: 1rem; } }
+        @media (max-width: 480px) { #ctl-status-text { margin-top: 1.5rem; font-size: 0.9rem; padding: 0 1rem; } }
+        .control-panel-row { background: var(--bg-card); padding: 1.5rem; border-radius: var(--radius-card); margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between; box-shadow: var(--shadow-card); border: 1px solid var(--border-color); transition: var(--trans-theme); gap: 1rem; }
+        @media (max-width: 768px) { .control-panel-row { padding: 1.25rem; flex-wrap: wrap; } }
         @media (max-width: 480px) {
-            .table-header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 0.75rem;
-            }
-            
-            .table-title {
-                font-size: 1rem;
-            }
+            .control-panel-row { padding: 1rem; }
+            .control-panel-row h3 { font-size: 1rem; }
+            .control-panel-row p { font-size: 0.85rem; }
         }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 600px;
-        }
-
-        @media (max-width: 768px) {
-            table {
-                min-width: 500px;
-            }
-        }
-        
-        th { 
-            text-align: left;
-            padding: 1rem;
-            color: var(--text-muted); 
-            font-size: 0.75rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            border-bottom: 2px solid var(--border-color);
-        }
-
-        @media (max-width: 768px) {
-            th {
-                padding: 0.75rem;
-                font-size: 0.7rem;
-            }
-        }
-        
-        td {
-            padding: 1.2rem 1rem;
-            border-bottom: 1px solid var(--border-color);
-            color: var(--text-main);
-            font-size: 0.95rem;
-            font-weight: 500;
-        }
-
-        @media (max-width: 768px) {
-            td {
-                padding: 0.9rem 0.75rem;
-                font-size: 0.85rem;
-            }
-        }
-        
-        tr:last-child td {
-            border-bottom: none;
-        }
-        
-        .status-badge { 
-            padding: 6px 12px;
-            border-radius: 50px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            white-space: nowrap;
-        }
-
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.8); display: none; justify-content: center; align-items: center; z-index: 999; backdrop-filter: blur(8px); padding: 1rem; }
+        .overlay.visible { display: flex; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .overlay-content { color: white; text-align: center; padding: 2rem; max-width: 400px; }
         @media (max-width: 480px) {
-            .status-badge {
-                padding: 4px 10px;
-                font-size: 0.7rem;
-                gap: 4px;
-            }
+            .overlay-content { padding: 1.5rem; }
+            .overlay-content h3 { font-size: 1.1rem; }
+            .overlay-content p { font-size: 0.9rem; }
         }
+        .header-actions { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+        @media (max-width: 768px) { .header-actions { width: 100%; } }
+        .export-btn { border: none; background: none; color: var(--primary); cursor: pointer; font-weight: 600; padding: 0.5rem 1rem; border-radius: var(--radius-btn); transition: all 0.2s; }
+        .export-btn:hover { background: var(--bg-hover); }
+        @media (max-width: 480px) { .export-btn { font-size: 0.85rem; padding: 0.4rem 0.8rem; } }
+        .timer-display { font-size: 3.5rem; }
+        @media (max-width: 768px) { .timer-display { font-size: 2.5rem; } }
+        @media (max-width: 480px) { .timer-display { font-size: 2rem; } }
+        #process-status-text { background: rgba(255,255,255,0.2); padding: 5px 12px; border-radius: 20px; width: fit-content; font-size: 0.8rem; font-weight: 700; }
+        @media (max-width: 480px) { #process-status-text { font-size: 0.7rem; padding: 4px 10px; } }
+        .btn-outline-danger { white-space: nowrap; }
+        @media (max-width: 480px) { .btn-outline-danger { font-size: 0.85rem; padding: 0.4rem 0.8rem; } }
         
-        .status-badge::before {
-            content: '';
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: currentColor;
+        /* Completion Animation */
+        @keyframes successPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
         }
-        
-        .status-normal {
-            background: rgba(16, 185, 129, 0.15);
-            color: #10B981;
+        .completion-animation {
+            animation: successPulse 0.6s ease-in-out;
         }
-        
-        [data-theme="dark"] .status-normal {
-            background: rgba(16, 185, 129, 0.2);
-            color: #34D399;
-        }
-        
-        .status-hot {
-            background: rgba(239, 68, 68, 0.15);
-            color: #EF4444;
-        }
-
-        .token-status{
-            color:#005c14
-        }
-
-        [data-theme="dark"] .token-status {
-            color: rgb(165, 255, 161);
-        }
-
-
-        
-        .status-success {
-            background: rgba(68, 239, 119, 0.15);
-            color: rgb(37, 221, 0);
-        }
-
-        [data-theme="dark"] .status-success {
-            background: rgba(74, 239, 68, 0.2);
-            color: #76f871ff;
-        }
-        
-        [data-theme="dark"] .status-hot {
-            background: rgba(239, 68, 68, 0.2);
-            color: #F87171;
-        }
-        
-        .status-cold {
-            background: rgba(59, 130, 246, 0.15);
-            color: #3B82F6;
-        }
-        
-        [data-theme="dark"] .status-cold {
-            background: rgba(59, 130, 246, 0.2);
-            color: #60A5FA;
-        }
-
-        /* =========================================
-           6. CONTROL & CONNECTION - RESPONSIVE
-           ========================================= */
-        .control-wrapper { 
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            text-align: center;
-            padding: 2rem 1rem;
-        }
-        
-        .hardware-btn {
-            width: 200px;
-            height: 200px;
-            border-radius: 50%;
-            border: none;
-            cursor: pointer;
-            color: white;
-            font-size: 1.5rem;
-            font-weight: 800;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center; 
-            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            position: relative;
-            z-index: 2;
-        }
-
-        @media (max-width: 768px) {
-            .hardware-btn {
-                width: 160px;
-                height: 160px;
-                font-size: 1.25rem;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .hardware-btn {
-                width: 140px;
-                height: 140px;
-                font-size: 1.1rem;
-            }
-        }
-
-        @media (hover: hover) {
-            .hardware-btn:hover {
-                transform: scale(1.05);
-            }
-        }
-        
-        .hardware-btn:active {
-            transform: scale(0.95);
-        }
-        
-        .hardware-btn i {
-            font-size: 3.5rem;
-            margin-bottom: 12px;
-        }
-
-        @media (max-width: 768px) {
-            .hardware-btn i {
-                font-size: 2.5rem;
-                margin-bottom: 8px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .hardware-btn i {
-                font-size: 2rem;
-            }
-        }
-
-        .btn-unlinked {
-            background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
-            box-shadow: 0 15px 30px rgba(245, 158, 11, 0.4);
-        }
-        
-        .btn-active {
-            background: var(--primary-gradient);
-            box-shadow: 0 15px 30px rgba(59, 130, 246, 0.4);
-        }
-        
-        .btn-standby {
-            background: var(--bg-hover);
-            color: var(--text-muted);
-            box-shadow: none;
-            border: 2px solid var(--border-color);
-        }
-
-        .pulse-ring {
-            position: absolute;
-            width: 240px;
-            height: 240px;
-            border-radius: 50%;
-            border: 2px solid var(--primary);
-            opacity: 0;
-            pointer-events: none;
-            z-index: 1;
-        }
-
-        @media (max-width: 768px) {
-            .pulse-ring {
-                width: 200px;
-                height: 200px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .pulse-ring {
-                width: 180px;
-                height: 180px;
-            }
-        }
-        
-        .pulse-ring.active {
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0% {
-                transform: scale(0.8);
-                opacity: 0.6;
-            }
-            100% {
-                transform: scale(1.6);
-                opacity: 0;
-            }
-        }
-
-        /* Control Status Text */
-        #ctl-status-text {
-            margin-top: 2.5rem;
-            color: var(--text-muted);
-            font-weight: 500;
-            font-size: 1.1rem;
-        }
-
-        @media (max-width: 768px) {
-            #ctl-status-text {
-                margin-top: 2rem;
-                font-size: 1rem;
-            }
-        }
-
-        @media (max-width: 480px) {
-            #ctl-status-text {
-                margin-top: 1.5rem;
-                font-size: 0.9rem;
-                padding: 0 1rem;
-            }
-        }
-
-        /* Small Control Panel - Responsive */
-        .control-panel-row {
-            background: var(--bg-card);
-            padding: 1.5rem;
-            border-radius: var(--radius-card); 
-            margin-bottom: 2rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between; 
-            box-shadow: var(--shadow-card);
-            border: 1px solid var(--border-color);
-            transition: var(--trans-theme);
-            gap: 1rem;
-        }
-
-        @media (max-width: 768px) {
-            .control-panel-row {
-                padding: 1.25rem;
-                flex-wrap: wrap;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .control-panel-row {
-                padding: 1rem;
-            }
-            
-            .control-panel-row h3 {
-                font-size: 1rem;
-            }
-            
-            .control-panel-row p {
-                font-size: 0.85rem;
-            }
-        }
-
-        /* Overlay - Responsive */
-        .overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(15, 23, 42, 0.8);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 999;
-            backdrop-filter: blur(8px);
-            padding: 1rem;
-        }
-        
-        .overlay.visible {
-            display: flex;
-            animation: fadeIn 0.3s;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        .overlay-content {
-            color: white;
-            text-align: center;
-            padding: 2rem;
-            max-width: 400px;
-        }
-
-        @media (max-width: 480px) {
-            .overlay-content {
-                padding: 1.5rem;
-            }
-            
-            .overlay-content h3 {
-                font-size: 1.1rem;
-            }
-            
-            .overlay-content p {
-                font-size: 0.9rem;
-            }
-        }
-
-        /* Header Actions Wrapper */
-        .header-actions {
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        @media (max-width: 768px) {
-            .header-actions {
-                width: 100%;
-            }
-        }
-
-        /* Export Button - Responsive */
-        .export-btn {
-            border: none;
-            background: none;
-            color: var(--primary);
-            cursor: pointer;
-            font-weight: 600;
-            padding: 0.5rem 1rem;
-            border-radius: var(--radius-btn);
-            transition: all 0.2s;
-        }
-
-        .export-btn:hover {
-            background: var(--bg-hover);
-        }
-
-        @media (max-width: 480px) {
-            .export-btn {
-                font-size: 0.85rem;
-                padding: 0.4rem 0.8rem;
-            }
-        }
-
-        /* Timer Display - Responsive */
-        .timer-display {
-            font-size: 3.5rem;
-        }
-
-        @media (max-width: 768px) {
-            .timer-display {
-                font-size: 2.5rem;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .timer-display {
-                font-size: 2rem;
-            }
-        }
-
-        /* Process Status Badge */
-        #process-status-text {
-            background: rgba(255,255,255,0.2);
-            padding: 5px 12px;
-            border-radius: 20px;
-            width: fit-content;
-            font-size: 0.8rem;
-            font-weight: 700;
-        }
-
-        @media (max-width: 480px) {
-            #process-status-text {
-                font-size: 0.7rem;
-                padding: 4px 10px;
-            }
-        }
-
-        /* Logout Button Styling */
-        .btn-outline-danger {
-            white-space: nowrap;
-        }
-
-        @media (max-width: 480px) {
-            .btn-outline-danger {
-                font-size: 0.85rem;
-                padding: 0.4rem 0.8rem;
-            }
-        }
-
     </style>
 </head>
 <body>
-
     <nav class="nav-container">
         <div class="nav-logo">
-            <i class="fa-solid fa-cube fa-xl"></i> 
-            <span>Ozora<span style="font-weight:400; color:var(--text-muted);">UI</span></span>
+            <i class="fa-solid fa-bong"></i>
+            <span>Ozora<span style="font-weight:400; color:var(--text-muted);">Panel</span></span>
         </div>
         <ul class="nav-links">
             <li class="nav-item active" id="nav-control" onclick="switchTab('control')">
@@ -1128,14 +254,12 @@
             </li>
         </ul>
     </nav>
-
     <main>
         <header>
             <div class="header-content">
                 <h1 id="page-title">Device Connection</h1>
-                <p id="page-subtitle">Manage Web to Hardware Link</p>
+                <p id="page-subtitle">Textile Wastewater Treatment System</p>
             </div>
-            
             <div class="header-actions">
                 <div class="theme-switch-wrapper">
                     <button class="theme-btn active" onclick="setTheme('light')" id="btn-theme-light" title="Light Mode">
@@ -1151,20 +275,14 @@
                 <div class="status-badge status-success">
                     <code class="token-status">Token {{ api_token }}</code>
                 </div>
-
                 <div id="header-status" class="status-badge status-hot">
                     DISCONNECTED
                 </div>
-
                 <a href="{% url 'logout' %}">
-                    <div class="btn btn-outline-danger">
-                        Logout
-                    </div>
+                    <div class="btn btn-outline-danger">Logout</div>
                 </a>
             </div>
         </header>
-
-        <!-- CONTROL SECTION -->
         <section id="control" class="section-view active" style="min-height: 60vh;">
             <div class="control-wrapper">
                 <div style="position: relative; display: flex; justify-content: center; align-items: center;">
@@ -1174,34 +292,24 @@
                         <span id="ctl-text" style="font-size: 1rem; font-weight: 700;">CONNECT</span>
                     </button>
                 </div>
-                <h3 id="ctl-status-text">
-                    Click to scan for hardware
-                </h3>
+                <h3 id="ctl-status-text">Click to scan for hardware</h3>
             </div>
         </section>
-
-        <!-- MONITORING SECTION -->
         <section id="monitoring" class="section-view">
-            
             <div class="control-panel-row">
                 <div>
-                    <h3 style="margin-bottom: 0.4rem; color: var(--text-main);">Sensor Control</h3>
-                    <p style="color: var(--text-muted); font-size: 0.9rem; margin: 0;">Toggle real-time data acquisition</p>
+                    <h3 style="margin-bottom: 0.4rem; color: var(--text-main);">Treatment Process Control</h3>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin: 0;">Toggle real-time wastewater treatment monitoring</p>
                 </div>
                 <button id="mon-btn" class="hardware-btn btn-standby" style="width: 50px; height: 50px; font-size: 0.8rem; border-radius: 12px; flex-shrink: 0;" onclick="toggleHardware()">
                     <i class="fa-solid fa-power-off" style="font-size: 1.2rem; margin:0;"></i>
                 </button>
             </div>
-
             <div class="ozora-grid">
-                
-                <!-- Temperature Card -->
                 <div class="ozora-card card-temp" id="card-temp-visual">
                     <div>
                         <div class="card-label">Temperature</div>
-                        <div class="card-value">
-                            <span id="val-temp">0</span><span class="card-unit">°C</span>
-                        </div>
+                        <div class="card-value"><span id="val-temp">0</span><span class="card-unit">°C</span></div>
                     </div>
                     <div class="wave-container">
                         <svg viewBox="0 0 500 150" preserveAspectRatio="none" style="height: 100%; width: 100%;">
@@ -1209,106 +317,119 @@
                         </svg>
                     </div>
                 </div>
-
-                <!-- Color Sensor Card -->
+                <div class="ozora-card card-ph" id="card-ph-visual">
+                    <div>
+                        <div class="card-label">pH Level</div>
+                        <div class="card-value"><span id="val-ph">0.0</span><span class="card-unit">pH</span></div>
+                    </div>
+                    <div class="wave-container">
+                        <svg viewBox="0 0 500 150" preserveAspectRatio="none" style="height: 100%; width: 100%;">
+                            <path class="wave-path" d="M0.00,49.98 C149.99,150.00 349.20,-49.98 500.00,49.98 L500.00,150.00 L0.00,150.00 Z"></path>
+                        </svg>
+                    </div>
+                </div>
+                <div class="ozora-card card-speed">
+                    <div>
+                        <div class="card-label">Flow Speed</div>
+                        <div class="card-value"><span id="val-speed">0.0</span><span class="card-unit">L/s</span></div>
+                    </div>
+                    <div class="wave-container">
+                        <svg viewBox="0 0 500 150" preserveAspectRatio="none" style="height: 100%; width: 100%;">
+                            <path class="wave-path" d="M0.00,49.98 C149.99,150.00 349.20,-49.98 500.00,49.98 L500.00,150.00 L0.00,150.00 Z"></path>
+                        </svg>
+                    </div>
+                </div>
                 <div class="ozora-card card-color">
                     <div style="width: 100%; height: 100%; display: flex; flex-direction: column;">
-                        <div class="card-label">Color Sensor</div>
+                        <div class="card-label">Water Quality Sensor</div>
                         <span id="color-name" class="color-name">Detecting...</span>
-                        
                         <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: center; margin: 1rem 0;">
                             <div id="color-preview" class="color-preview-box"></div>
                         </div>
-
                         <div class="rgb-grid">
                             <div class="rgb-item">
                                 <span class="rgb-lbl text-r">RED</span>
-                                <span class="rgb-val" id="val-r">0</span>
+                                <span class="rgb-val" id="val-r">30</span>
                             </div>
                             <div class="rgb-item">
                                 <span class="rgb-lbl text-g">GREEN</span>
-                                <span class="rgb-val" id="val-g">0</span>
+                                <span class="rgb-val" id="val-g">64</span>
                             </div>
                             <div class="rgb-item">
                                 <span class="rgb-lbl text-b">BLUE</span>
-                                <span class="rgb-val" id="val-b">0</span>
+                                <span class="rgb-val" id="val-b">175</span>
                             </div>
                         </div>
                     </div>
                 </div>
-
-                <!-- Execution Time Card -->
                 <div class="ozora-card card-process">
                     <div>
-                        <div class="card-label">Execution Time</div>
+                        <div class="card-label">Treatment Duration</div>
                         <div class="card-value timer-display">
-                            <span id="timer-sec">00</span><span style="opacity:0.5; font-size:0.6em;">.</span><span id="timer-ms" style="font-size: 0.7em;">00</span>
+                            <span id="timer-sec">00</span><span style="opacity:0.5; font-size:0.6em;">:</span><span id="timer-ms" style="font-size: 0.7em;">00</span>
                         </div>
                         <div style="opacity: 0.8; font-family: 'JetBrains Mono'; margin-top: 5px; font-size: 0.9rem;">
-                            MICRO: <span id="timer-micro">00</span>
+                            TOTAL: <span id="timer-total">00:00</span>
                         </div>
                     </div>
-                    <div id="process-status-text">
-                        STANDBY
+                    <div id="process-status-text">STANDBY</div>
+                </div>
+            </div>
+            <div class="chart-wrapper">
+                <div class="table-header">
+                    <div class="table-title">
+                        <i class="fa-solid fa-chart-line" style="color: var(--primary)"></i> pH Level Trend Analysis
                     </div>
                 </div>
-
+                <canvas id="phChart"></canvas>
             </div>
-
-            <!-- Data Table -->
             <div class="table-wrapper">
                 <div class="table-header">
                     <div class="table-title">
-                        <i class="fa-solid fa-list-check" style="color: var(--primary)"></i> Log History
+                        <i class="fa-solid fa-list-check" style="color: var(--primary)"></i> Treatment Log History
                     </div>
-                    {% comment %} <button class="export-btn">Export CSV</button> {% endcomment %}
                 </div>
                 <table>
                     <thead>
                         <tr>
-                            <th>Time Log</th>
-                            <th>Temp</th>
-                            <th>Color Detected</th>
-                            <th>Condition</th>
+                            <th>Timestamp</th>
+                            <th>Temp (°C)</th>
+                            <th>pH</th>
+                            <th>Speed (L/s)</th>
+                            <th>Duration</th>
+                            <th>Water Quality</th>
+                            <th>Status</th>
                         </tr>
                     </thead>
-                    <tbody id="log-table-body">
-                        <tr>
-                            <td>10:00:05</td>
-                            <td>33.2 °C</td>
-                            <td>Blue</td>
-                            <td><span class="status-badge status-cold">COOL</span></td>
-                        </tr>
-                    </tbody>
+                    <tbody id="log-table-body"></tbody>
                 </table>
             </div>
-
         </section>
-
     </main>
-
-    <!-- Scanning Overlay -->
     <div id="overlay-scan" class="overlay">
         <div class="overlay-content">
             <i class="fa-solid fa-satellite-dish fa-spin" style="font-size: 3rem; margin-bottom: 1.5rem; color: #3B82F6;"></i>
-            <h3>Establishing Handshake...</h3>
-            <p style="opacity: 0.7; margin-top: 5px;">Searching for ESP32/Arduino via Serial</p>
+            <h3>Establishing Connection...</h3>
+            <p style="opacity: 0.7; margin-top: 5px;">Connecting to Treatment System Controller</p>
         </div>
     </div>
-
+    
+    <div id="overlay-complete" class="overlay">
+        <div class="overlay-content">
+            <i class="fa-solid fa-circle-check" style="font-size: 4rem; margin-bottom: 1.5rem; color: #10B981;"></i>
+            <h3>Treatment Completed Successfully!</h3>
+            <p style="opacity: 0.9; margin-top: 10px; font-size: 1.1rem;">Water has been purified to transparent state</p>
+            <p style="opacity: 0.7; margin-top: 5px; font-size: 0.9rem;">Process automatically stopped</p>
+        </div>
+    </div>
+    
     <script>
-        // =========================================
-        // 1. THEME LOGIC
-        // =========================================
         function setTheme(mode) {
             const html = document.documentElement;
             const btnLight = document.getElementById('btn-theme-light');
             const btnDark = document.getElementById('btn-theme-dark');
             const btnSystem = document.getElementById('btn-theme-system');
-            
-            // Reset active states
             [btnLight, btnDark, btnSystem].forEach(btn => btn.classList.remove('active'));
-
             if (mode === 'system') {
                 btnSystem.classList.add('active');
                 localStorage.removeItem('theme');
@@ -1316,43 +437,45 @@
             } else {
                 if (mode === 'dark') btnDark.classList.add('active');
                 else btnLight.classList.add('active');
-                
                 html.setAttribute('data-theme', mode);
                 localStorage.setItem('theme', mode);
             }
         }
-
         function applySystemTheme() {
             const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
             document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
         }
-
-        // Initialize Theme
         (function initTheme() {
             const savedTheme = localStorage.getItem('theme');
-            if (savedTheme) {
-                setTheme(savedTheme);
-            } else {
-                setTheme('system');
-            }
-            
-            // Listen for system changes
+            if (savedTheme) setTheme(savedTheme);
+            else setTheme('system');
             window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-                if (!localStorage.getItem('theme')) {
-                    applySystemTheme();
-                }
+                if (!localStorage.getItem('theme')) applySystemTheme();
             });
         })();
-
-        // =========================================
-        // 2. APP LOGIC
-        // =========================================
-        let isLinked = false;
-        let isHardwareOn = false;
-        let timerInterval, sensorInterval;
+        
+        let isLinked = false, isHardwareOn = false, isProcessCompleted = false;
+        let timerInterval, sensorInterval, dataLogInterval;
         let startTime = 0, elapsedTime = 0;
-
-        // Elements
+        let dataLog = [], phChart = null;
+        
+        // Treatment parameters with auto-stop threshold
+        const treatmentParams = {
+            initialPH: 11.5,
+            targetPH: 7.0,
+            initialTemp: 35.0,
+            targetTemp: 28.0,
+            treatmentDuration: 5000,
+            colorIntensity: 1.0,
+            // RGB thresholds for water purity (white/transparent water)
+            purityThreshold: {
+                minR: 200,  // R >= 200
+                minG: 200,  // G >= 200  
+                minB: 200,  // B >= 200
+                minTotal: 630  // R+G+B >= 630 (average ~210 each)
+            }
+        };
+        
         const ui = {
             navControl: document.getElementById('nav-control'),
             navMonitoring: document.getElementById('nav-monitoring'),
@@ -1363,41 +486,38 @@
             ctlStatus: document.getElementById('ctl-status-text'),
             pulse: document.getElementById('ctl-pulse'),
             monBtn: document.getElementById('mon-btn'),
-            
-            // Sensors
             valTemp: document.getElementById('val-temp'),
             cardTemp: document.getElementById('card-temp-visual'),
+            valPH: document.getElementById('val-ph'),
+            cardPH: document.getElementById('card-ph-visual'),
+            valSpeed: document.getElementById('val-speed'),
             valR: document.getElementById('val-r'),
             valG: document.getElementById('val-g'),
             valB: document.getElementById('val-b'),
             colorPreview: document.getElementById('color-preview'),
             colorName: document.getElementById('color-name'),
-            
-            // Timer
             timerSec: document.getElementById('timer-sec'),
             timerMs: document.getElementById('timer-ms'),
-            timerMicro: document.getElementById('timer-micro')
+            timerTotal: document.getElementById('timer-total')
         };
-
+        
         function switchTab(tab) {
             if (tab === 'monitoring' && !isLinked) return;
-            
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.section-view').forEach(el => el.classList.remove('active'));
-            
             if (tab === 'control') {
                 ui.navControl.classList.add('active');
                 document.getElementById('control').classList.add('active');
                 document.getElementById('page-title').innerText = "Device Connection";
-                document.getElementById('page-subtitle').innerText = "Manage Web to Hardware Link";
+                document.getElementById('page-subtitle').innerText = "Textile Wastewater Treatment System";
             } else {
                 ui.navMonitoring.classList.add('active');
                 document.getElementById('monitoring').classList.add('active');
                 document.getElementById('page-title').innerText = "Monitoring Dashboard";
-                document.getElementById('page-subtitle').innerText = "Real-time Sensor Data Analysis";
+                document.getElementById('page-subtitle').innerText = "Real-time Treatment Process Analysis";
             }
         }
-
+        
         function handleControlAction() {
             if (!isLinked) {
                 document.getElementById('overlay-scan').classList.add('visible');
@@ -1410,120 +530,349 @@
                 setSystemLinked(false);
             }
         }
-
+        
         function setSystemLinked(status) {
             isLinked = status;
             if (status) {
                 ui.ctlBtn.className = "hardware-btn btn-active";
                 ui.ctlIcon.className = "fa-solid fa-link";
                 ui.ctlText.innerText = "LINKED";
-                ui.ctlStatus.innerText = "Connected to ESP32 Gateway";
+                ui.ctlStatus.innerText = "Connected to Treatment System Controller";
                 ui.pulse.classList.add('active');
-                
                 ui.headerStatus.className = "status-badge status-normal";
                 ui.headerStatus.innerText = "CONNECTED";
-                
                 ui.navMonitoring.classList.remove('disabled');
-                setTimeout(() => switchTab('monitoring'), 600);
+                setTimeout(() => { switchTab('monitoring'); initializeChart(); }, 600);
             } else {
                 ui.ctlBtn.className = "hardware-btn btn-unlinked";
                 ui.ctlIcon.className = "fa-solid fa-wifi";
                 ui.ctlText.innerText = "CONNECT";
                 ui.ctlStatus.innerText = "Click to scan for hardware";
                 ui.pulse.classList.remove('active');
-
                 ui.headerStatus.className = "status-badge status-hot";
                 ui.headerStatus.innerText = "DISCONNECTED";
-                
                 ui.navMonitoring.classList.add('disabled');
             }
         }
-
+        
         function toggleHardware() {
+            if (isProcessCompleted) {
+                // Reset the completed state to start a new treatment cycle
+                isProcessCompleted = false;
+                elapsedTime = 0;
+                treatmentParams.colorIntensity = 1.0;
+                ui.monBtn.className = "hardware-btn btn-standby";
+                ui.monBtn.innerHTML = '<i class="fa-solid fa-power-off" style="font-size: 1.2rem; margin:0;"></i>';
+                document.getElementById('process-status-text').innerText = "STANDBY";
+                return;
+            }
+            
             isHardwareOn = !isHardwareOn;
             if (isHardwareOn) {
                 ui.monBtn.className = "hardware-btn btn-active";
                 ui.monBtn.innerHTML = '<i class="fa-solid fa-pause" style="font-size: 1.2rem; margin:0;"></i>';
-                document.getElementById('process-status-text').innerText = "RUNNING";
-                
+                document.getElementById('process-status-text').innerText = "TREATING";
                 startTime = Date.now() - elapsedTime;
-                timerInterval = setInterval(updateTimer, 10);
-                sensorInterval = setInterval(updateSensors, 800);
+                timerInterval = setInterval(updateTimer, 50);
+                sensorInterval = setInterval(updateSensors, 100);
+                dataLogInterval = setInterval(logData, 500);
                 updateSensors();
+                logData();
             } else {
                 ui.monBtn.className = "hardware-btn btn-standby";
                 ui.monBtn.innerHTML = '<i class="fa-solid fa-power-off" style="font-size: 1.2rem; margin:0;"></i>';
                 document.getElementById('process-status-text').innerText = "PAUSED";
-                
                 clearInterval(timerInterval);
                 clearInterval(sensorInterval);
+                clearInterval(dataLogInterval);
             }
         }
-
+        
+        function checkWaterPurity(r, g, b) {
+            const threshold = treatmentParams.purityThreshold;
+            const total = r + g + b;
+            
+            // Check if RGB values indicate clear/white/transparent water
+            return (r >= threshold.minR && 
+                    g >= threshold.minG && 
+                    b >= threshold.minB && 
+                    total >= threshold.minTotal);
+        }
+        
+        function completeProcess() {
+            isHardwareOn = false;
+            isProcessCompleted = true;
+            
+            // Stop all intervals
+            clearInterval(timerInterval);
+            clearInterval(sensorInterval);
+            clearInterval(dataLogInterval);
+            
+            // Update UI to completed state
+            ui.monBtn.className = "hardware-btn btn-completed completion-animation";
+            ui.monBtn.innerHTML = '<i class="fa-solid fa-check" style="font-size: 1.2rem; margin:0;"></i>';
+            document.getElementById('process-status-text').innerText = "COMPLETED";
+            
+            // Show completion overlay
+            document.getElementById('overlay-complete').classList.add('visible');
+            setTimeout(() => {
+                document.getElementById('overlay-complete').classList.remove('visible');
+            }, 3500);
+            
+            // Log final data
+            logData();
+            
+            console.log('✅ Treatment process completed automatically - Water purified to transparent state');
+        }
+        
         function updateTimer() {
             let now = Date.now();
             elapsedTime = now - startTime;
-            let date = new Date(elapsedTime);
-            
-            ui.timerSec.innerText = date.getUTCSeconds().toString().padStart(2, '0');
-            ui.timerMs.innerText = Math.floor(date.getUTCMilliseconds() / 10).toString().padStart(2, '0');
-            ui.timerMicro.innerText = (date.getUTCMilliseconds() % 10).toString() + "0";
+            let totalSeconds = Math.floor(elapsedTime / 1000);
+            let milliseconds = Math.floor((elapsedTime % 1000) / 10);
+            let minutes = Math.floor(totalSeconds / 60);
+            let seconds = totalSeconds % 60;
+            ui.timerSec.innerText = seconds.toString().padStart(2, '0');
+            ui.timerMs.innerText = milliseconds.toString().padStart(2, '0');
+            ui.timerTotal.innerText = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
         }
-
+        
         function updateSensors() {
-            // Temperature Simulation
-            let temp = (Math.random() * (36 - 28) + 28).toFixed(1);
-            ui.valTemp.innerText = temp;
-
-            // Update Card Gradient based on temp
-            if (temp >= 35.0) {
-                ui.cardTemp.style.background = "linear-gradient(180deg, #EF4444 0%, #B91C1C 100%)";
-            } else if (temp < 30.0) {
-                ui.cardTemp.style.background = "linear-gradient(180deg, #0EA5E9 0%, #3B82F6 100%)";
-            } else {
-                ui.cardTemp.style.background = "linear-gradient(180deg, #EF4444 0%, #F87171 40%, #3B82F6 100%)";
-            }
-
-            // RGB Simulation
-            let r = Math.floor(Math.random() * 255);
-            let g = Math.floor(Math.random() * 255);
-            let b = Math.floor(Math.random() * 255);
-
+            let progress = Math.min(elapsedTime / treatmentParams.treatmentDuration, 1);
+            
+            // Temperature calculation
+            let tempRange = treatmentParams.initialTemp - treatmentParams.targetTemp;
+            let temp = treatmentParams.initialTemp - (tempRange * progress) + (Math.random() * 1.5 - 0.75);
+            temp = Math.max(treatmentParams.targetTemp, Math.min(treatmentParams.initialTemp, temp));
+            ui.valTemp.innerText = temp.toFixed(1);
+            
+            if (temp >= 33.0) ui.cardTemp.style.background = "linear-gradient(180deg, #EF4444 0%, #F87171 100%)";
+            else if (temp < 29.0) ui.cardTemp.style.background = "linear-gradient(180deg, #10B981 0%, #34D399 100%)";
+            else ui.cardTemp.style.background = "linear-gradient(180deg, #EF4444 0%, #F87171 40%, #3B82F6 100%)";
+            
+            // pH calculation
+            let phRange = treatmentParams.initialPH - treatmentParams.targetPH;
+            let ph = treatmentParams.initialPH - (phRange * progress) + (Math.random() * 0.3 - 0.15);
+            ph = Math.max(treatmentParams.targetPH, Math.min(treatmentParams.initialPH, ph));
+            ui.valPH.innerText = ph.toFixed(1);
+            
+            if (ph > 9.0) ui.cardPH.style.background = "linear-gradient(180deg, #8B5CF6 0%, #A78BFA 100%)";
+            else if (ph < 6.5) ui.cardPH.style.background = "linear-gradient(180deg, #F59E0B 0%, #FBBF24 100%)";
+            else ui.cardPH.style.background = "linear-gradient(180deg, #10B981 0%, #34D399 100%)";
+            
+            // Flow speed calculation
+            let baseSpeed = 2.5;
+            let speed = baseSpeed + Math.sin(progress * Math.PI * 2) * 0.8 + (Math.random() * 0.4 - 0.2);
+            speed = Math.max(1.0, speed);
+            ui.valSpeed.innerText = speed.toFixed(1);
+            
+            // Color intensity and RGB calculation (blue polluted → white/transparent clean)
+            treatmentParams.colorIntensity = Math.max(0.0, 1.0 - progress);
+            
+            // Calculate RGB values transitioning from dark blue to white/transparent
+            let r = Math.floor(30 + (170 * (1 - treatmentParams.colorIntensity)) + (Math.random() * 20 - 10));
+            let g = Math.floor(64 + (156 * (1 - treatmentParams.colorIntensity)) + (Math.random() * 20 - 10));
+            let b = Math.floor(175 + (65 * (1 - treatmentParams.colorIntensity)) + (Math.random() * 20 - 10));
+            
+            r = Math.max(0, Math.min(255, r));
+            g = Math.max(0, Math.min(255, g));
+            b = Math.max(0, Math.min(255, b));
+            
             ui.valR.innerText = r;
             ui.valG.innerText = g;
             ui.valB.innerText = b;
             ui.colorPreview.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
-
-            // Color Classification
-            if (r > 200 && g > 200 && b < 100) ui.colorName.innerText = "Yellow Sample";
-            else if (r > 200 && g < 100 && b < 100) ui.colorName.innerText = "Red Sample";
-            else if (r < 100 && g > 200 && b < 100) ui.colorName.innerText = "Green Sample";
-            else if (r < 100 && g < 100 && b > 200) ui.colorName.innerText = "Blue Sample";
-            else if (r > 200 && g > 200 && b > 200) ui.colorName.innerText = "White Sample";
-            else ui.colorName.innerText = "Unknown Alloy";
+            
+            // Update water quality description
+            if (treatmentParams.colorIntensity > 0.7) {
+                ui.colorName.innerText = "Highly Polluted Textile Wastewater";
+            } else if (treatmentParams.colorIntensity > 0.4) {
+                ui.colorName.innerText = "Treatment In Progress";
+            } else if (treatmentParams.colorIntensity > 0.15) {
+                ui.colorName.innerText = "Semi-Purified Water";
+            } else {
+                ui.colorName.innerText = "Clean Transparent Water";
+            }
+            
+            // AUTO-STOP: Check if water reached purity threshold (white/transparent)
+            if (isHardwareOn && checkWaterPurity(r, g, b)) {
+                completeProcess();
+            }
         }
-
-        // Handle window resize for responsive adjustments
+        
+        function logData() {
+            let timestamp = new Date();
+            let hours = timestamp.getHours().toString().padStart(2, '0');
+            let minutes = timestamp.getMinutes().toString().padStart(2, '0');
+            let seconds = timestamp.getSeconds().toString().padStart(2, '0');
+            let milliseconds = timestamp.getMilliseconds().toString().padStart(3, '0');
+            let timeString = `${hours}:${minutes}:${seconds}.${milliseconds.substr(0,2)}`;
+            
+            let temp = parseFloat(ui.valTemp.innerText);
+            let ph = parseFloat(ui.valPH.innerText);
+            let speed = parseFloat(ui.valSpeed.innerText);
+            let duration = ui.timerTotal.innerText;
+            let waterQuality = ui.colorName.innerText;
+            
+            let r = parseInt(ui.valR.innerText);
+            let g = parseInt(ui.valG.innerText);
+            let b = parseInt(ui.valB.innerText);
+            
+            let isPure = checkWaterPurity(r, g, b);
+            let processStatus = isPure ? "Purification Complete" : "Treatment Active";
+            let statusClass = isPure ? "status-clean" : "status-polluted";
+            
+            if (isProcessCompleted) {
+                processStatus = "Treatment Completed";
+                statusClass = "status-completed";
+            }
+            
+            let row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${timeString}</td>
+                <td>${temp.toFixed(1)}</td>
+                <td>${ph.toFixed(1)}</td>
+                <td>${speed.toFixed(1)}</td>
+                <td>${duration}</td>
+                <td>${waterQuality}</td>
+                <td><span class="status-badge ${statusClass}">${processStatus}</span></td>
+            `;
+            
+            let tbody = document.getElementById('log-table-body');
+            tbody.insertBefore(row, tbody.firstChild);
+            while (tbody.children.length > 30) tbody.removeChild(tbody.lastChild);
+            
+            dataLog.push({
+                time: `${seconds}.${milliseconds.substr(0,1)}s`,
+                ph: ph,
+                temp: temp,
+                speed: speed,
+                colorIntensity: treatmentParams.colorIntensity,
+                r: r,
+                g: g,
+                b: b,
+                isPure: isPure
+            });
+            
+            if (dataLog.length > 30) dataLog.shift();
+            updateChart();
+        }
+        
+        function initializeChart() {
+            const ctx = document.getElementById('phChart').getContext('2d');
+            const computedStyle = getComputedStyle(document.documentElement);
+            const textColor = computedStyle.getPropertyValue('--text-main').trim();
+            const borderColor = computedStyle.getPropertyValue('--border-color').trim();
+            phChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'pH Level',
+                        data: [],
+                        borderColor: '#EC4899',
+                        backgroundColor: 'rgba(236, 72, 153, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#EC4899',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    aspectRatio: 2.5,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: { color: textColor, font: { family: 'Plus Jakarta Sans', size: 12, weight: '600' } }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                            titleColor: '#fff',
+                            bodyColor: '#fff',
+                            borderColor: borderColor,
+                            borderWidth: 1,
+                            padding: 12,
+                            displayColors: true,
+                            callbacks: { label: function(context) { return 'pH: ' + context.parsed.y.toFixed(1); } }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: 6,
+                            max: 12,
+                            grid: { color: borderColor, drawBorder: false },
+                            ticks: {
+                                color: textColor,
+                                font: { family: 'JetBrains Mono', size: 11 },
+                                callback: function(value) { return value.toFixed(1); }
+                            },
+                            title: { display: true, text: 'pH Level', color: textColor, font: { family: 'Plus Jakarta Sans', size: 12, weight: '600' } }
+                        },
+                        x: {
+                            grid: { color: borderColor, drawBorder: false },
+                            ticks: { color: textColor, font: { family: 'JetBrains Mono', size: 10 }, maxRotation: 45, minRotation: 45 },
+                            title: { display: true, text: 'Time (seconds)', color: textColor, font: { family: 'Plus Jakarta Sans', size: 12, weight: '600' } }
+                        }
+                    },
+                    interaction: { intersect: false, mode: 'index' }
+                }
+            });
+        }
+        
+        function updateChart() {
+            if (!phChart) return;
+            phChart.data.labels = dataLog.map(d => d.time);
+            phChart.data.datasets[0].data = dataLog.map(d => d.ph);
+            phChart.update('none');
+        }
+        
+        function updateChartTheme() {
+            if (!phChart) return;
+            const computedStyle = getComputedStyle(document.documentElement);
+            const textColor = computedStyle.getPropertyValue('--text-main').trim();
+            const borderColor = computedStyle.getPropertyValue('--border-color').trim();
+            phChart.options.plugins.legend.labels.color = textColor;
+            phChart.options.scales.y.grid.color = borderColor;
+            phChart.options.scales.y.ticks.color = textColor;
+            phChart.options.scales.y.title.color = textColor;
+            phChart.options.scales.x.grid.color = borderColor;
+            phChart.options.scales.x.ticks.color = textColor;
+            phChart.options.scales.x.title.color = textColor;
+            phChart.update('none');
+        }
+        
+        const originalSetTheme = setTheme;
+        setTheme = function(mode) {
+            originalSetTheme(mode);
+            setTimeout(updateChartTheme, 100);
+        };
+        
         let resizeTimer;
         window.addEventListener('resize', function() {
             clearTimeout(resizeTimer);
             resizeTimer = setTimeout(function() {
-                // Add any resize-specific logic here if needed
+                if (phChart) phChart.resize();
             }, 250);
         });
     </script>
-        <script src="{% static 'js/iziToast.js' %}"></script>
+    <script src="{% static 'js/iziToast.js' %}"></script>
     <script src="{% static 'js/iziToast.min.js' %}"></script>
     {% if messages %}
     {% for message in messages %}
-  <script>
-  
-  iziToast.{{message.tags}}({
-    title: '{{message}}',
-    position: 'topRight'
-  });  
-  </script>
-      {% endfor %}
-      {% endif %}
+    <script>
+        iziToast.{{message.tags}}({
+            title: '{{message}}',
+            position: 'topRight'
+        });  
+    </script>
+    {% endfor %}
+    {% endif %}
 </body>
 </html>
