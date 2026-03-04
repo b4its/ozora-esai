@@ -1,0 +1,506 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ozora Panel - Textile Wastewater Treatment</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <link rel="stylesheet" href="{% static 'css/iziToast.css' %}">
+    <link rel="stylesheet" href="{% static 'css/iziToast.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/ozora_styles.css' %}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+
+</head>
+<body>
+
+    <!-- ========== SIDEBAR ========== -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <a class="sidebar-logo" href="#">
+                <div class="sidebar-logo-icon">
+                    <i class="fa-solid fa-bong"></i>
+                </div>
+                <span class="sidebar-logo-text"><span>Ozora Panel</span></span>
+            </a>
+            <button class="sidebar-toggle" id="sidebar-toggle-btn" title="Toggle sidebar" onclick="toggleSidebar()">
+                <i class="fa-solid fa-angles-left" id="toggle-icon"></i>
+            </button>
+        </div>
+
+        <nav class="sidebar-nav">
+            <div class="nav-section-label">Navigation</div>
+
+            <div class="nav-item active" id="nav-control"
+                 data-tooltip="Connection"
+                 onclick="switchTab('control')">
+                <div class="nav-item-icon">
+                    <i class="fa-solid fa-link"></i>
+                </div>
+                <span class="nav-item-label">Connection</span>
+            </div>
+
+            <div class="nav-item disabled" id="nav-monitoring"
+                 data-tooltip="Monitoring"
+                 onclick="switchTab('monitoring')">
+                <div class="nav-item-icon">
+                    <i class="fa-solid fa-chart-pie"></i>
+                </div>
+                <span class="nav-item-label">Monitoring</span>
+            </div>
+        </nav>
+
+        <div class="sidebar-footer">
+            <a href="{% url 'logout' %}" class="logout-btn" style="width: 100%; justify-content: center;">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span class="nav-item-label">Logout</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- Mobile backdrop -->
+    <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeMobileSidebar()"></div>
+
+    <!-- ========== LAYOUT ========== -->
+    <div class="layout" id="layout">
+
+        <!-- TOPBAR -->
+        <header class="topbar">
+            <div class="topbar-left">
+                <!-- Mobile hamburger -->
+                <button class="mobile-menu-btn" onclick="openMobileSidebar()">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+
+                <div class="topbar-title">
+                    <h1 id="page-title">Device Connection</h1>
+                    <p id="page-subtitle">Textile Wastewater Treatment System</p>
+                </div>
+            </div>
+
+            <div class="topbar-right">
+                <!-- Theme switcher -->
+                <div class="theme-switcher">
+                    <button class="theme-btn active" id="btn-theme-light" onclick="setTheme('light')" title="Light">
+                        <i class="fa-solid fa-sun"></i>
+                    </button>
+                    <button class="theme-btn" id="btn-theme-system" onclick="setTheme('system')" title="System">
+                        <i class="fa-solid fa-desktop"></i>
+                    </button>
+                    <button class="theme-btn" id="btn-theme-dark" onclick="setTheme('dark')" title="Dark">
+                        <i class="fa-solid fa-moon"></i>
+                    </button>
+                </div>
+
+                <!-- Token -->
+                <div class="token-badge">
+                    <code>Token {{ api_token }}</code>
+                </div>
+
+                <!-- Connection status -->
+                <div id="header-status" class="badge badge-danger">DISCONNECTED</div>
+            </div>
+        </header>
+
+        {% block content %} {%endblock content%}
+    </div>
+
+    <!-- ========== OVERLAYS ========== -->
+    <div id="overlay-scan" class="overlay">
+        <div class="overlay-box">
+            <i class="fa-solid fa-satellite-dish fa-spin overlay-icon" style="color: #3B82F6;"></i>
+            <h3>Establishing Connection...</h3>
+            <p>Connecting to Treatment System Controller</p>
+        </div>
+    </div>
+
+    <div id="overlay-complete" class="overlay">
+        <div class="overlay-box">
+            <i class="fa-solid fa-circle-check overlay-icon" style="color: #10B981;"></i>
+            <h3>Treatment Completed!</h3>
+            <p style="margin-top: 8px; font-size: 1rem; opacity: 0.9;">Water purified to transparent state</p>
+            <p style="margin-top: 4px; opacity: 0.65; font-size: 0.85rem;">Process automatically stopped</p>
+        </div>
+    </div>
+
+    <!-- ========== SCRIPTS ========== -->
+    <script>
+        /* ---- Sidebar ---- */
+        let sidebarCollapsed = false;
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const layout  = document.getElementById('layout');
+            const icon    = document.getElementById('toggle-icon');
+
+            sidebarCollapsed = !sidebarCollapsed;
+            sidebar.classList.toggle('collapsed', sidebarCollapsed);
+            layout.classList.toggle('sidebar-collapsed', sidebarCollapsed);
+            icon.className = sidebarCollapsed
+                ? 'fa-solid fa-angles-right'
+                : 'fa-solid fa-angles-left';
+
+            localStorage.setItem('sidebarCollapsed', sidebarCollapsed);
+        }
+
+        function openMobileSidebar() {
+            document.getElementById('sidebar').classList.add('mobile-open');
+            document.getElementById('sidebar-backdrop').classList.add('visible');
+        }
+
+        function closeMobileSidebar() {
+            document.getElementById('sidebar').classList.remove('mobile-open');
+            document.getElementById('sidebar-backdrop').classList.remove('visible');
+        }
+
+        // Restore collapsed state
+        (function() {
+            const saved = localStorage.getItem('sidebarCollapsed');
+            if (saved === 'true') {
+                sidebarCollapsed = true;
+                document.getElementById('sidebar').classList.add('collapsed');
+                document.getElementById('layout').classList.add('sidebar-collapsed');
+                document.getElementById('toggle-icon').className = 'fa-solid fa-angles-right';
+            }
+        })();
+
+        /* ---- Theme ---- */
+        function setTheme(mode) {
+            const html = document.documentElement;
+            ['btn-theme-light','btn-theme-dark','btn-theme-system'].forEach(id => {
+                document.getElementById(id).classList.remove('active');
+            });
+            if (mode === 'system') {
+                document.getElementById('btn-theme-system').classList.add('active');
+                localStorage.removeItem('theme');
+                applySystemTheme();
+            } else {
+                document.getElementById(mode === 'dark' ? 'btn-theme-dark' : 'btn-theme-light').classList.add('active');
+                html.setAttribute('data-theme', mode);
+                localStorage.setItem('theme', mode);
+            }
+            setTimeout(updateChartTheme, 100);
+        }
+
+        function applySystemTheme() {
+            const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        }
+
+        (function initTheme() {
+            const saved = localStorage.getItem('theme');
+            if (saved) setTheme(saved);
+            else setTheme('system');
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+                if (!localStorage.getItem('theme')) applySystemTheme();
+            });
+        })();
+
+        /* ---- App State ---- */
+        let isLinked = false, isHardwareOn = false, isProcessCompleted = false;
+        let timerInterval, sensorInterval, dataLogInterval;
+        let startTime = 0, elapsedTime = 0;
+        let dataLog = [], phChart = null;
+
+        const treatmentParams = {
+            initialPH: 11.5, targetPH: 7.0,
+            initialTemp: 35.0, targetTemp: 28.0,
+            treatmentDuration: 5000, colorIntensity: 1.0,
+            purityThreshold: { minR: 200, minG: 200, minB: 200, minTotal: 630 }
+        };
+
+        const ui = {
+            navControl:    document.getElementById('nav-control'),
+            navMonitoring: document.getElementById('nav-monitoring'),
+            headerStatus:  document.getElementById('header-status'),
+            ctlBtn:        document.getElementById('ctl-btn'),
+            ctlIcon:       document.getElementById('ctl-icon'),
+            ctlText:       document.getElementById('ctl-text'),
+            ctlStatus:     document.getElementById('ctl-status-text'),
+            pulse:         document.getElementById('ctl-pulse'),
+            monBtn:        document.getElementById('mon-btn'),
+            valTemp:       document.getElementById('val-temp'),
+            cardTemp:      document.getElementById('card-temp-visual'),
+            valPH:         document.getElementById('val-ph'),
+            cardPH:        document.getElementById('card-ph-visual'),
+            valSpeed:      document.getElementById('val-speed'),
+            valR:          document.getElementById('val-r'),
+            valG:          document.getElementById('val-g'),
+            valB:          document.getElementById('val-b'),
+            colorPreview:  document.getElementById('color-preview'),
+            colorName:     document.getElementById('color-name'),
+            timerSec:      document.getElementById('timer-sec'),
+            timerMs:       document.getElementById('timer-ms'),
+            timerTotal:    document.getElementById('timer-total')
+        };
+
+        /* ---- Tab switching ---- */
+        function switchTab(tab) {
+            if (tab === 'monitoring' && !isLinked) return;
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.section-view').forEach(el => el.classList.remove('active'));
+            if (tab === 'control') {
+                ui.navControl.classList.add('active');
+                document.getElementById('control').classList.add('active');
+                document.getElementById('page-title').innerText = "Device Connection";
+                document.getElementById('page-subtitle').innerText = "Textile Wastewater Treatment System";
+            } else {
+                ui.navMonitoring.classList.add('active');
+                document.getElementById('monitoring').classList.add('active');
+                document.getElementById('page-title').innerText = "Monitoring Dashboard";
+                document.getElementById('page-subtitle').innerText = "Real-time Treatment Process Analysis";
+            }
+            closeMobileSidebar();
+        }
+
+        /* ---- Control ---- */
+        function handleControlAction() {
+            if (!isLinked) {
+                document.getElementById('overlay-scan').classList.add('visible');
+                setTimeout(() => {
+                    document.getElementById('overlay-scan').classList.remove('visible');
+                    setSystemLinked(true);
+                }, 1200);
+            } else {
+                if (isHardwareOn) toggleHardware();
+                setSystemLinked(false);
+            }
+        }
+
+        function setSystemLinked(status) {
+            isLinked = status;
+            if (status) {
+                ui.ctlBtn.className = "hw-btn hw-btn-active";
+                ui.ctlIcon.className = "fa-solid fa-link";
+                ui.ctlText.innerText = "LINKED";
+                ui.ctlStatus.innerText = "Connected to Treatment System Controller";
+                ui.pulse.classList.add('active');
+                ui.headerStatus.className = "badge badge-success";
+                ui.headerStatus.innerText = "CONNECTED";
+                ui.navMonitoring.classList.remove('disabled');
+                setTimeout(() => { switchTab('monitoring'); initializeChart(); }, 600);
+            } else {
+                ui.ctlBtn.className = "hw-btn hw-btn-unlinked";
+                ui.ctlIcon.className = "fa-solid fa-wifi";
+                ui.ctlText.innerText = "CONNECT";
+                ui.ctlStatus.innerText = "Click to scan for hardware";
+                ui.pulse.classList.remove('active');
+                ui.headerStatus.className = "badge badge-danger";
+                ui.headerStatus.innerText = "DISCONNECTED";
+                ui.navMonitoring.classList.add('disabled');
+            }
+        }
+
+        function toggleHardware() {
+            if (isProcessCompleted) {
+                isProcessCompleted = false;
+                elapsedTime = 0;
+                treatmentParams.colorIntensity = 1.0;
+                ui.monBtn.className = "power-btn-sm power-btn-sm-standby";
+                ui.monBtn.innerHTML = '<i class="fa-solid fa-power-off"></i>';
+                document.getElementById('process-status-text').innerText = "STANDBY";
+                return;
+            }
+            isHardwareOn = !isHardwareOn;
+            if (isHardwareOn) {
+                ui.monBtn.className = "power-btn-sm power-btn-sm-active";
+                ui.monBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+                document.getElementById('process-status-text').innerText = "TREATING";
+                startTime = Date.now() - elapsedTime;
+                timerInterval    = setInterval(updateTimer, 50);
+                sensorInterval   = setInterval(updateSensors, 100);
+                dataLogInterval  = setInterval(logData, 500);
+                updateSensors();
+                logData();
+            } else {
+                ui.monBtn.className = "power-btn-sm power-btn-sm-standby";
+                ui.monBtn.innerHTML = '<i class="fa-solid fa-power-off"></i>';
+                document.getElementById('process-status-text').innerText = "PAUSED";
+                clearInterval(timerInterval);
+                clearInterval(sensorInterval);
+                clearInterval(dataLogInterval);
+            }
+        }
+
+        function checkWaterPurity(r, g, b) {
+            const t = treatmentParams.purityThreshold;
+            return r >= t.minR && g >= t.minG && b >= t.minB && (r+g+b) >= t.minTotal;
+        }
+
+        function completeProcess() {
+            isHardwareOn = false;
+            isProcessCompleted = true;
+            clearInterval(timerInterval);
+            clearInterval(sensorInterval);
+            clearInterval(dataLogInterval);
+            ui.monBtn.className = "power-btn-sm power-btn-sm-completed completion-animation";
+            ui.monBtn.innerHTML = '<i class="fa-solid fa-check"></i>';
+            document.getElementById('process-status-text').innerText = "COMPLETED";
+            document.getElementById('overlay-complete').classList.add('visible');
+            setTimeout(() => document.getElementById('overlay-complete').classList.remove('visible'), 3500);
+            logData();
+        }
+
+        function updateTimer() {
+            elapsedTime = Date.now() - startTime;
+            let totalSec = Math.floor(elapsedTime / 1000);
+            let ms = Math.floor((elapsedTime % 1000) / 10);
+            let min = Math.floor(totalSec / 60);
+            let sec = totalSec % 60;
+            ui.timerSec.innerText = sec.toString().padStart(2, '0');
+            ui.timerMs.innerText  = ms.toString().padStart(2, '0');
+            ui.timerTotal.innerText = `${min.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
+        }
+
+        function updateSensors() {
+            let p = Math.min(elapsedTime / treatmentParams.treatmentDuration, 1);
+
+            let temp = treatmentParams.initialTemp - (treatmentParams.initialTemp - treatmentParams.targetTemp) * p + (Math.random() * 1.5 - 0.75);
+            temp = Math.max(treatmentParams.targetTemp, Math.min(treatmentParams.initialTemp, temp));
+            ui.valTemp.innerText = temp.toFixed(1);
+            if (temp >= 33)      ui.cardTemp.style.background = "linear-gradient(145deg, #EF4444, #DC2626)";
+            else if (temp < 29)  ui.cardTemp.style.background = "linear-gradient(145deg, #10B981, #059669)";
+            else                 ui.cardTemp.style.background = "linear-gradient(145deg, #EF4444 0%, #DC2626 50%, #1D4ED8 100%)";
+
+            let ph = treatmentParams.initialPH - (treatmentParams.initialPH - treatmentParams.targetPH) * p + (Math.random() * 0.3 - 0.15);
+            ph = Math.max(treatmentParams.targetPH, Math.min(treatmentParams.initialPH, ph));
+            ui.valPH.innerText = ph.toFixed(1);
+            if (ph > 9)         ui.cardPH.style.background = "linear-gradient(145deg, #EC4899, #9333EA)";
+            else if (ph < 6.5)  ui.cardPH.style.background = "linear-gradient(145deg, #F59E0B, #D97706)";
+            else                ui.cardPH.style.background = "linear-gradient(145deg, #10B981, #059669)";
+
+            let speed = 2.5 + Math.sin(p * Math.PI * 2) * 0.8 + (Math.random() * 0.4 - 0.2);
+            ui.valSpeed.innerText = Math.max(1.0, speed).toFixed(1);
+
+            treatmentParams.colorIntensity = Math.max(0, 1 - p);
+            let r = Math.floor(30  + 170 * (1 - treatmentParams.colorIntensity) + (Math.random()*20-10));
+            let g = Math.floor(64  + 156 * (1 - treatmentParams.colorIntensity) + (Math.random()*20-10));
+            let b = Math.floor(175 +  65 * (1 - treatmentParams.colorIntensity) + (Math.random()*20-10));
+            r = Math.max(0, Math.min(255, r));
+            g = Math.max(0, Math.min(255, g));
+            b = Math.max(0, Math.min(255, b));
+            ui.valR.innerText = r;
+            ui.valG.innerText = g;
+            ui.valB.innerText = b;
+            ui.colorPreview.style.backgroundColor = `rgb(${r},${g},${b})`;
+
+            if      (treatmentParams.colorIntensity > 0.7)  ui.colorName.innerText = "Highly Polluted Textile Wastewater";
+            else if (treatmentParams.colorIntensity > 0.4)  ui.colorName.innerText = "Treatment In Progress";
+            else if (treatmentParams.colorIntensity > 0.15) ui.colorName.innerText = "Semi-Purified Water";
+            else                                            ui.colorName.innerText = "Clean Transparent Water";
+
+            if (isHardwareOn && checkWaterPurity(r, g, b)) completeProcess();
+        }
+
+        function logData() {
+            let ts   = new Date();
+            let time = `${ts.getHours().toString().padStart(2,'0')}:${ts.getMinutes().toString().padStart(2,'0')}:${ts.getSeconds().toString().padStart(2,'0')}.${ts.getMilliseconds().toString().padStart(3,'0').substr(0,2)}`;
+            let temp = parseFloat(ui.valTemp.innerText);
+            let ph   = parseFloat(ui.valPH.innerText);
+            let spd  = parseFloat(ui.valSpeed.innerText);
+            let dur  = ui.timerTotal.innerText;
+            let wq   = ui.colorName.innerText;
+            let r    = parseInt(ui.valR.innerText);
+            let g    = parseInt(ui.valG.innerText);
+            let bv   = parseInt(ui.valB.innerText);
+            let pure = checkWaterPurity(r, g, bv);
+
+            let status = isProcessCompleted ? "Treatment Completed" : (pure ? "Purification Complete" : "Treatment Active");
+            let cls    = isProcessCompleted ? "badge badge-completed" : (pure ? "badge badge-clean" : "badge badge-polluted");
+
+            let row = document.createElement('tr');
+            row.innerHTML = `<td>${time}</td><td>${temp.toFixed(1)}</td><td>${ph.toFixed(1)}</td><td>${spd.toFixed(1)}</td><td>${dur}</td><td style="font-family:'DM Sans',sans-serif;">${wq}</td><td><span class="${cls}">${status}</span></td>`;
+            let tbody = document.getElementById('log-table-body');
+            tbody.insertBefore(row, tbody.firstChild);
+            while (tbody.children.length > 30) tbody.removeChild(tbody.lastChild);
+
+            dataLog.push({ time: `${ts.getSeconds()}.${ts.getMilliseconds().toString().padStart(3,'0').substr(0,1)}s`, ph, temp, speed: spd, colorIntensity: treatmentParams.colorIntensity, r, g, b: bv, isPure: pure });
+            if (dataLog.length > 30) dataLog.shift();
+            updateChart();
+        }
+
+        function initializeChart() {
+            if (phChart) { phChart.destroy(); phChart = null; }
+            const ctx = document.getElementById('phChart').getContext('2d');
+            const cs  = getComputedStyle(document.documentElement);
+            const tc  = cs.getPropertyValue('--text-main').trim();
+            const bc  = cs.getPropertyValue('--border').trim();
+            phChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'pH Level',
+                        data: [],
+                        borderColor: '#EC4899',
+                        backgroundColor: 'rgba(236,72,153,0.08)',
+                        borderWidth: 2.5,
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 3,
+                        pointBackgroundColor: '#EC4899',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    aspectRatio: 3,
+                    plugins: {
+                        legend: { display: true, position: 'top', labels: { color: tc, font: { family: 'DM Sans', size: 12, weight: '600' } } },
+                        tooltip: { backgroundColor: 'rgba(13,17,23,0.92)', titleColor: '#fff', bodyColor: '#fff', borderColor: bc, borderWidth: 1, padding: 12, callbacks: { label: ctx => 'pH: ' + ctx.parsed.y.toFixed(1) } }
+                    },
+                    scales: {
+                        y: { beginAtZero: false, min: 6, max: 12, grid: { color: bc }, ticks: { color: tc, font: { family: 'DM Mono', size: 11 }, callback: v => v.toFixed(1) }, title: { display: true, text: 'pH Level', color: tc, font: { family: 'DM Sans', size: 12, weight: '600' } } },
+                        x: { grid: { color: bc }, ticks: { color: tc, font: { family: 'DM Mono', size: 10 }, maxRotation: 45, minRotation: 45 }, title: { display: true, text: 'Time (seconds)', color: tc, font: { family: 'DM Sans', size: 12, weight: '600' } } }
+                    },
+                    interaction: { intersect: false, mode: 'index' }
+                }
+            });
+        }
+
+        function updateChart() {
+            if (!phChart) return;
+            phChart.data.labels = dataLog.map(d => d.time);
+            phChart.data.datasets[0].data = dataLog.map(d => d.ph);
+            phChart.update('none');
+        }
+
+        function updateChartTheme() {
+            if (!phChart) return;
+            const cs = getComputedStyle(document.documentElement);
+            const tc = cs.getPropertyValue('--text-main').trim();
+            const bc = cs.getPropertyValue('--border').trim();
+            phChart.options.plugins.legend.labels.color = tc;
+            ['x','y'].forEach(axis => {
+                phChart.options.scales[axis].grid.color  = bc;
+                phChart.options.scales[axis].ticks.color = tc;
+                phChart.options.scales[axis].title.color = tc;
+            });
+            phChart.update('none');
+        }
+
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => { if (phChart) phChart.resize(); }, 250);
+        });
+    </script>
+    <script src="{% static 'js/iziToast.js' %}"></script>
+    <script src="{% static 'js/iziToast.min.js' %}"></script>
+    {% if messages %}
+    {% for message in messages %}
+    <script>
+        iziToast.{{message.tags}}({
+            title: '{{message}}',
+            position: 'topRight'
+        });
+    </script>
+    {% endfor %}
+    {% endif %}
+</body>
+</html>

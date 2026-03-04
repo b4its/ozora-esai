@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from rest_framework.authtoken.models import Token
 
-@login_required # Memastikan hanya user login yang bisa lihat token
+@login_required(login_url='customerLogin')
 def home(request):
     # get_or_create mengembalikan tuple: (objek, boolean_apakah_baru)
     token_obj, created = Token.objects.get_or_create(user=request.user)

@@ -1,4 +1,18 @@
+arduino-cli board list
 sudo chmod 666 /dev/ttyUSB0
 arduino-cli compile --fqbn esp32:esp32:esp32 .
 arduino-cli upload -p /dev/ttyUSB0 --fqbn esp32:esp32:esp32 .
 arduino-cli monitor -p /dev/ttyUSB0 --config baudrate=115200
+
+
+arduino-cli upload -p /dev/ttyUSB0 --fqbn esp32:esp32:esp32 . --board-options "UploadSpeed=115200"
+
+
+kill
+sudo fuser -k /dev/ttyUSB0
+sudo killall picocom arduino-cli 2>/dev/null
+sudo usermod -a -G uucp $USER
+
+
+cek library arduino
+arduino-cli lib list
