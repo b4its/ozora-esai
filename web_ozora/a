@@ -1,3 +1,48 @@
+sebagai expert sebagai ui/ux designer, frontend developer, dan django developer memiliki pengalaman lebih dari 8 tahun,
+maka dari itu buatkan web ini menjadi dinamis, teruntuk data treatment log history itu dari views django ini yaitu sensorData:
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from rest_framework.authtoken.models import Token
+from .models import SensorData
+
+@login_required(login_url='customerLogin')
+def home(request):
+    # get_or_create mengembalikan tuple: (objek, boolean_apakah_baru)
+    token_obj, created = Token.objects.get_or_create(user=request.user)
+    sensorData = SensorData.objects.filter(user=request.user)
+    
+    # Kita tidak butuh pengecekan 'if token_obj is None' karena 
+    # get_or_create pasti mengembalikan objek token atau raise error.
+    
+    context = {
+        'api_token': token_obj.key,
+        'dataSensor': sensorData,
+        'is_new': created
+    }
+    
+    return render(request, 'index.html', context)
+
+dengan rincian mdels seperti ini design nya:
+from django.db import models
+from django.contrib.auth.models import User
+
+# Create your models here.
+class SensorData(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sensor_data')
+    raw_light = models.DecimalField(max_digits=20, decimal_places=2, null=True)
+    red = models.DecimalField(max_digits=20, decimal_places=2)
+    green = models.DecimalField(max_digits=20, decimal_places=2)
+    blue = models.DecimalField(max_digits=20, decimal_places=2)
+    temp = models.DecimalField(max_digits=20, decimal_places=2)
+    lux = models.DecimalField(max_digits=20, decimal_places=2)
+    created = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Data Sensor dari {self.user.username} | pada waktu: {self.created}"
+
+untuk fields yang masih kosong itu dibiarkan saja jangan dihapus pada treatment log history:
+intinya saya ingin membuatnya itu menjadi dinamis saja, data tersebut ditampilkan dari database.
+kode lengkapnya seperti ini:
 {% load static %}
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
@@ -12,8 +57,11 @@
     <link rel="stylesheet" href="{% static 'css/iziToast.min.css' %}">
     <link rel="stylesheet" href="{% static 'css/ozora_styles.css' %}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+
 </head>
 <body>
+
     <!-- ========== SIDEBAR ========== -->
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
@@ -27,8 +75,10 @@
                 <i class="fa-solid fa-angles-left" id="toggle-icon"></i>
             </button>
         </div>
+
         <nav class="sidebar-nav">
             <div class="nav-section-label">Navigation</div>
+
             <div class="nav-item active" id="nav-control"
                  data-tooltip="Connection"
                  onclick="switchTab('control')">
@@ -37,6 +87,7 @@
                 </div>
                 <span class="nav-item-label">Connection</span>
             </div>
+
             <div class="nav-item disabled" id="nav-monitoring"
                  data-tooltip="Monitoring"
                  onclick="switchTab('monitoring')">
@@ -46,6 +97,7 @@
                 <span class="nav-item-label">Monitoring</span>
             </div>
         </nav>
+
         <div class="sidebar-footer">
             <a href="{% url 'logout' %}" class="logout-btn" style="width: 100%; justify-content: center;">
                 <i class="fa-solid fa-right-from-bracket"></i>
@@ -53,10 +105,13 @@
             </a>
         </div>
     </aside>
+
     <!-- Mobile backdrop -->
     <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeMobileSidebar()"></div>
+
     <!-- ========== LAYOUT ========== -->
     <div class="layout" id="layout">
+
         <!-- TOPBAR -->
         <header class="topbar">
             <div class="topbar-left">
@@ -64,11 +119,13 @@
                 <button class="mobile-menu-btn" onclick="openMobileSidebar()">
                     <i class="fa-solid fa-bars"></i>
                 </button>
+
                 <div class="topbar-title">
                     <h1 id="page-title">Device Connection</h1>
                     <p id="page-subtitle">Textile Wastewater Treatment System</p>
                 </div>
             </div>
+
             <div class="topbar-right">
                 <!-- Theme switcher -->
                 <div class="theme-switcher">
@@ -82,17 +139,169 @@
                         <i class="fa-solid fa-moon"></i>
                     </button>
                 </div>
+
                 <!-- Token -->
                 <div class="token-badge">
                     <code>Token {{ api_token }}</code>
                 </div>
+
                 <!-- Connection status -->
                 <div id="header-status" class="badge badge-danger">DISCONNECTED</div>
             </div>
         </header>
+
         <!-- MAIN -->
-{% block content %} {% endblock content %}
+        <main>
+
+            <!-- CONNECTION SECTION -->
+            <section id="control" class="section-view active">
+                <div class="control-section">
+                    <div class="pulse-wrapper">
+                        <div id="ctl-pulse" class="pulse-ring"></div>
+                        <button id="ctl-btn" class="hw-btn hw-btn-unlinked" onclick="handleControlAction()">
+                            <i class="fa-solid fa-wifi" id="ctl-icon"></i>
+                            <span id="ctl-text">CONNECT</span>
+                        </button>
+                    </div>
+                    <p id="ctl-status-text" class="control-hint">Click to scan for hardware</p>
+                </div>
+            </section>
+
+            <!-- MONITORING SECTION -->
+            <section id="monitoring" class="section-view">
+
+                <!-- Process control bar -->
+                <div class="card-base process-row">
+                    <div class="process-row-text">
+                        <h3>Treatment Process Control</h3>
+                        <p>Toggle real-time wastewater treatment monitoring</p>
+                    </div>
+                    <button id="mon-btn" class="power-btn-sm power-btn-sm-standby" onclick="toggleHardware()">
+                        <i class="fa-solid fa-power-off"></i>
+                    </button>
+                </div>
+
+                <!-- Metrics grid -->
+                <div class="metrics-grid">
+
+                    <!-- Temperature -->
+                    <div class="metric-card metric-card-temp" id="card-temp-visual">
+                        <div>
+                            <div class="metric-label">Temperature</div>
+                            <div class="metric-value">
+                                <span id="val-temp">0</span><span class="metric-unit">°C</span>
+                            </div>
+                        </div>
+                        <svg class="wave" viewBox="0 0 500 80" preserveAspectRatio="none">
+                            <path fill="white" d="M0,40 C125,80 375,0 500,40 L500,80 L0,80 Z"></path>
+                        </svg>
+                    </div>
+
+                    <!-- pH -->
+                    <div class="metric-card metric-card-ph" id="card-ph-visual">
+                        <div>
+                            <div class="metric-label">pH Level</div>
+                            <div class="metric-value">
+                                <span id="val-ph">0.0</span><span class="metric-unit"> pH</span>
+                            </div>
+                        </div>
+                        <svg class="wave" viewBox="0 0 500 80" preserveAspectRatio="none">
+                            <path fill="white" d="M0,40 C125,80 375,0 500,40 L500,80 L0,80 Z"></path>
+                        </svg>
+                    </div>
+
+                    <!-- Flow Speed -->
+                    <div class="metric-card metric-card-speed">
+                        <div>
+                            <div class="metric-label">Flow Speed</div>
+                            <div class="metric-value">
+                                <span id="val-speed">0.0</span><span class="metric-unit"> L/s</span>
+                            </div>
+                        </div>
+                        <svg class="wave" viewBox="0 0 500 80" preserveAspectRatio="none">
+                            <path fill="white" d="M0,40 C125,80 375,0 500,40 L500,80 L0,80 Z"></path>
+                        </svg>
+                    </div>
+
+                    <!-- Water Quality Color -->
+                    <div class="metric-card metric-card-color" style="display:flex; flex-direction:column;">
+                        <div class="metric-label">Water Quality Sensor</div>
+                        <div id="color-name" class="color-quality-name">Detecting...</div>
+                        <div id="color-preview" class="color-preview-box" style="background: rgb(30,64,175);"></div>
+                        <div class="rgb-grid">
+                            <div class="rgb-chip">
+                                <span class="rgb-val" id="val-r">30</span>
+                                <span class="rgb-lbl text-r">RED</span>
+                            </div>
+                            <div class="rgb-chip">
+                                <span class="rgb-val" id="val-g">64</span>
+                                <span class="rgb-lbl text-g">GRN</span>
+                            </div>
+                            <div class="rgb-chip">
+                                <span class="rgb-val" id="val-b">175</span>
+                                <span class="rgb-lbl text-b">BLU</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Timer -->
+                    <div class="metric-card metric-card-process">
+                        <div>
+                            <div class="metric-label">Treatment Duration</div>
+                            <div class="timer-display">
+                                <span id="timer-sec">00</span><span style="opacity:.4; font-size:.6em;">:</span><span id="timer-ms" style="font-size:.7em;">00</span>
+                            </div>
+                            <div class="timer-total">TOTAL: <span id="timer-total">00:00</span></div>
+                        </div>
+                        <span id="process-status-text" class="process-badge">STANDBY</span>
+                        <svg class="wave" viewBox="0 0 500 80" preserveAspectRatio="none">
+                            <path fill="white" d="M0,40 C125,80 375,0 500,40 L500,80 L0,80 Z"></path>
+                        </svg>
+                    </div>
+
+                </div>
+
+                <!-- Chart -->
+                <div class="card-base chart-card">
+                    <div class="table-card-header" style="padding: 0 0 16px 0; border-bottom: 1px solid var(--border); margin-bottom: 16px;">
+                        <div class="table-card-title">
+                            <i class="fa-solid fa-chart-line"></i> pH Level Trend Analysis
+                        </div>
+                    </div>
+                    <canvas id="phChart"></canvas>
+                </div>
+
+                <!-- Log table -->
+                <div class="card-base table-card">
+                    <div class="table-card-header">
+                        <div class="table-card-title">
+                            <i class="fa-solid fa-list-check"></i> Treatment Log History
+                        </div>
+                    </div>
+                    <div class="table-scroll">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Temp (°C)</th>
+                                    <th>pH</th>
+                                    <th>Speed (L/s)</th>
+                                    <th>Duration</th>
+                                    <th>Water Quality</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="log-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </section>
+        </main>
+
+        
     </div>
+
     <!-- ========== OVERLAYS ========== -->
     <div id="overlay-scan" class="overlay">
         <div class="overlay-box">
@@ -101,6 +310,7 @@
             <p>Connecting to Treatment System Controller</p>
         </div>
     </div>
+
     <div id="overlay-complete" class="overlay">
         <div class="overlay-box">
             <i class="fa-solid fa-circle-check overlay-icon" style="color: #10B981;"></i>
@@ -109,249 +319,37 @@
             <p style="margin-top: 4px; opacity: 0.65; font-size: 0.85rem;">Process automatically stopped</p>
         </div>
     </div>
+
     <!-- ========== SCRIPTS ========== -->
     <script>
-        /* =====================================================
-           DB SENSOR DATA — injected dari Django template
-           ===================================================== */
-        const DB_SENSOR_DATA = [
-            {% for sensor in dataSensor %}
-            {
-                id:       {{ sensor.pk }},
-                created:  "{{ sensor.created|date:'Y-m-d H:i:s' }}",
-                raw_light: {% if sensor.raw_light %}{{ sensor.raw_light }}{% else %}null{% endif %},
-                red:      {{ sensor.red }},
-                green:    {{ sensor.green }},
-                blue:     {{ sensor.blue }},
-                temp:     {{ sensor.temp }},
-                lux:      {{ sensor.lux }}
-            }{% if not forloop.last %},{% endif %}
-            {% endfor %}
-        ];
-
-        /* =====================================================
-           WATER QUALITY HELPERS
-           ===================================================== */
-        const PURITY_THRESHOLD = { minR: 200, minG: 200, minB: 200, minTotal: 630 };
-
-        function checkWaterPurity(r, g, b) {
-            const t = PURITY_THRESHOLD;
-            return r >= t.minR && g >= t.minG && b >= t.minB && (r + g + b) >= t.minTotal;
-        }
-
-        function getWaterQualityLabel(r, g, b) {
-            const total = r + g + b;
-            const maxPossible = 765; // 255*3
-            const intensity = 1 - (total / maxPossible);
-            if      (intensity > 0.7)  return "Highly Polluted Textile Wastewater";
-            else if (intensity > 0.4)  return "Treatment In Progress";
-            else if (intensity > 0.15) return "Semi-Purified Water";
-            else                       return "Clean Transparent Water";
-        }
-
-        /* =====================================================
-           POPULATE DB STATUS BADGES & QUALITY LABELS
-           Berjalan setelah DOM siap, mem-patch badge & label
-           pada baris yang di-render Django template.
-           ===================================================== */
-        document.addEventListener('DOMContentLoaded', function () {
-
-            /* --- Status badges dari DB rows --- */
-            document.querySelectorAll('.db-status-badge').forEach(function (el) {
-                const r = parseInt(el.dataset.r);
-                const g = parseInt(el.dataset.g);
-                const b = parseInt(el.dataset.b);
-                const pure = checkWaterPurity(r, g, b);
-                if (pure) {
-                    el.className = 'badge badge-clean';
-                    el.innerText = 'Purification Complete';
-                } else {
-                    el.className = 'badge badge-polluted';
-                    el.innerText = 'Treatment Active';
-                }
-            });
-
-            /* --- Water quality labels dari DB rows --- */
-            document.querySelectorAll('.water-quality-cell').forEach(function (el) {
-                const r = parseInt(el.dataset.r);
-                const g = parseInt(el.dataset.g);
-                const b = parseInt(el.dataset.b);
-                const label = el.querySelector('.wq-label');
-                if (label) label.innerText = getWaterQualityLabel(r, g, b);
-            });
-
-            /* --- Populate chart dengan data DB jika ada --- */
-            if (DB_SENSOR_DATA.length > 0) {
-                populateDBChartData();
-            }
-
-            /* --- Init pagination setelah semua baris siap --- */
-            pagination.init();
-        });
-
-        /* =====================================================
-           PAGINATION ENGINE
-           Mengelola semua baris (realtime + DB) dalam satu
-           array virtual, lalu render halaman yang aktif.
-           ===================================================== */
-        const pagination = {
-            page:       1,
-            perPage:    10,
-            totalPages: 1,
-
-            /* Kumpulkan semua baris dari tbody (realtime + DB) */
-            getAllRows() {
-                return Array.from(document.querySelectorAll('#log-table-body tr:not(#empty-db-row)'));
-            },
-
-            init() {
-                this.page = 1;
-                this.render();
-            },
-
-            setPerPage(n) {
-                this.perPage = n;
-                this.page    = 1;
-                this.render();
-            },
-
-            go(n) {
-                const rows = this.getAllRows();
-                this.totalPages = Math.max(1, Math.ceil(rows.length / this.perPage));
-                if (n < 1 || n > this.totalPages) return;
-                this.page = n;
-                this.render();
-            },
-
-            render() {
-                const rows = this.getAllRows();
-                const total = rows.length;
-                this.totalPages = Math.max(1, Math.ceil(total / this.perPage));
-
-                /* Clamp halaman */
-                if (this.page > this.totalPages) this.page = this.totalPages;
-                if (this.page < 1)               this.page = 1;
-
-                const start = (this.page - 1) * this.perPage;
-                const end   = start + this.perPage;
-
-                /* Show/hide baris */
-                rows.forEach(function (row, i) {
-                    row.classList.remove('visible-row');
-                    if (i >= start && i < end) {
-                        row.style.display = '';
-                        /* Trigger animasi */
-                        void row.offsetWidth;
-                        row.classList.add('visible-row');
-                    } else {
-                        row.style.display = 'none';
-                    }
-                });
-
-                /* Info teks */
-                const infoEl = document.getElementById('pagination-info');
-                if (total === 0) {
-                    infoEl.innerText = 'No records';
-                } else {
-                    const from = start + 1;
-                    const to   = Math.min(end, total);
-                    infoEl.innerText = `Showing ${from}–${to} of ${total} records`;
-                }
-
-                /* Update meta di header */
-                const metaEl = document.getElementById('table-meta');
-                if (metaEl) metaEl.innerText = `${total} record${total !== 1 ? 's' : ''}`;
-
-                /* Tombol prev/next/first/last */
-                document.getElementById('pg-first').disabled = this.page <= 1;
-                document.getElementById('pg-prev').disabled  = this.page <= 1;
-                document.getElementById('pg-next').disabled  = this.page >= this.totalPages;
-                document.getElementById('pg-last').disabled  = this.page >= this.totalPages;
-
-                /* Render nomor halaman dengan ellipsis */
-                this.renderNumbers();
-
-                /* Sembunyikan pagination bar jika total ≤ perPage */
-                const bar = document.getElementById('pagination-bar');
-                bar.style.display = (total <= this.perPage && this.totalPages <= 1) ? 'none' : 'flex';
-            },
-
-            renderNumbers() {
-                const container = document.getElementById('pg-numbers');
-                container.innerHTML = '';
-                const cur   = this.page;
-                const total = this.totalPages;
-
-                /* Buat set halaman yang ditampilkan */
-                let pages = new Set();
-                pages.add(1);
-                pages.add(total);
-                for (let i = cur - 1; i <= cur + 1; i++) {
-                    if (i >= 1 && i <= total) pages.add(i);
-                }
-                const sorted = Array.from(pages).sort((a, b) => a - b);
-
-                let prev = 0;
-                sorted.forEach(p => {
-                    if (p - prev > 1) {
-                        const ell = document.createElement('span');
-                        ell.className = 'pg-ellipsis';
-                        ell.innerText = '…';
-                        container.appendChild(ell);
-                    }
-                    const btn = document.createElement('button');
-                    btn.className = 'pg-num' + (p === cur ? ' active' : '');
-                    btn.innerText = p;
-                    btn.onclick   = () => pagination.go(p);
-                    container.appendChild(btn);
-                    prev = p;
-                });
-            }
-        };
-
-        /* =====================================================
-           Pre-populate chart dengan data historis dari DB
-           (hanya temp & lux karena pH tidak ada di model)
-           ===================================================== */
-        function populateDBChartData() {
-            // Ambil 30 data terbaru, urutkan dari lama ke baru
-            const recent = DB_SENSOR_DATA.slice(-30);
-            dbChartSeed = recent.map(function (d) {
-                return {
-                    time: d.created.substr(11, 8), // HH:MM:SS
-                    lux:  parseFloat(d.lux),
-                    temp: parseFloat(d.temp),
-                    r:    parseFloat(d.red),
-                    g:    parseFloat(d.green),
-                    b:    parseFloat(d.blue)
-                };
-            });
-        }
-
-        /* ===================================================== */
-
         /* ---- Sidebar ---- */
         let sidebarCollapsed = false;
+
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             const layout  = document.getElementById('layout');
             const icon    = document.getElementById('toggle-icon');
+
             sidebarCollapsed = !sidebarCollapsed;
             sidebar.classList.toggle('collapsed', sidebarCollapsed);
             layout.classList.toggle('sidebar-collapsed', sidebarCollapsed);
             icon.className = sidebarCollapsed
                 ? 'fa-solid fa-angles-right'
                 : 'fa-solid fa-angles-left';
+
             localStorage.setItem('sidebarCollapsed', sidebarCollapsed);
         }
+
         function openMobileSidebar() {
             document.getElementById('sidebar').classList.add('mobile-open');
             document.getElementById('sidebar-backdrop').classList.add('visible');
         }
+
         function closeMobileSidebar() {
             document.getElementById('sidebar').classList.remove('mobile-open');
             document.getElementById('sidebar-backdrop').classList.remove('visible');
         }
+
         // Restore collapsed state
         (function() {
             const saved = localStorage.getItem('sidebarCollapsed');
@@ -380,10 +378,12 @@
             }
             setTimeout(updateChartTheme, 100);
         }
+
         function applySystemTheme() {
             const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
             document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
         }
+
         (function initTheme() {
             const saved = localStorage.getItem('theme');
             if (saved) setTheme(saved);
@@ -398,7 +398,6 @@
         let timerInterval, sensorInterval, dataLogInterval;
         let startTime = 0, elapsedTime = 0;
         let dataLog = [], phChart = null;
-        let dbChartSeed = []; // data historis DB untuk chart seed
 
         const treatmentParams = {
             initialPH: 11.5, targetPH: 7.0,
@@ -406,6 +405,7 @@
             treatmentDuration: 5000, colorIntensity: 1.0,
             purityThreshold: { minR: 200, minG: 200, minB: 200, minTotal: 630 }
         };
+
         const ui = {
             navControl:    document.getElementById('nav-control'),
             navMonitoring: document.getElementById('nav-monitoring'),
@@ -463,6 +463,7 @@
                 setSystemLinked(false);
             }
         }
+
         function setSystemLinked(status) {
             isLinked = status;
             if (status) {
@@ -486,6 +487,7 @@
                 ui.navMonitoring.classList.add('disabled');
             }
         }
+
         function toggleHardware() {
             if (isProcessCompleted) {
                 isProcessCompleted = false;
@@ -516,6 +518,12 @@
                 clearInterval(dataLogInterval);
             }
         }
+
+        function checkWaterPurity(r, g, b) {
+            const t = treatmentParams.purityThreshold;
+            return r >= t.minR && g >= t.minG && b >= t.minB && (r+g+b) >= t.minTotal;
+        }
+
         function completeProcess() {
             isHardwareOn = false;
             isProcessCompleted = true;
@@ -529,6 +537,7 @@
             setTimeout(() => document.getElementById('overlay-complete').classList.remove('visible'), 3500);
             logData();
         }
+
         function updateTimer() {
             elapsedTime = Date.now() - startTime;
             let totalSec = Math.floor(elapsedTime / 1000);
@@ -539,22 +548,27 @@
             ui.timerMs.innerText  = ms.toString().padStart(2, '0');
             ui.timerTotal.innerText = `${min.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
         }
+
         function updateSensors() {
             let p = Math.min(elapsedTime / treatmentParams.treatmentDuration, 1);
+
             let temp = treatmentParams.initialTemp - (treatmentParams.initialTemp - treatmentParams.targetTemp) * p + (Math.random() * 1.5 - 0.75);
             temp = Math.max(treatmentParams.targetTemp, Math.min(treatmentParams.initialTemp, temp));
             ui.valTemp.innerText = temp.toFixed(1);
             if (temp >= 33)      ui.cardTemp.style.background = "linear-gradient(145deg, #EF4444, #DC2626)";
             else if (temp < 29)  ui.cardTemp.style.background = "linear-gradient(145deg, #10B981, #059669)";
             else                 ui.cardTemp.style.background = "linear-gradient(145deg, #EF4444 0%, #DC2626 50%, #1D4ED8 100%)";
+
             let ph = treatmentParams.initialPH - (treatmentParams.initialPH - treatmentParams.targetPH) * p + (Math.random() * 0.3 - 0.15);
             ph = Math.max(treatmentParams.targetPH, Math.min(treatmentParams.initialPH, ph));
             ui.valPH.innerText = ph.toFixed(1);
             if (ph > 9)         ui.cardPH.style.background = "linear-gradient(145deg, #EC4899, #9333EA)";
             else if (ph < 6.5)  ui.cardPH.style.background = "linear-gradient(145deg, #F59E0B, #D97706)";
             else                ui.cardPH.style.background = "linear-gradient(145deg, #10B981, #059669)";
+
             let speed = 2.5 + Math.sin(p * Math.PI * 2) * 0.8 + (Math.random() * 0.4 - 0.2);
             ui.valSpeed.innerText = Math.max(1.0, speed).toFixed(1);
+
             treatmentParams.colorIntensity = Math.max(0, 1 - p);
             let r = Math.floor(30  + 170 * (1 - treatmentParams.colorIntensity) + (Math.random()*20-10));
             let g = Math.floor(64  + 156 * (1 - treatmentParams.colorIntensity) + (Math.random()*20-10));
@@ -566,12 +580,15 @@
             ui.valG.innerText = g;
             ui.valB.innerText = b;
             ui.colorPreview.style.backgroundColor = `rgb(${r},${g},${b})`;
+
             if      (treatmentParams.colorIntensity > 0.7)  ui.colorName.innerText = "Highly Polluted Textile Wastewater";
             else if (treatmentParams.colorIntensity > 0.4)  ui.colorName.innerText = "Treatment In Progress";
             else if (treatmentParams.colorIntensity > 0.15) ui.colorName.innerText = "Semi-Purified Water";
             else                                            ui.colorName.innerText = "Clean Transparent Water";
+
             if (isHardwareOn && checkWaterPurity(r, g, b)) completeProcess();
         }
+
         function logData() {
             let ts   = new Date();
             let time = `${ts.getHours().toString().padStart(2,'0')}:${ts.getMinutes().toString().padStart(2,'0')}:${ts.getSeconds().toString().padStart(2,'0')}.${ts.getMilliseconds().toString().padStart(3,'0').substr(0,2)}`;
@@ -584,57 +601,27 @@
             let g    = parseInt(ui.valG.innerText);
             let bv   = parseInt(ui.valB.innerText);
             let pure = checkWaterPurity(r, g, bv);
+
             let status = isProcessCompleted ? "Treatment Completed" : (pure ? "Purification Complete" : "Treatment Active");
             let cls    = isProcessCompleted ? "badge badge-completed" : (pure ? "badge badge-clean" : "badge badge-polluted");
+
             let row = document.createElement('tr');
-            row.className = 'realtime-row';
-            row.innerHTML = `
-                <td style="font-family:'DM Mono',monospace;font-size:0.82rem;">${time}</td>
-                <td>${temp.toFixed(1)}</td>
-                <td>${ph.toFixed(1)}</td>
-                <td>${spd.toFixed(1)}</td>
-                <td>${dur}</td>
-                <td style="font-family:'DM Sans',sans-serif;">
-                    <span class="wq-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:rgb(${r},${g},${bv});vertical-align:middle;"></span>${wq}
-                </td>
-                <td><span class="${cls}">${status}</span></td>`;
-
-            // Sisipkan realtime row sebelum baris DB (baris DB tetap di bawah)
+            row.innerHTML = `<td>${time}</td><td>${temp.toFixed(1)}</td><td>${ph.toFixed(1)}</td><td>${spd.toFixed(1)}</td><td>${dur}</td><td style="font-family:'DM Sans',sans-serif;">${wq}</td><td><span class="${cls}">${status}</span></td>`;
             let tbody = document.getElementById('log-table-body');
-            let firstDbRow = tbody.querySelector('.db-row');
-            let emptyRow   = tbody.querySelector('#empty-db-row');
-
-            if (firstDbRow) {
-                tbody.insertBefore(row, firstDbRow);
-            } else if (emptyRow) {
-                tbody.insertBefore(row, emptyRow);
-            } else {
-                tbody.insertBefore(row, tbody.firstChild);
-            }
-
-            // Batasi realtime rows agar tidak overflow (max 100)
-            let realtimeRows = tbody.querySelectorAll('.realtime-row');
-            if (realtimeRows.length > 100) {
-                realtimeRows[realtimeRows.length - 1].remove();
-            }
-
-            // Re-render pagination agar baris baru masuk halaman 1
-            pagination.page = 1;
-            pagination.render();
+            tbody.insertBefore(row, tbody.firstChild);
+            while (tbody.children.length > 30) tbody.removeChild(tbody.lastChild);
 
             dataLog.push({ time: `${ts.getSeconds()}.${ts.getMilliseconds().toString().padStart(3,'0').substr(0,1)}s`, ph, temp, speed: spd, colorIntensity: treatmentParams.colorIntensity, r, g, b: bv, isPure: pure });
             if (dataLog.length > 30) dataLog.shift();
             updateChart();
         }
 
-        /* ---- Chart ---- */
         function initializeChart() {
             if (phChart) { phChart.destroy(); phChart = null; }
             const ctx = document.getElementById('phChart').getContext('2d');
             const cs  = getComputedStyle(document.documentElement);
             const tc  = cs.getPropertyValue('--text-main').trim();
             const bc  = cs.getPropertyValue('--border').trim();
-
             phChart = new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -651,20 +638,6 @@
                         pointBackgroundColor: '#EC4899',
                         pointBorderColor: '#fff',
                         pointBorderWidth: 2
-                    },
-                    {
-                        label: 'Temperature (°C)',
-                        data: [],
-                        borderColor: '#F59E0B',
-                        backgroundColor: 'rgba(245,158,11,0.06)',
-                        borderWidth: 2,
-                        tension: 0.4,
-                        fill: false,
-                        pointRadius: 2,
-                        pointBackgroundColor: '#F59E0B',
-                        pointBorderColor: '#fff',
-                        pointBorderWidth: 1.5,
-                        yAxisID: 'y2'
                     }]
                 },
                 options: {
@@ -673,49 +646,24 @@
                     aspectRatio: 3,
                     plugins: {
                         legend: { display: true, position: 'top', labels: { color: tc, font: { family: 'DM Sans', size: 12, weight: '600' } } },
-                        tooltip: { backgroundColor: 'rgba(13,17,23,0.92)', titleColor: '#fff', bodyColor: '#fff', borderColor: bc, borderWidth: 1, padding: 12 }
+                        tooltip: { backgroundColor: 'rgba(13,17,23,0.92)', titleColor: '#fff', bodyColor: '#fff', borderColor: bc, borderWidth: 1, padding: 12, callbacks: { label: ctx => 'pH: ' + ctx.parsed.y.toFixed(1) } }
                     },
                     scales: {
-                        y:  { beginAtZero: false, min: 6, max: 12, grid: { color: bc }, ticks: { color: tc, font: { family: 'DM Mono', size: 11 }, callback: v => v.toFixed(1) }, title: { display: true, text: 'pH Level', color: tc, font: { family: 'DM Sans', size: 12, weight: '600' } } },
-                        y2: { position: 'right', beginAtZero: false, min: 20, max: 40, grid: { drawOnChartArea: false }, ticks: { color: '#F59E0B', font: { family: 'DM Mono', size: 11 }, callback: v => v + '°C' }, title: { display: true, text: 'Temp (°C)', color: '#F59E0B', font: { family: 'DM Sans', size: 12, weight: '600' } } },
-                        x:  { grid: { color: bc }, ticks: { color: tc, font: { family: 'DM Mono', size: 10 }, maxRotation: 45, minRotation: 45 }, title: { display: true, text: 'Time', color: tc, font: { family: 'DM Sans', size: 12, weight: '600' } } }
+                        y: { beginAtZero: false, min: 6, max: 12, grid: { color: bc }, ticks: { color: tc, font: { family: 'DM Mono', size: 11 }, callback: v => v.toFixed(1) }, title: { display: true, text: 'pH Level', color: tc, font: { family: 'DM Sans', size: 12, weight: '600' } } },
+                        x: { grid: { color: bc }, ticks: { color: tc, font: { family: 'DM Mono', size: 10 }, maxRotation: 45, minRotation: 45 }, title: { display: true, text: 'Time (seconds)', color: tc, font: { family: 'DM Sans', size: 12, weight: '600' } } }
                     },
                     interaction: { intersect: false, mode: 'index' }
                 }
             });
-
-            // Seed chart dengan data historis DB jika ada
-            if (dbChartSeed && dbChartSeed.length > 0) {
-                // pH tidak ada di model, gunakan temp & lux sebagai representasi
-                phChart.data.labels = dbChartSeed.map(d => d.time);
-                // Dataset pH: kosongkan (null) karena tidak ada di model
-                phChart.data.datasets[0].data = dbChartSeed.map(() => null);
-                phChart.data.datasets[1].data = dbChartSeed.map(d => d.temp);
-
-                // Update label dataset untuk menunjukkan ini data historis
-                phChart.options.plugins.title = {
-                    display: dbChartSeed.length > 0,
-                    text: `Loaded ${dbChartSeed.length} historical record(s) from database`,
-                    color: tc,
-                    font: { family: 'DM Sans', size: 11 },
-                    padding: { bottom: 8 }
-                };
-                phChart.update('none');
-
-                // Sync dataLog agar realtime append bekerja dengan benar
-                dbChartSeed.forEach(d => {
-                    dataLog.push({ time: d.time, ph: null, temp: d.temp, r: d.r, g: d.g, b: d.b });
-                });
-                if (dataLog.length > 30) dataLog = dataLog.slice(-30);
-            }
         }
+
         function updateChart() {
             if (!phChart) return;
-            phChart.data.labels               = dataLog.map(d => d.time);
-            phChart.data.datasets[0].data     = dataLog.map(d => d.ph);
-            phChart.data.datasets[1].data     = dataLog.map(d => d.temp);
+            phChart.data.labels = dataLog.map(d => d.time);
+            phChart.data.datasets[0].data = dataLog.map(d => d.ph);
             phChart.update('none');
         }
+
         function updateChartTheme() {
             if (!phChart) return;
             const cs = getComputedStyle(document.documentElement);
@@ -729,6 +677,7 @@
             });
             phChart.update('none');
         }
+
         let resizeTimer;
         window.addEventListener('resize', () => {
             clearTimeout(resizeTimer);
@@ -749,3 +698,5 @@
     {% endif %}
 </body>
 </html>
+
+

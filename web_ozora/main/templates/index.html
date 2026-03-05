@@ -1,7 +1,5 @@
 {% extends 'base.html' %}{% block content %} {% load static %}
-<!-- MAIN -->
         <main>
-
             <!-- CONNECTION SECTION -->
             <section id="control" class="section-view active">
                 <div class="control-section">
@@ -15,10 +13,8 @@
                     <p id="ctl-status-text" class="control-hint">Click to scan for hardware</p>
                 </div>
             </section>
-
             <!-- MONITORING SECTION -->
             <section id="monitoring" class="section-view">
-
                 <!-- Process control bar -->
                 <div class="card-base process-row">
                     <div class="process-row-text">
@@ -29,10 +25,8 @@
                         <i class="fa-solid fa-power-off"></i>
                     </button>
                 </div>
-
                 <!-- Metrics grid -->
                 <div class="metrics-grid">
-
                     <!-- Temperature -->
                     <div class="metric-card metric-card-temp" id="card-temp-visual">
                         <div>
@@ -45,7 +39,6 @@
                             <path fill="white" d="M0,40 C125,80 375,0 500,40 L500,80 L0,80 Z"></path>
                         </svg>
                     </div>
-
                     <!-- pH -->
                     <div class="metric-card metric-card-ph" id="card-ph-visual">
                         <div>
@@ -58,7 +51,6 @@
                             <path fill="white" d="M0,40 C125,80 375,0 500,40 L500,80 L0,80 Z"></path>
                         </svg>
                     </div>
-
                     <!-- Flow Speed -->
                     <div class="metric-card metric-card-speed">
                         <div>
@@ -71,7 +63,6 @@
                             <path fill="white" d="M0,40 C125,80 375,0 500,40 L500,80 L0,80 Z"></path>
                         </svg>
                     </div>
-
                     <!-- Water Quality Color -->
                     <div class="metric-card metric-card-color" style="display:flex; flex-direction:column;">
                         <div class="metric-label">Water Quality Sensor</div>
@@ -92,7 +83,6 @@
                             </div>
                         </div>
                     </div>
-
                     <!-- Timer -->
                     <div class="metric-card metric-card-process">
                         <div>
@@ -107,9 +97,7 @@
                             <path fill="white" d="M0,40 C125,80 375,0 500,40 L500,80 L0,80 Z"></path>
                         </svg>
                     </div>
-
                 </div>
-
                 <!-- Chart -->
                 <div class="card-base chart-card">
                     <div class="table-card-header" style="padding: 0 0 16px 0; border-bottom: 1px solid var(--border); margin-bottom: 16px;">
@@ -119,12 +107,36 @@
                     </div>
                     <canvas id="phChart"></canvas>
                 </div>
-
                 <!-- Log table -->
                 <div class="card-base table-card">
                     <div class="table-card-header">
                         <div class="table-card-title">
                             <i class="fa-solid fa-list-check"></i> Treatment Log History
+                        </div>
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <!-- Rows per page -->
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <label for="rows-per-page" style="font-size:0.75rem; opacity:0.55; font-family:'DM Sans',sans-serif; white-space:nowrap;">Rows:</label>
+                                <select id="rows-per-page" onchange="pagination.setPerPage(parseInt(this.value))" style="
+                                    font-family:'DM Mono',monospace;
+                                    font-size:0.75rem;
+                                    background: var(--surface);
+                                    color: var(--text-main);
+                                    border: 1px solid var(--border);
+                                    border-radius: 6px;
+                                    padding: 3px 8px;
+                                    cursor: pointer;
+                                    outline: none;
+                                ">
+                                    <option value="5">5</option>
+                                    <option value="10" selected>10</option>
+                                    <option value="25">25</option>
+                                    <option value="50">50</option>
+                                </select>
+                            </div>
+                            <div id="table-meta" style="font-size: 0.78rem; opacity: 0.55; font-family: 'DM Mono', monospace; white-space:nowrap;">
+                                {{ dataSensor|length }} record{{ dataSensor|length|pluralize }}
+                            </div>
                         </div>
                     </div>
                     <div class="table-scroll">
@@ -133,6 +145,10 @@
                                 <tr>
                                     <th>Timestamp</th>
                                     <th>Temp (°C)</th>
+                                    <th>Red</th>
+                                    <th>Green</th>
+                                    <th>Blue</th>
+                                    <th>Lux</th>
                                     <th>pH</th>
                                     <th>Speed (L/s)</th>
                                     <th>Duration</th>
@@ -140,11 +156,163 @@
                                     <th>Status</th>
                                 </tr>
                             </thead>
-                            <tbody id="log-table-body"></tbody>
+                            <tbody id="log-table-body">
+                                {# ── Semua baris DB di-render, JS yang handle show/hide via pagination ── #}
+                                {% for sensor in dataSensor %}
+                                <tr class="db-row" style="display:none;">
+                                    <td style="font-family:'DM Mono',monospace; font-size:0.82rem;">
+                                        {{ sensor.created|date:"Y-m-d H:i:s" }}
+                                    </td>
+                                    <td>
+                                        {% if sensor.temp %}{{ sensor.temp }}{% else %}<span style="opacity:0.35;">—</span>{% endif %}
+                                    </td>
+                                    <td>
+                                        {% if sensor.red %}{{ sensor.red }}{% else %}<span style="opacity:0.35;">—</span>{% endif %}
+                                    </td>
+                                    <td>
+                                        {% if sensor.green %}{{ sensor.green }}{% else %}<span style="opacity:0.35;">—</span>{% endif %}
+                                    </td>
+                                    <td>
+                                        {% if sensor.blue %}{{ sensor.blue }}{% else %}<span style="opacity:0.35;">—</span>{% endif %}
+                                    </td>
+                                    <td>
+                                        {% if sensor.lux %}{{ sensor.lux }}{% else %}<span style="opacity:0.35;">—</span>{% endif %}
+                                    </td>
+                                    <td><span style="opacity:0.35;">—</span></td>
+                                    <td><span style="opacity:0.35;">—</span></td>
+                                    <td><span style="opacity:0.35;">—</span></td>
+                                    <td style="font-family:'DM Sans',sans-serif;">
+                                        {% if sensor.red and sensor.green and sensor.blue %}
+                                            {% with r=sensor.red|floatformat:0 g=sensor.green|floatformat:0 b=sensor.blue|floatformat:0 %}
+                                                <span class="water-quality-cell" data-r="{{ r }}" data-g="{{ g }}" data-b="{{ b }}" data-lux="{{ sensor.lux }}" data-rawlight="{{ sensor.raw_light|default:'' }}">
+                                                    <span class="wq-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:rgb({{ r }},{{ g }},{{ b }});vertical-align:middle;"></span>
+                                                    <span class="wq-label"></span>
+                                                </span>
+                                            {% endwith %}
+                                        {% else %}
+                                            <span style="opacity:0.35;">—</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if sensor.red and sensor.green and sensor.blue %}
+                                            <span class="db-status-badge" data-r="{{ sensor.red|floatformat:0 }}" data-g="{{ sensor.green|floatformat:0 }}" data-b="{{ sensor.blue|floatformat:0 }}"></span>
+                                        {% else %}
+                                            <span class="badge badge-secondary">No Data</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr id="empty-db-row">
+                                    <td colspan="7" style="text-align:center; opacity:0.45; padding: 32px 0; font-family:'DM Sans',sans-serif;">
+                                        <i class="fa-solid fa-database" style="margin-right:8px; opacity:0.5;"></i>
+                                        No sensor data recorded yet.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
                         </table>
+                    </div>
+
+                    <!-- ── Pagination Controls ── -->
+                    <div id="pagination-bar" style="
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        padding: 14px 4px 2px 4px;
+                        flex-wrap: wrap;
+                        gap: 10px;
+                        border-top: 1px solid var(--border);
+                        margin-top: 12px;
+                    ">
+                        <!-- Info kiri -->
+                        <div id="pagination-info" style="font-size:0.78rem; opacity:0.55; font-family:'DM Mono',monospace;"></div>
+
+                        <!-- Tombol tengah/kanan -->
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <button id="pg-first"  onclick="pagination.go(1)"              class="pg-btn" title="First page">
+                                <i class="fa-solid fa-angles-left"></i>
+                            </button>
+                            <button id="pg-prev"   onclick="pagination.go(pagination.page-1)" class="pg-btn" title="Previous">
+                                <i class="fa-solid fa-angle-left"></i>
+                            </button>
+
+                            <!-- Nomor halaman dinamis -->
+                            <div id="pg-numbers" style="display:flex; gap:4px;"></div>
+
+                            <button id="pg-next"   onclick="pagination.go(pagination.page+1)" class="pg-btn" title="Next">
+                                <i class="fa-solid fa-angle-right"></i>
+                            </button>
+                            <button id="pg-last"   onclick="pagination.go(pagination.totalPages)" class="pg-btn" title="Last page">
+                                <i class="fa-solid fa-angles-right"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
+                <style>
+                /* ── Pagination button styles ── */
+                .pg-btn {
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 30px;
+                    height: 30px;
+                    border: 1px solid var(--border);
+                    border-radius: 6px;
+                    background: var(--surface);
+                    color: var(--text-main);
+                    font-size: 0.7rem;
+                    cursor: pointer;
+                    transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+                }
+                .pg-btn:hover:not(:disabled) {
+                    background: var(--surface-2, rgba(99,102,241,0.08));
+                    border-color: #6366F1;
+                    color: #6366F1;
+                }
+                .pg-btn:disabled {
+                    opacity: 0.3;
+                    cursor: not-allowed;
+                }
+                .pg-num {
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    min-width: 30px;
+                    height: 30px;
+                    padding: 0 6px;
+                    border: 1px solid var(--border);
+                    border-radius: 6px;
+                    background: var(--surface);
+                    color: var(--text-main);
+                    font-size: 0.75rem;
+                    font-family: 'DM Mono', monospace;
+                    cursor: pointer;
+                    transition: all 0.15s;
+                }
+                .pg-num:hover { background: rgba(99,102,241,0.08); border-color:#6366F1; color:#6366F1; }
+                .pg-num.active {
+                    background: #6366F1;
+                    border-color: #6366F1;
+                    color: #fff;
+                    font-weight: 600;
+                }
+                .pg-ellipsis {
+                    display:inline-flex; align-items:center; justify-content:center;
+                    width:24px; height:30px;
+                    font-size:0.75rem; opacity:0.45;
+                    font-family:'DM Mono',monospace;
+                    pointer-events:none;
+                }
+                /* Animasi fade in baris tabel */
+                @keyframes rowFadeIn {
+                    from { opacity: 0; transform: translateY(4px); }
+                    to   { opacity: 1; transform: translateY(0); }
+                }
+                #log-table-body tr.visible-row {
+                    animation: rowFadeIn 0.18s ease forwards;
+                }
+                </style>
             </section>
         </main>
-{% endblock content %}
+        {% endblock content %}
