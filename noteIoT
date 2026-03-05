@@ -14,5 +14,7 @@ sudo killall picocom arduino-cli 2>/dev/null
 sudo usermod -a -G uucp $USER
 
 
+http://esp32sensor.local
+
 cek library arduino
 arduino-cli lib list

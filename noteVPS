@@ -1,0 +1,13 @@
+clear gunicorn setup
+sudo systemctl stop ozora-gunicorn
+sudo pkill -f gunicorn
+
+cek port
+netstat -tulpn | grep 8000
+
+untuk jalankan manual
+python manage.py collectstatic --noinput
+gunicorn --bind 0.0.0.0:8000 web_ozora.wsgi:application
+
+sudo chown -R root:root /var/www/ozora/static
+sudo nginx -t && sudo systemctl restart nginx
