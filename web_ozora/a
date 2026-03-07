@@ -1,702 +1,1734 @@
-sebagai expert sebagai ui/ux designer, frontend developer, dan django developer memiliki pengalaman lebih dari 8 tahun,
-maka dari itu buatkan web ini menjadi dinamis, teruntuk data treatment log history itu dari views django ini yaitu sensorData:
-from django.shortcuts import render
-from django.contrib.auth.decorators import login_required
-from rest_framework.authtoken.models import Token
-from .models import SensorData
-
-@login_required(login_url='customerLogin')
-def home(request):
-    # get_or_create mengembalikan tuple: (objek, boolean_apakah_baru)
-    token_obj, created = Token.objects.get_or_create(user=request.user)
-    sensorData = SensorData.objects.filter(user=request.user)
-    
-    # Kita tidak butuh pengecekan 'if token_obj is None' karena 
-    # get_or_create pasti mengembalikan objek token atau raise error.
-    
-    context = {
-        'api_token': token_obj.key,
-        'dataSensor': sensorData,
-        'is_new': created
-    }
-    
-    return render(request, 'index.html', context)
-
-dengan rincian mdels seperti ini design nya:
-from django.db import models
-from django.contrib.auth.models import User
-
-# Create your models here.
-class SensorData(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sensor_data')
-    raw_light = models.DecimalField(max_digits=20, decimal_places=2, null=True)
-    red = models.DecimalField(max_digits=20, decimal_places=2)
-    green = models.DecimalField(max_digits=20, decimal_places=2)
-    blue = models.DecimalField(max_digits=20, decimal_places=2)
-    temp = models.DecimalField(max_digits=20, decimal_places=2)
-    lux = models.DecimalField(max_digits=20, decimal_places=2)
-    created = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"Data Sensor dari {self.user.username} | pada waktu: {self.created}"
-
-untuk fields yang masih kosong itu dibiarkan saja jangan dihapus pada treatment log history:
-intinya saya ingin membuatnya itu menjadi dinamis saja, data tersebut ditampilkan dari database.
-kode lengkapnya seperti ini:
 {% load static %}
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ozora Panel - Textile Wastewater Treatment</title>
+    <title>Ozora Panel — Textile Wastewater Treatment</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
-    <link rel="stylesheet" href="{% static 'css/iziToast.css' %}">
-    <link rel="stylesheet" href="{% static 'css/iziToast.min.css' %}">
-    <link rel="stylesheet" href="{% static 'css/ozora_styles.css' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600&family=Clash+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Fallback for Clash Display -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="{% static 'css/iziToast.min.css' %}">
 
+    <style>
+    /* ──────────────────────────────────────────────
+       DESIGN TOKENS
+    ────────────────────────────────────────────── */
+    :root {
+        --font-display: 'Outfit', 'Space Grotesk', sans-serif;
+        --font-body:    'Space Grotesk', sans-serif;
+        --font-mono:    'JetBrains Mono', monospace;
 
+        /* Sidebar */
+        --sb-w: 256px;
+        --sb-collapsed: 68px;
+        --top-h: 60px;
+
+        /* Animation */
+        --ease: cubic-bezier(0.16, 1, 0.3, 1);
+        --dur: 0.3s;
+    }
+
+    /* ── DARK (default) ── */
+    [data-theme="dark"] {
+        --bg:         #080C14;
+        --bg-1:       #0D1220;
+        --bg-2:       #111827;
+        --bg-3:       #161D2E;
+        --bg-4:       #1C2539;
+        --border:     rgba(255,255,255,0.07);
+        --border-2:   rgba(255,255,255,0.12);
+        --tx:         #F0F4FF;
+        --tx-2:       #8896B3;
+        --tx-3:       #4D5F80;
+        --glow-a:     rgba(56,189,248,0.18);
+        --glow-b:     rgba(168,85,247,0.15);
+
+        /* Accent palette */
+        --cyan:       #38BDF8;
+        --cyan-d:     #0EA5E9;
+        --violet:     #A855F7;
+        --emerald:    #10B981;
+        --rose:       #F43F5E;
+        --amber:      #F59E0B;
+        --indigo:     #6366F1;
+
+        /* Glassmorphism */
+        --glass:      rgba(255,255,255,0.04);
+        --glass-2:    rgba(255,255,255,0.07);
+    }
+
+    /* ── LIGHT ── */
+    [data-theme="light"] {
+        --bg:         #F0F4FF;
+        --bg-1:       #FFFFFF;
+        --bg-2:       #FAFBFF;
+        --bg-3:       #F5F7FF;
+        --bg-4:       #EEF2FF;
+        --border:     rgba(0,0,0,0.07);
+        --border-2:   rgba(0,0,0,0.12);
+        --tx:         #0D1117;
+        --tx-2:       #5A6A8A;
+        --tx-3:       #9BA5BC;
+        --glow-a:     rgba(56,189,248,0.12);
+        --glow-b:     rgba(168,85,247,0.1);
+        --cyan:       #0284C7;
+        --cyan-d:     #0369A1;
+        --violet:     #7C3AED;
+        --emerald:    #059669;
+        --rose:       #E11D48;
+        --amber:      #D97706;
+        --indigo:     #4F46E5;
+        --glass:      rgba(0,0,0,0.02);
+        --glass-2:    rgba(0,0,0,0.04);
+    }
+
+    /* ──────────────────────────────────────────────
+       RESET & BASE
+    ────────────────────────────────────────────── */
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    html { font-size: 16px; scroll-behavior: smooth; }
+    body {
+        font-family: var(--font-body);
+        background: var(--bg);
+        color: var(--tx);
+        min-height: 100vh;
+        display: flex;
+        overflow-x: hidden;
+        transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+    }
+
+    /* Noise texture overlay */
+    body::before {
+        content: '';
+        position: fixed; inset: 0;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+        pointer-events: none; z-index: 0; opacity: 0.4;
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 4px; }
+
+    /* ──────────────────────────────────────────────
+       SIDEBAR
+    ────────────────────────────────────────────── */
+    .sidebar {
+        position: fixed;
+        inset: 0 auto 0 0;
+        width: var(--sb-w);
+        background: var(--bg-1);
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        z-index: 300;
+        transition: width var(--dur) var(--ease), transform var(--dur) var(--ease);
+        overflow: hidden;
+    }
+    .sidebar::after {
+        content:'';
+        position: absolute;
+        top: 0; right: 0;
+        width: 1px;
+        height: 100%;
+        background: linear-gradient(180deg, transparent, var(--cyan-d), var(--violet), transparent);
+        opacity: 0.3;
+    }
+    .sidebar.collapsed { width: var(--sb-collapsed); }
+    @media (max-width: 767px) {
+        .sidebar { transform: translateX(-100%); width: var(--sb-w) !important; }
+        .sidebar.open { transform: translateX(0); box-shadow: 20px 0 60px rgba(0,0,0,0.5); }
+    }
+
+    /* Logo */
+    .sb-logo {
+        display: flex; align-items: center; gap: 12px;
+        padding: 0 16px;
+        height: var(--top-h);
+        border-bottom: 1px solid var(--border);
+        text-decoration: none;
+        overflow: hidden;
+        flex-shrink: 0;
+    }
+    .sb-logo-mark {
+        width: 36px; height: 36px; flex-shrink: 0;
+        border-radius: 10px;
+        background: linear-gradient(135deg, var(--cyan), var(--violet));
+        display: flex; align-items: center; justify-content: center;
+        font-size: 16px; color: #fff;
+        box-shadow: 0 0 20px var(--glow-a), 0 0 40px var(--glow-b);
+        position: relative;
+    }
+    .sb-logo-mark::after {
+        content: '';
+        position: absolute; inset: -1px;
+        border-radius: 11px;
+        background: linear-gradient(135deg, var(--cyan), var(--violet));
+        z-index: -1;
+        opacity: 0.4;
+        filter: blur(6px);
+    }
+    .sb-logo-text {
+        font-family: var(--font-display);
+        font-weight: 700; font-size: 1rem;
+        color: var(--tx);
+        white-space: nowrap;
+        transition: opacity var(--dur), width var(--dur);
+    }
+    .sb-logo-text small {
+        display: block;
+        font-size: 0.65rem;
+        color: var(--tx-2);
+        font-weight: 400;
+        letter-spacing: 0.5px;
+    }
+    .sidebar.collapsed .sb-logo-text { opacity: 0; width: 0; overflow: hidden; }
+
+    /* Toggle */
+    .sb-toggle {
+        position: absolute;
+        top: 14px; right: 12px;
+        width: 28px; height: 28px;
+        background: var(--bg-3);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        color: var(--tx-2);
+        cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 11px;
+        transition: all 0.2s;
+    }
+    .sb-toggle:hover { background: var(--bg-4); color: var(--cyan); border-color: var(--cyan); }
+    @media (max-width: 767px) { .sb-toggle { display: none; } }
+
+    /* Nav */
+    .sb-nav {
+        flex: 1;
+        padding: 16px 10px;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+    .sb-section-label {
+        font-size: 0.6rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: var(--tx-3);
+        padding: 8px 8px 4px;
+        white-space: nowrap;
+        transition: opacity var(--dur);
+    }
+    .sidebar.collapsed .sb-section-label { opacity: 0; }
+
+    .nav-link {
+        display: flex; align-items: center; gap: 10px;
+        padding: 9px 10px;
+        border-radius: 10px;
+        cursor: pointer;
+        color: var(--tx-2);
+        font-size: 0.83rem;
+        font-weight: 500;
+        text-decoration: none;
+        white-space: nowrap;
+        overflow: hidden;
+        position: relative;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+        margin-bottom: 2px;
+    }
+    .nav-link:hover:not(.disabled) {
+        background: var(--glass-2);
+        color: var(--tx);
+    }
+    .nav-link.active {
+        background: linear-gradient(135deg, rgba(56,189,248,0.1), rgba(168,85,247,0.1));
+        color: var(--cyan);
+        border-color: rgba(56,189,248,0.2);
+        font-weight: 600;
+    }
+    .nav-link.disabled { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
+    .nav-icon {
+        width: 30px; height: 30px; flex-shrink: 0;
+        border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 13px;
+        background: var(--glass);
+        transition: all 0.2s;
+    }
+    .nav-link.active .nav-icon {
+        background: linear-gradient(135deg, var(--cyan), var(--violet));
+        color: #fff;
+        box-shadow: 0 4px 12px var(--glow-a);
+    }
+    .nav-text { transition: opacity var(--dur); }
+    .sidebar.collapsed .nav-text { opacity: 0; width: 0; overflow: hidden; }
+
+    /* Tooltip on collapsed */
+    .sidebar.collapsed .nav-link[data-tip]:hover::after {
+        content: attr(data-tip);
+        position: absolute;
+        left: calc(var(--sb-collapsed) + 4px);
+        top: 50%; transform: translateY(-50%);
+        background: var(--bg-2);
+        border: 1px solid var(--border-2);
+        color: var(--tx);
+        padding: 5px 10px;
+        border-radius: 8px;
+        font-size: 0.75rem;
+        white-space: nowrap;
+        pointer-events: none;
+        z-index: 400;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    /* Footer */
+    .sb-footer { padding: 10px; border-top: 1px solid var(--border); flex-shrink: 0; }
+    .logout-link {
+        display: flex; align-items: center; gap: 10px;
+        padding: 9px 10px;
+        border-radius: 10px;
+        color: var(--rose);
+        font-size: 0.83rem; font-weight: 600;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+        white-space: nowrap; overflow: hidden;
+    }
+    .logout-link:hover { background: rgba(244,63,94,0.1); border-color: rgba(244,63,94,0.2); color: var(--rose); }
+    .logout-icon { width: 30px; height: 30px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; }
+    .sidebar.collapsed .logout-text { opacity: 0; width: 0; overflow: hidden; }
+
+    /* ──────────────────────────────────────────────
+       BACKDROP (mobile)
+    ────────────────────────────────────────────── */
+    .backdrop {
+        display: none;
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,0.7);
+        backdrop-filter: blur(8px);
+        z-index: 299;
+    }
+    .backdrop.visible { display: block; animation: fadeIn 0.2s; }
+
+    /* ──────────────────────────────────────────────
+       LAYOUT
+    ────────────────────────────────────────────── */
+    .shell {
+        flex: 1;
+        margin-left: var(--sb-w);
+        display: flex; flex-direction: column;
+        min-height: 100vh;
+        transition: margin-left var(--dur) var(--ease);
+    }
+    .shell.sb-collapsed { margin-left: var(--sb-collapsed); }
+    @media (max-width: 767px) { .shell { margin-left: 0 !important; } }
+
+    /* ──────────────────────────────────────────────
+       TOPBAR
+    ────────────────────────────────────────────── */
+    .topbar {
+        height: var(--top-h);
+        background: var(--bg-1);
+        border-bottom: 1px solid var(--border);
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 0 24px;
+        position: sticky; top: 0; z-index: 200;
+        gap: 16px;
+    }
+    @media (max-width: 640px) { .topbar { padding: 0 14px; } }
+    .topbar-left { display: flex; align-items: center; gap: 14px; min-width: 0; }
+    .mobile-menu {
+        display: none; width: 36px; height: 36px;
+        background: var(--bg-3); border: 1px solid var(--border);
+        border-radius: 8px; cursor: pointer;
+        align-items: center; justify-content: center;
+        color: var(--tx-2); font-size: 14px; flex-shrink: 0;
+        transition: all 0.2s;
+    }
+    .mobile-menu:hover { color: var(--cyan); border-color: var(--cyan); }
+    @media (max-width: 767px) { .mobile-menu { display: flex; } }
+
+    .page-info h1 {
+        font-family: var(--font-display);
+        font-size: 1rem; font-weight: 700;
+        color: var(--tx);
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .page-info p { font-size: 0.7rem; color: var(--tx-2); margin-top: 1px; }
+    .topbar-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+    /* Theme switcher */
+    .theme-row {
+        display: flex; align-items: center;
+        background: var(--bg-3); border: 1px solid var(--border);
+        border-radius: 50px; padding: 3px; gap: 2px;
+    }
+    .tbtn {
+        width: 28px; height: 28px; border: none; background: transparent;
+        border-radius: 50%; cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        color: var(--tx-3); font-size: 11px; transition: all 0.2s;
+    }
+    .tbtn:hover { color: var(--tx); }
+    .tbtn.on { background: var(--bg-1); color: var(--cyan); box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+
+    /* Token */
+    .token-chip {
+        background: var(--bg-3);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 4px 10px;
+        font-family: var(--font-mono);
+        font-size: 0.66rem;
+        color: var(--tx-2);
+        display: none;
+    }
+    @media (min-width: 640px) { .token-chip { display: block; } }
+
+    /* Status badge */
+    .status-badge {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 4px 10px; border-radius: 50px;
+        font-size: 0.68rem; font-weight: 700; letter-spacing: 0.5px;
+        white-space: nowrap;
+    }
+    .status-badge::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+    .badge-ok  { background: rgba(16,185,129,0.12); color: var(--emerald); }
+    .badge-err { background: rgba(244,63,94,0.12);  color: var(--rose); }
+
+    /* ──────────────────────────────────────────────
+       MAIN CONTENT
+    ────────────────────────────────────────────── */
+    main { flex: 1; padding: 24px; position: relative; z-index: 1; }
+    @media (max-width: 1024px) { main { padding: 18px; } }
+    @media (max-width: 640px)  { main { padding: 12px; } }
+
+    .view { display: none; }
+    .view.on {
+        display: block;
+        animation: slideUp 0.4s var(--ease);
+    }
+    @keyframes slideUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    /* ──────────────────────────────────────────────
+       CONNECTION VIEW
+    ────────────────────────────────────────────── */
+    .connect-stage {
+        min-height: calc(100vh - var(--top-h) - 48px);
+        display: flex; align-items: center; justify-content: center; flex-direction: column;
+        gap: 32px; text-align: center;
+    }
+    .ring-wrap { position: relative; display: flex; align-items: center; justify-content: center; }
+    .ring {
+        position: absolute; border-radius: 50%;
+        border: 1.5px solid var(--cyan);
+        opacity: 0; pointer-events: none;
+    }
+    .ring-1 { width: 240px; height: 240px; }
+    .ring-2 { width: 280px; height: 280px; animation-delay: 0.5s; }
+    .ring.pulse { animation: ringPulse 2.5s infinite var(--ease); }
+    .ring-2.pulse { animation: ringPulse 2.5s 0.5s infinite var(--ease); }
+    @keyframes ringPulse {
+        0%   { transform: scale(0.85); opacity: 0.5; }
+        100% { transform: scale(1.2);  opacity: 0; }
+    }
+
+    .hw-btn {
+        width: 176px; height: 176px;
+        border-radius: 50%; border: none;
+        cursor: pointer; color: #fff;
+        font-family: var(--font-display);
+        font-size: 0.85rem; font-weight: 700; letter-spacing: 1px;
+        display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+        transition: transform 0.3s var(--ease), box-shadow 0.3s;
+        position: relative; z-index: 2;
+    }
+    .hw-btn i { font-size: 2.8rem; }
+    .hw-btn:hover { transform: scale(1.05); }
+    .hw-btn:active { transform: scale(0.95); }
+    .hw-unlinked {
+        background: linear-gradient(145deg, #F59E0B, #D97706);
+        box-shadow: 0 0 40px rgba(245,158,11,0.3), 0 16px 40px rgba(0,0,0,0.4);
+    }
+    .hw-linked {
+        background: linear-gradient(145deg, var(--cyan), var(--indigo));
+        box-shadow: 0 0 40px var(--glow-a), 0 16px 40px rgba(0,0,0,0.4);
+    }
+    .hw-done {
+        background: linear-gradient(145deg, var(--emerald), #059669);
+        box-shadow: 0 0 40px rgba(16,185,129,0.3), 0 16px 40px rgba(0,0,0,0.4);
+    }
+    .connect-hint { color: var(--tx-2); font-size: 0.9rem; }
+
+    /* ──────────────────────────────────────────────
+       MONITORING HEADER / PROCESS BAR
+    ────────────────────────────────────────────── */
+    .proc-bar {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 16px; flex-wrap: wrap;
+        background: var(--bg-1);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 18px 22px;
+        margin-bottom: 20px;
+        position: relative; overflow: hidden;
+    }
+    .proc-bar::before {
+        content: '';
+        position: absolute; top: 0; left: 0; right: 0; height: 2px;
+        background: linear-gradient(90deg, var(--cyan), var(--violet));
+    }
+    .proc-bar-info h3 {
+        font-family: var(--font-display);
+        font-size: 0.95rem; font-weight: 700; margin-bottom: 3px;
+    }
+    .proc-bar-info p { font-size: 0.75rem; color: var(--tx-2); }
+
+    .proc-btn {
+        width: 44px; height: 44px;
+        border-radius: 12px; border: none; cursor: pointer;
+        color: #fff; font-size: 1rem;
+        display: flex; align-items: center; justify-content: center;
+        transition: all 0.25s; flex-shrink: 0;
+    }
+    .proc-standby { background: var(--bg-3); color: var(--tx-2); border: 1px solid var(--border); }
+    .proc-active  { background: linear-gradient(135deg, var(--cyan), var(--indigo)); box-shadow: 0 6px 16px var(--glow-a); }
+    .proc-done    { background: linear-gradient(135deg, var(--emerald), #059669); box-shadow: 0 6px 16px rgba(16,185,129,0.35); }
+
+    /* ──────────────────────────────────────────────
+       METRICS GRID
+    ────────────────────────────────────────────── */
+    .metrics {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 16px;
+        margin-bottom: 20px;
+    }
+    @media (max-width: 640px) { .metrics { grid-template-columns: 1fr; gap: 12px; } }
+
+    .metric-card {
+        border-radius: 18px;
+        padding: 22px;
+        position: relative; overflow: hidden;
+        min-height: 168px;
+        display: flex; flex-direction: column; justify-content: space-between;
+        border: 1px solid rgba(255,255,255,0.06);
+        transition: transform 0.25s var(--ease), box-shadow 0.25s;
+    }
+    .metric-card:hover { transform: translateY(-3px); }
+
+    .mc-temp  { background: linear-gradient(145deg, #B91C1C 0%, #7C3AED 100%); box-shadow: 0 8px 32px rgba(185,28,28,0.25); }
+    .mc-ph    { background: linear-gradient(145deg, #BE185D 0%, #7C3AED 100%); box-shadow: 0 8px 32px rgba(190,24,93,0.25); }
+    .mc-speed { background: linear-gradient(145deg, #1D4ED8 0%, #6D28D9 100%); box-shadow: 0 8px 32px rgba(29,78,216,0.25); }
+    .mc-color { background: var(--bg-1); border: 1px solid var(--border); color: var(--tx); box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+    .mc-timer { background: linear-gradient(145deg, #0E7490 0%, #1D4ED8 100%); box-shadow: 0 8px 32px rgba(14,116,144,0.25); }
+
+    .mc-label {
+        font-size: 0.63rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 2px;
+        opacity: 0.7; margin-bottom: 6px;
+    }
+    .mc-color .mc-label { color: var(--tx-2); opacity: 1; }
+
+    .mc-value {
+        font-family: var(--font-mono);
+        font-size: 3rem; font-weight: 500;
+        letter-spacing: -3px; line-height: 1;
+        color: #fff;
+    }
+    .mc-unit { font-size: 0.9rem; letter-spacing: 0; font-weight: 600; opacity: 0.75; }
+    .mc-color .mc-value { color: var(--tx); }
+
+    /* Wave */
+    .mc-wave { position: absolute; bottom: 0; left: 0; right: 0; height: 70px; opacity: 0.15; pointer-events: none; }
+
+    /* Color card specifics */
+    .color-bar { width: 100%; height: 56px; border-radius: 10px; margin: 10px 0; transition: background 0.4s ease; border: 1px solid var(--border); }
+    .color-name-txt { font-size: 0.82rem; font-weight: 600; color: var(--tx); }
+    .rgb-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: auto; }
+    .rgb-chip {
+        background: var(--bg-3); border: 1px solid var(--border);
+        border-radius: 8px; padding: 7px; text-align: center;
+    }
+    .rgb-num { font-family: var(--font-mono); font-size: 0.9rem; font-weight: 500; display: block; }
+    .rgb-ch  { font-size: 0.6rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; display: block; margin-top: 2px; }
+    .cr { color: #EF4444; } .cg { color: #10B981; } .cb { color: #38BDF8; }
+
+    /* Timer card */
+    .timer-big { font-family: var(--font-mono); font-size: 2.6rem; font-weight: 400; letter-spacing: -2px; line-height: 1; color: #fff; }
+    .timer-sub { font-family: var(--font-mono); font-size: 0.75rem; color: rgba(255,255,255,0.5); margin-top: 4px; }
+    .proc-pill {
+        display: inline-flex; align-items: center;
+        padding: 4px 10px; border-radius: 20px;
+        font-size: 0.65rem; font-weight: 700; letter-spacing: 1px;
+        background: rgba(255,255,255,0.15); backdrop-filter: blur(4px);
+        color: #fff; width: fit-content;
+    }
+
+    /* ──────────────────────────────────────────────
+       CHART CARD
+    ────────────────────────────────────────────── */
+    .chart-card {
+        background: var(--bg-1);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 22px;
+        margin-bottom: 20px;
+        position: relative; overflow: hidden;
+    }
+    .card-head {
+        display: flex; align-items: center; justify-content: space-between;
+        flex-wrap: wrap; gap: 12px;
+        margin-bottom: 18px;
+        padding-bottom: 14px;
+        border-bottom: 1px solid var(--border);
+    }
+    .card-title {
+        font-family: var(--font-display);
+        font-size: 0.9rem; font-weight: 700;
+        display: flex; align-items: center; gap: 8px;
+    }
+    .card-title i { color: var(--cyan); font-size: 13px; }
+
+    /* ──────────────────────────────────────────────
+       REALTIME BADGE
+    ────────────────────────────────────────────── */
+    .rt-badge {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 4px 10px; border-radius: 20px;
+        font-size: 0.68rem; font-weight: 700; letter-spacing: 0.5px;
+        white-space: nowrap;
+        transition: all 0.3s;
+    }
+    .rt-badge.live    { background: rgba(16,185,129,0.12); color: var(--emerald); border: 1px solid rgba(16,185,129,0.25); }
+    .rt-badge.syncing { background: rgba(56,189,248,0.12); color: var(--cyan);    border: 1px solid rgba(56,189,248,0.25); }
+    .rt-badge.offline { background: rgba(244,63,94,0.12);  color: var(--rose);    border: 1px solid rgba(244,63,94,0.25); }
+    .rt-dot {
+        width: 5px; height: 5px; border-radius: 50%;
+        background: currentColor;
+        animation: rtBlink 1.5s infinite;
+    }
+    .rt-dot.paused { animation: none; opacity: 0.3; }
+    @keyframes rtBlink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+    /* ──────────────────────────────────────────────
+       LOG TABLE
+    ────────────────────────────────────────────── */
+    .log-card {
+        background: var(--bg-1);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        overflow: hidden;
+        margin-bottom: 20px;
+    }
+    .log-head {
+        display: flex; align-items: center; justify-content: space-between;
+        flex-wrap: wrap; gap: 12px;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+    }
+    .log-head-left  { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .log-head-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+    .sync-txt {
+        font-family: var(--font-mono);
+        font-size: 0.68rem; color: var(--tx-3);
+        display: flex; align-items: center; gap: 5px;
+    }
+
+    /* Rows/page select */
+    .rpp-sel {
+        display: flex; align-items: center; gap: 6px;
+    }
+    .rpp-sel label { font-size: 0.72rem; color: var(--tx-3); white-space: nowrap; }
+    .rpp-sel select {
+        font-family: var(--font-mono); font-size: 0.72rem;
+        background: var(--bg-3); color: var(--tx);
+        border: 1px solid var(--border); border-radius: 7px;
+        padding: 3px 8px; cursor: pointer; outline: none;
+    }
+
+    .tbl-scroll { overflow-x: auto; }
+    table {
+        width: 100%; border-collapse: collapse;
+        min-width: 680px; font-size: 0.82rem;
+    }
+    thead th {
+        text-align: left;
+        padding: 10px 16px;
+        font-size: 0.63rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 1.5px;
+        color: var(--tx-3);
+        background: var(--bg-3);
+        border-bottom: 1px solid var(--border);
+        white-space: nowrap;
+    }
+    tbody td {
+        padding: 11px 16px;
+        border-bottom: 1px solid var(--border);
+        font-family: var(--font-mono);
+        font-size: 0.78rem;
+        color: var(--tx);
+    }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr { transition: background 0.15s; }
+    tbody tr:hover { background: var(--glass-2); }
+
+    /* pH column color coding */
+    td.ph-cell { font-weight: 600; }
+    td.ph-acidic  { color: #F87171; }
+    td.ph-neutral { color: #34D399; }
+    td.ph-basic   { color: #60A5FA; }
+
+    /* Inline badges */
+    .pill {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 3px 9px; border-radius: 50px;
+        font-size: 0.64rem; font-weight: 700; letter-spacing: 0.3px;
+        white-space: nowrap; font-family: var(--font-body);
+    }
+    .pill-ok   { background: rgba(16,185,129,0.12);  color: #10B981; }
+    .pill-proc { background: rgba(56,189,248,0.12);  color: #38BDF8; }
+    .pill-bad  { background: rgba(244,63,94,0.12);   color: #F43F5E; }
+    .pill-warn { background: rgba(245,158,11,0.12);  color: #F59E0B; }
+
+    /* New row animation */
+    @keyframes rowNew {
+        0%   { background: rgba(56,189,248,0.15); transform: translateY(-4px); opacity: 0; }
+        25%  { opacity: 1; transform: translateY(0); }
+        100% { background: transparent; }
+    }
+    .row-flash { animation: rowNew 1.4s var(--ease) forwards; }
+
+    /* Skeleton */
+    .sk-cell {
+        height: 12px; border-radius: 4px;
+        background: linear-gradient(90deg, var(--bg-3) 25%, var(--border-2) 50%, var(--bg-3) 75%);
+        background-size: 200% 100%;
+        animation: shimmer 1.4s infinite;
+    }
+    @keyframes shimmer { 0%{background-position:200% 0;} 100%{background-position:-200% 0;} }
+
+    /* ──────────────────────────────────────────────
+       PAGINATION
+    ────────────────────────────────────────────── */
+    .pg-bar {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 12px 20px;
+        border-top: 1px solid var(--border);
+        flex-wrap: wrap; gap: 8px;
+    }
+    .pg-info { font-family: var(--font-mono); font-size: 0.7rem; color: var(--tx-3); }
+    .pg-btns { display: flex; align-items: center; gap: 4px; }
+    .pbt {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 30px; height: 30px;
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        background: var(--bg-3);
+        color: var(--tx);
+        font-size: 0.7rem; cursor: pointer;
+        transition: all 0.15s;
+    }
+    .pbt:hover:not(:disabled) { background: rgba(56,189,248,0.1); border-color: var(--cyan); color: var(--cyan); }
+    .pbt:disabled { opacity: 0.25; cursor: not-allowed; }
+    .pnum {
+        display: inline-flex; align-items: center; justify-content: center;
+        min-width: 30px; height: 30px; padding: 0 6px;
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        background: var(--bg-3); color: var(--tx);
+        font-family: var(--font-mono); font-size: 0.72rem;
+        cursor: pointer; transition: all 0.15s;
+    }
+    .pnum:hover { background: rgba(56,189,248,0.08); border-color: var(--cyan); color: var(--cyan); }
+    .pnum.on { background: var(--cyan); border-color: var(--cyan); color: #fff; font-weight: 600; }
+    .pellipsis {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 24px; height: 30px; font-size: 0.72rem;
+        color: var(--tx-3); pointer-events: none;
+        font-family: var(--font-mono);
+    }
+
+    /* ──────────────────────────────────────────────
+       OVERLAYS
+    ────────────────────────────────────────────── */
+    .modal {
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,0.85); backdrop-filter: blur(16px);
+        display: none; align-items: center; justify-content: center;
+        z-index: 9999; padding: 20px;
+    }
+    .modal.on { display: flex; animation: fadeIn 0.25s; }
+    .modal-box {
+        background: var(--bg-2);
+        border: 1px solid var(--border-2);
+        border-radius: 24px;
+        padding: 40px 36px;
+        text-align: center;
+        max-width: 360px;
+        color: var(--tx);
+        position: relative; overflow: hidden;
+    }
+    .modal-box::before {
+        content: '';
+        position: absolute; top: 0; left: 0; right: 0; height: 2px;
+        background: linear-gradient(90deg, var(--cyan), var(--violet));
+    }
+    .modal-ico { font-size: 2.8rem; margin-bottom: 20px; display: block; }
+    .modal-box h3 { font-family: var(--font-display); font-size: 1.15rem; font-weight: 700; margin-bottom: 8px; }
+    .modal-box p  { font-size: 0.85rem; color: var(--tx-2); }
+
+    /* ──────────────────────────────────────────────
+       RESPONSIVE HELPERS
+    ────────────────────────────────────────────── */
+    @media (max-width: 480px) {
+        .log-head { padding: 12px 14px; }
+        main td, main th { padding: 9px 12px; }
+        .mc-value { font-size: 2.4rem; }
+        .timer-big { font-size: 2rem; }
+    }
+    @media (max-width: 360px) {
+        .metrics { grid-template-columns: 1fr; }
+    }
+
+    /* Table meta */
+    .tbl-meta { font-family: var(--font-mono); font-size: 0.7rem; color: var(--tx-3); white-space: nowrap; }
+
+    /* Empty state */
+    .empty-state {
+        text-align: center;
+        padding: 48px 20px;
+        color: var(--tx-3);
+    }
+    .empty-state i { font-size: 2.5rem; margin-bottom: 12px; display: block; }
+    .empty-state p { font-size: 0.85rem; }
+    </style>
 </head>
 <body>
 
-    <!-- ========== SIDEBAR ========== -->
-    <aside class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <a class="sidebar-logo" href="#">
-                <div class="sidebar-logo-icon">
-                    <i class="fa-solid fa-bong"></i>
-                </div>
-                <span class="sidebar-logo-text"><span>Ozora Panel</span></span>
-            </a>
-            <button class="sidebar-toggle" id="sidebar-toggle-btn" title="Toggle sidebar" onclick="toggleSidebar()">
-                <i class="fa-solid fa-angles-left" id="toggle-icon"></i>
+<!-- ═══════ SIDEBAR ═══════ -->
+<aside class="sidebar" id="sidebar">
+    <a class="sb-logo" href="#">
+        <div class="sb-logo-mark"><i class="fa-solid fa-flask-vial"></i></div>
+        <div class="sb-logo-text">
+            Ozora Panel
+            <small>Wastewater Treatment</small>
+        </div>
+    </a>
+    <button class="sb-toggle" id="sb-toggle" onclick="toggleSidebar()">
+        <i class="fa-solid fa-angles-left" id="sb-icon"></i>
+    </button>
+
+    <nav class="sb-nav">
+        <div class="sb-section-label">Navigation</div>
+        <a class="nav-link active" id="nl-conn" data-tip="Connection" onclick="switchView('connection'); return false;" href="#">
+            <div class="nav-icon"><i class="fa-solid fa-tower-broadcast"></i></div>
+            <span class="nav-text">Connection</span>
+        </a>
+        <a class="nav-link disabled" id="nl-mon" data-tip="Monitoring" onclick="switchView('monitoring'); return false;" href="#">
+            <div class="nav-icon"><i class="fa-solid fa-chart-area"></i></div>
+            <span class="nav-text">Monitoring</span>
+        </a>
+    </nav>
+
+    <div class="sb-footer">
+        <a href="{% url 'logout' %}" class="logout-link">
+            <div class="logout-icon"><i class="fa-solid fa-right-from-bracket"></i></div>
+            <span class="logout-text">Logout</span>
+        </a>
+    </div>
+</aside>
+
+<!-- Mobile backdrop -->
+<div class="backdrop" id="backdrop" onclick="closeMobile()"></div>
+
+<!-- ═══════ SHELL ═══════ -->
+<div class="shell" id="shell">
+
+    <!-- TOPBAR -->
+    <header class="topbar">
+        <div class="topbar-left">
+            <button class="mobile-menu" onclick="openMobile()">
+                <i class="fa-solid fa-bars"></i>
             </button>
-        </div>
-
-        <nav class="sidebar-nav">
-            <div class="nav-section-label">Navigation</div>
-
-            <div class="nav-item active" id="nav-control"
-                 data-tooltip="Connection"
-                 onclick="switchTab('control')">
-                <div class="nav-item-icon">
-                    <i class="fa-solid fa-link"></i>
-                </div>
-                <span class="nav-item-label">Connection</span>
+            <div class="page-info">
+                <h1 id="page-title">Device Connection</h1>
+                <p id="page-sub">Textile Wastewater Treatment System</p>
             </div>
-
-            <div class="nav-item disabled" id="nav-monitoring"
-                 data-tooltip="Monitoring"
-                 onclick="switchTab('monitoring')">
-                <div class="nav-item-icon">
-                    <i class="fa-solid fa-chart-pie"></i>
-                </div>
-                <span class="nav-item-label">Monitoring</span>
-            </div>
-        </nav>
-
-        <div class="sidebar-footer">
-            <a href="{% url 'logout' %}" class="logout-btn" style="width: 100%; justify-content: center;">
-                <i class="fa-solid fa-right-from-bracket"></i>
-                <span class="nav-item-label">Logout</span>
-            </a>
         </div>
-    </aside>
+        <div class="topbar-right">
+            <div class="theme-row">
+                <button class="tbtn" id="tbtn-light"  onclick="setTheme('light')"  title="Light"><i class="fa-solid fa-sun"></i></button>
+                <button class="tbtn" id="tbtn-system" onclick="setTheme('system')" title="System"><i class="fa-solid fa-desktop"></i></button>
+                <button class="tbtn on" id="tbtn-dark" onclick="setTheme('dark')"  title="Dark"><i class="fa-solid fa-moon"></i></button>
+            </div>
+            <div class="token-chip"><code>{{ api_token|truncatechars:16 }}…</code></div>
+            <div class="status-badge badge-err" id="hdr-status">DISCONNECTED</div>
+        </div>
+    </header>
 
-    <!-- Mobile backdrop -->
-    <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeMobileSidebar()"></div>
+    <!-- MAIN -->
+    <main>
 
-    <!-- ========== LAYOUT ========== -->
-    <div class="layout" id="layout">
+        <!-- ═══ CONNECTION VIEW ═══ -->
+        <section id="view-connection" class="view on">
+            <div class="connect-stage">
+                <div class="ring-wrap">
+                    <div class="ring ring-1" id="ring1"></div>
+                    <div class="ring ring-2" id="ring2"></div>
+                    <button class="hw-btn hw-unlinked" id="hw-btn" onclick="handleConnect()">
+                        <i class="fa-solid fa-wifi" id="hw-ico"></i>
+                        <span id="hw-txt">CONNECT</span>
+                    </button>
+                </div>
+                <p class="connect-hint" id="conn-hint">Click to scan for hardware</p>
+            </div>
+        </section>
 
-        <!-- TOPBAR -->
-        <header class="topbar">
-            <div class="topbar-left">
-                <!-- Mobile hamburger -->
-                <button class="mobile-menu-btn" onclick="openMobileSidebar()">
-                    <i class="fa-solid fa-bars"></i>
+        <!-- ═══ MONITORING VIEW ═══ -->
+        <section id="view-monitoring" class="view">
+
+            <!-- Process bar -->
+            <div class="proc-bar">
+                <div class="proc-bar-info">
+                    <h3>Treatment Process Control</h3>
+                    <p>Toggle real-time wastewater treatment monitoring</p>
+                </div>
+                <button id="proc-btn" class="proc-btn proc-standby" onclick="toggleProcess()">
+                    <i class="fa-solid fa-power-off"></i>
                 </button>
-
-                <div class="topbar-title">
-                    <h1 id="page-title">Device Connection</h1>
-                    <p id="page-subtitle">Textile Wastewater Treatment System</p>
-                </div>
             </div>
 
-            <div class="topbar-right">
-                <!-- Theme switcher -->
-                <div class="theme-switcher">
-                    <button class="theme-btn active" id="btn-theme-light" onclick="setTheme('light')" title="Light">
-                        <i class="fa-solid fa-sun"></i>
-                    </button>
-                    <button class="theme-btn" id="btn-theme-system" onclick="setTheme('system')" title="System">
-                        <i class="fa-solid fa-desktop"></i>
-                    </button>
-                    <button class="theme-btn" id="btn-theme-dark" onclick="setTheme('dark')" title="Dark">
-                        <i class="fa-solid fa-moon"></i>
-                    </button>
+            <!-- Metrics -->
+            <div class="metrics">
+
+                <!-- Temperature -->
+                <div class="metric-card mc-temp">
+                    <div>
+                        <div class="mc-label">Temperature</div>
+                        <div class="mc-value" style="color:#fff;"><span id="v-temp">—</span><span class="mc-unit">°C</span></div>
+                    </div>
+                    <svg class="mc-wave" viewBox="0 0 500 70" preserveAspectRatio="none">
+                        <path fill="white" d="M0,35 C100,70 200,0 300,35 C400,70 450,20 500,35 L500,70 L0,70 Z"/>
+                    </svg>
                 </div>
 
-                <!-- Token -->
-                <div class="token-badge">
-                    <code>Token {{ api_token }}</code>
+                <!-- pH -->
+                <div class="metric-card mc-ph">
+                    <div>
+                        <div class="mc-label">pH Level</div>
+                        <div class="mc-value" style="color:#fff;"><span id="v-ph">—</span><span class="mc-unit"> pH</span></div>
+                    </div>
+                    <svg class="mc-wave" viewBox="0 0 500 70" preserveAspectRatio="none">
+                        <path fill="white" d="M0,35 C125,70 375,0 500,35 L500,70 L0,70 Z"/>
+                    </svg>
                 </div>
 
-                <!-- Connection status -->
-                <div id="header-status" class="badge badge-danger">DISCONNECTED</div>
+                <!-- Flow Speed -->
+                <div class="metric-card mc-speed">
+                    <div>
+                        <div class="mc-label">Flow Speed</div>
+                        <div class="mc-value" style="color:#fff;"><span id="v-speed">—</span><span class="mc-unit"> L/s</span></div>
+                    </div>
+                    <svg class="mc-wave" viewBox="0 0 500 70" preserveAspectRatio="none">
+                        <path fill="white" d="M0,35 C150,0 350,70 500,35 L500,70 L0,70 Z"/>
+                    </svg>
+                </div>
+
+                <!-- Color / Quality -->
+                <div class="metric-card mc-color" style="display:flex;flex-direction:column;">
+                    <div class="mc-label" style="color:var(--tx-2);">Water Quality Sensor</div>
+                    <div class="color-name-txt" id="color-name">Detecting…</div>
+                    <div class="color-bar" id="color-bar" style="background:rgb(30,64,175);"></div>
+                    <div class="rgb-row">
+                        <div class="rgb-chip"><span class="rgb-num" id="v-r">30</span><span class="rgb-ch cr">RED</span></div>
+                        <div class="rgb-chip"><span class="rgb-num" id="v-g">64</span><span class="rgb-ch cg">GRN</span></div>
+                        <div class="rgb-chip"><span class="rgb-num" id="v-b">175</span><span class="rgb-ch cb">BLU</span></div>
+                    </div>
+                </div>
+
+                <!-- Timer -->
+                <div class="metric-card mc-timer">
+                    <div>
+                        <div class="mc-label">Treatment Duration</div>
+                        <div class="timer-big">
+                            <span id="t-sec">00</span><span style="opacity:.35;font-size:.55em;">:</span><span id="t-ms" style="font-size:.65em;">00</span>
+                        </div>
+                        <div class="timer-sub">TOTAL: <span id="t-total">00:00</span></div>
+                    </div>
+                    <span class="proc-pill" id="proc-pill">STANDBY</span>
+                    <svg class="mc-wave" viewBox="0 0 500 70" preserveAspectRatio="none">
+                        <path fill="white" d="M0,50 C120,10 380,60 500,30 L500,70 L0,70 Z"/>
+                    </svg>
+                </div>
+
+            </div><!-- /metrics -->
+
+            <!-- Chart -->
+            <div class="chart-card">
+                <div class="card-head">
+                    <div class="card-title">
+                        <i class="fa-solid fa-chart-line"></i>
+                        pH & Temperature Trend
+                    </div>
+                </div>
+                <canvas id="phChart"></canvas>
             </div>
-        </header>
 
-        <!-- MAIN -->
-        <main>
-
-            <!-- CONNECTION SECTION -->
-            <section id="control" class="section-view active">
-                <div class="control-section">
-                    <div class="pulse-wrapper">
-                        <div id="ctl-pulse" class="pulse-ring"></div>
-                        <button id="ctl-btn" class="hw-btn hw-btn-unlinked" onclick="handleControlAction()">
-                            <i class="fa-solid fa-wifi" id="ctl-icon"></i>
-                            <span id="ctl-text">CONNECT</span>
-                        </button>
-                    </div>
-                    <p id="ctl-status-text" class="control-hint">Click to scan for hardware</p>
-                </div>
-            </section>
-
-            <!-- MONITORING SECTION -->
-            <section id="monitoring" class="section-view">
-
-                <!-- Process control bar -->
-                <div class="card-base process-row">
-                    <div class="process-row-text">
-                        <h3>Treatment Process Control</h3>
-                        <p>Toggle real-time wastewater treatment monitoring</p>
-                    </div>
-                    <button id="mon-btn" class="power-btn-sm power-btn-sm-standby" onclick="toggleHardware()">
-                        <i class="fa-solid fa-power-off"></i>
-                    </button>
-                </div>
-
-                <!-- Metrics grid -->
-                <div class="metrics-grid">
-
-                    <!-- Temperature -->
-                    <div class="metric-card metric-card-temp" id="card-temp-visual">
-                        <div>
-                            <div class="metric-label">Temperature</div>
-                            <div class="metric-value">
-                                <span id="val-temp">0</span><span class="metric-unit">°C</span>
-                            </div>
+            <!-- ══════════════════════════════════════════
+                 TREATMENT LOG HISTORY — REAL-TIME
+            ══════════════════════════════════════════ -->
+            <div class="log-card">
+                <div class="log-head">
+                    <div class="log-head-left">
+                        <div class="card-title">
+                            <i class="fa-solid fa-database"></i>
+                            Treatment Log History
                         </div>
-                        <svg class="wave" viewBox="0 0 500 80" preserveAspectRatio="none">
-                            <path fill="white" d="M0,40 C125,80 375,0 500,40 L500,80 L0,80 Z"></path>
-                        </svg>
-                    </div>
-
-                    <!-- pH -->
-                    <div class="metric-card metric-card-ph" id="card-ph-visual">
-                        <div>
-                            <div class="metric-label">pH Level</div>
-                            <div class="metric-value">
-                                <span id="val-ph">0.0</span><span class="metric-unit"> pH</span>
-                            </div>
-                        </div>
-                        <svg class="wave" viewBox="0 0 500 80" preserveAspectRatio="none">
-                            <path fill="white" d="M0,40 C125,80 375,0 500,40 L500,80 L0,80 Z"></path>
-                        </svg>
-                    </div>
-
-                    <!-- Flow Speed -->
-                    <div class="metric-card metric-card-speed">
-                        <div>
-                            <div class="metric-label">Flow Speed</div>
-                            <div class="metric-value">
-                                <span id="val-speed">0.0</span><span class="metric-unit"> L/s</span>
-                            </div>
-                        </div>
-                        <svg class="wave" viewBox="0 0 500 80" preserveAspectRatio="none">
-                            <path fill="white" d="M0,40 C125,80 375,0 500,40 L500,80 L0,80 Z"></path>
-                        </svg>
-                    </div>
-
-                    <!-- Water Quality Color -->
-                    <div class="metric-card metric-card-color" style="display:flex; flex-direction:column;">
-                        <div class="metric-label">Water Quality Sensor</div>
-                        <div id="color-name" class="color-quality-name">Detecting...</div>
-                        <div id="color-preview" class="color-preview-box" style="background: rgb(30,64,175);"></div>
-                        <div class="rgb-grid">
-                            <div class="rgb-chip">
-                                <span class="rgb-val" id="val-r">30</span>
-                                <span class="rgb-lbl text-r">RED</span>
-                            </div>
-                            <div class="rgb-chip">
-                                <span class="rgb-val" id="val-g">64</span>
-                                <span class="rgb-lbl text-g">GRN</span>
-                            </div>
-                            <div class="rgb-chip">
-                                <span class="rgb-val" id="val-b">175</span>
-                                <span class="rgb-lbl text-b">BLU</span>
-                            </div>
+                        <div class="rt-badge live" id="rt-badge">
+                            <div class="rt-dot" id="rt-dot"></div>
+                            <span id="rt-lbl">LIVE</span>
                         </div>
                     </div>
-
-                    <!-- Timer -->
-                    <div class="metric-card metric-card-process">
-                        <div>
-                            <div class="metric-label">Treatment Duration</div>
-                            <div class="timer-display">
-                                <span id="timer-sec">00</span><span style="opacity:.4; font-size:.6em;">:</span><span id="timer-ms" style="font-size:.7em;">00</span>
-                            </div>
-                            <div class="timer-total">TOTAL: <span id="timer-total">00:00</span></div>
+                    <div class="log-head-right">
+                        <div class="sync-txt" id="sync-info">
+                            <i class="fa-solid fa-rotate" style="font-size:9px;"></i>
+                            <span id="sync-txt">Syncing…</span>
                         </div>
-                        <span id="process-status-text" class="process-badge">STANDBY</span>
-                        <svg class="wave" viewBox="0 0 500 80" preserveAspectRatio="none">
-                            <path fill="white" d="M0,40 C125,80 375,0 500,40 L500,80 L0,80 Z"></path>
-                        </svg>
-                    </div>
-
-                </div>
-
-                <!-- Chart -->
-                <div class="card-base chart-card">
-                    <div class="table-card-header" style="padding: 0 0 16px 0; border-bottom: 1px solid var(--border); margin-bottom: 16px;">
-                        <div class="table-card-title">
-                            <i class="fa-solid fa-chart-line"></i> pH Level Trend Analysis
+                        <div class="rpp-sel">
+                            <label for="rpp">Rows:</label>
+                            <select id="rpp" onchange="pg.setPerPage(+this.value)">
+                                <option value="5">5</option>
+                                <option value="10" selected>10</option>
+                                <option value="25">25</option>
+                                <option value="50">50</option>
+                            </select>
                         </div>
-                    </div>
-                    <canvas id="phChart"></canvas>
-                </div>
-
-                <!-- Log table -->
-                <div class="card-base table-card">
-                    <div class="table-card-header">
-                        <div class="table-card-title">
-                            <i class="fa-solid fa-list-check"></i> Treatment Log History
-                        </div>
-                    </div>
-                    <div class="table-scroll">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Timestamp</th>
-                                    <th>Temp (°C)</th>
-                                    <th>pH</th>
-                                    <th>Speed (L/s)</th>
-                                    <th>Duration</th>
-                                    <th>Water Quality</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody id="log-table-body"></tbody>
-                        </table>
+                        <div class="tbl-meta" id="tbl-meta">{{ dataSensor|length }} record{{ dataSensor|length|pluralize }}</div>
                     </div>
                 </div>
 
-            </section>
-        </main>
+                <div class="tbl-scroll">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Temp °C</th>
+                                <th>pH</th>
+                                <th>Red</th>
+                                <th>Green</th>
+                                <th>Blue</th>
+                                <th>Lux</th>
+                                <th>Water Quality</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbl-body">
+                            {% for s in dataSensor %}
+                            <tr class="db-row" data-id="{{ s.pk }}" style="display:none;">
+                                <td>{{ s.created|date:"Y-m-d H:i:s" }}</td>
+                                <td>{% if s.temp %}{{ s.temp|floatformat:2 }}{% else %}<span style="opacity:.3;">—</span>{% endif %}</td>
+                                <td class="ph-cell">
+                                    {% if s.ph %}
+                                        <span class="{% if s.ph < 6 %}ph-acidic{% elif s.ph > 8 %}ph-basic{% else %}ph-neutral{% endif %}">
+                                            {{ s.ph|floatformat:2 }}
+                                        </span>
+                                    {% else %}<span style="opacity:.3;">—</span>{% endif %}
+                                </td>
+                                <td>{% if s.red %}{{ s.red|floatformat:0 }}{% else %}<span style="opacity:.3;">—</span>{% endif %}</td>
+                                <td>{% if s.green %}{{ s.green|floatformat:0 }}{% else %}<span style="opacity:.3;">—</span>{% endif %}</td>
+                                <td>{% if s.blue %}{{ s.blue|floatformat:0 }}{% else %}<span style="opacity:.3;">—</span>{% endif %}</td>
+                                <td>{% if s.lux %}{{ s.lux|floatformat:1 }}{% else %}<span style="opacity:.3;">—</span>{% endif %}</td>
+                                <td style="font-family:var(--font-body);font-size:0.78rem;">
+                                    {% if s.red and s.green and s.blue %}
+                                    <span style="display:inline-flex;align-items:center;gap:6px;">
+                                        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:rgb({{ s.red|floatformat:0 }},{{ s.green|floatformat:0 }},{{ s.blue|floatformat:0 }});flex-shrink:0;"></span>
+                                        <span class="wq-lbl" data-r="{{ s.red|floatformat:0 }}" data-g="{{ s.green|floatformat:0 }}" data-b="{{ s.blue|floatformat:0 }}"></span>
+                                    </span>
+                                    {% else %}<span style="opacity:.3;">—</span>{% endif %}
+                                </td>
+                                <td>
+                                    {% if s.red and s.green and s.blue %}
+                                    <span class="status-lbl" data-r="{{ s.red|floatformat:0 }}" data-g="{{ s.green|floatformat:0 }}" data-b="{{ s.blue|floatformat:0 }}"></span>
+                                    {% else %}<span class="pill pill-bad">No Data</span>{% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr id="empty-row">
+                                <td colspan="9">
+                                    <div class="empty-state">
+                                        <i class="fa-solid fa-wave-square"></i>
+                                        <p>No sensor data recorded yet. Waiting for IoT device data…</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
 
-        
+                <!-- Pagination -->
+                <div class="pg-bar" id="pg-bar">
+                    <div class="pg-info" id="pg-info"></div>
+                    <div class="pg-btns">
+                        <button class="pbt" id="pg-first" onclick="pg.go(1)" title="First"><i class="fa-solid fa-angles-left"></i></button>
+                        <button class="pbt" id="pg-prev"  onclick="pg.go(pg.p-1)" title="Prev"><i class="fa-solid fa-angle-left"></i></button>
+                        <div id="pg-nums" style="display:flex;gap:3px;"></div>
+                        <button class="pbt" id="pg-next"  onclick="pg.go(pg.p+1)" title="Next"><i class="fa-solid fa-angle-right"></i></button>
+                        <button class="pbt" id="pg-last"  onclick="pg.go(pg.tot)" title="Last"><i class="fa-solid fa-angles-right"></i></button>
+                    </div>
+                </div>
+            </div><!-- /log-card -->
+
+        </section><!-- /monitoring -->
+
+    </main>
+</div><!-- /shell -->
+
+<!-- ═══ OVERLAYS ═══ -->
+<div class="modal" id="modal-scan">
+    <div class="modal-box">
+        <i class="fa-solid fa-satellite-dish fa-spin modal-ico" style="color:var(--cyan);"></i>
+        <h3>Establishing Connection…</h3>
+        <p>Connecting to Treatment System Controller</p>
     </div>
-
-    <!-- ========== OVERLAYS ========== -->
-    <div id="overlay-scan" class="overlay">
-        <div class="overlay-box">
-            <i class="fa-solid fa-satellite-dish fa-spin overlay-icon" style="color: #3B82F6;"></i>
-            <h3>Establishing Connection...</h3>
-            <p>Connecting to Treatment System Controller</p>
-        </div>
+</div>
+<div class="modal" id="modal-done">
+    <div class="modal-box">
+        <i class="fa-solid fa-circle-check modal-ico" style="color:var(--emerald);"></i>
+        <h3>Treatment Completed!</h3>
+        <p style="margin-top:6px;">Water purified to transparent state.</p>
+        <p style="margin-top:4px;opacity:.6;font-size:.8rem;">Process automatically stopped.</p>
     </div>
+</div>
 
-    <div id="overlay-complete" class="overlay">
-        <div class="overlay-box">
-            <i class="fa-solid fa-circle-check overlay-icon" style="color: #10B981;"></i>
-            <h3>Treatment Completed!</h3>
-            <p style="margin-top: 8px; font-size: 1rem; opacity: 0.9;">Water purified to transparent state</p>
-            <p style="margin-top: 4px; opacity: 0.65; font-size: 0.85rem;">Process automatically stopped</p>
-        </div>
-    </div>
-
-    <!-- ========== SCRIPTS ========== -->
-    <script>
-        /* ---- Sidebar ---- */
-        let sidebarCollapsed = false;
-
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const layout  = document.getElementById('layout');
-            const icon    = document.getElementById('toggle-icon');
-
-            sidebarCollapsed = !sidebarCollapsed;
-            sidebar.classList.toggle('collapsed', sidebarCollapsed);
-            layout.classList.toggle('sidebar-collapsed', sidebarCollapsed);
-            icon.className = sidebarCollapsed
-                ? 'fa-solid fa-angles-right'
-                : 'fa-solid fa-angles-left';
-
-            localStorage.setItem('sidebarCollapsed', sidebarCollapsed);
-        }
-
-        function openMobileSidebar() {
-            document.getElementById('sidebar').classList.add('mobile-open');
-            document.getElementById('sidebar-backdrop').classList.add('visible');
-        }
-
-        function closeMobileSidebar() {
-            document.getElementById('sidebar').classList.remove('mobile-open');
-            document.getElementById('sidebar-backdrop').classList.remove('visible');
-        }
-
-        // Restore collapsed state
-        (function() {
-            const saved = localStorage.getItem('sidebarCollapsed');
-            if (saved === 'true') {
-                sidebarCollapsed = true;
-                document.getElementById('sidebar').classList.add('collapsed');
-                document.getElementById('layout').classList.add('sidebar-collapsed');
-                document.getElementById('toggle-icon').className = 'fa-solid fa-angles-right';
-            }
-        })();
-
-        /* ---- Theme ---- */
-        function setTheme(mode) {
-            const html = document.documentElement;
-            ['btn-theme-light','btn-theme-dark','btn-theme-system'].forEach(id => {
-                document.getElementById(id).classList.remove('active');
-            });
-            if (mode === 'system') {
-                document.getElementById('btn-theme-system').classList.add('active');
-                localStorage.removeItem('theme');
-                applySystemTheme();
-            } else {
-                document.getElementById(mode === 'dark' ? 'btn-theme-dark' : 'btn-theme-light').classList.add('active');
-                html.setAttribute('data-theme', mode);
-                localStorage.setItem('theme', mode);
-            }
-            setTimeout(updateChartTheme, 100);
-        }
-
-        function applySystemTheme() {
-            const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
-        }
-
-        (function initTheme() {
-            const saved = localStorage.getItem('theme');
-            if (saved) setTheme(saved);
-            else setTheme('system');
-            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-                if (!localStorage.getItem('theme')) applySystemTheme();
-            });
-        })();
-
-        /* ---- App State ---- */
-        let isLinked = false, isHardwareOn = false, isProcessCompleted = false;
-        let timerInterval, sensorInterval, dataLogInterval;
-        let startTime = 0, elapsedTime = 0;
-        let dataLog = [], phChart = null;
-
-        const treatmentParams = {
-            initialPH: 11.5, targetPH: 7.0,
-            initialTemp: 35.0, targetTemp: 28.0,
-            treatmentDuration: 5000, colorIntensity: 1.0,
-            purityThreshold: { minR: 200, minG: 200, minB: 200, minTotal: 630 }
-        };
-
-        const ui = {
-            navControl:    document.getElementById('nav-control'),
-            navMonitoring: document.getElementById('nav-monitoring'),
-            headerStatus:  document.getElementById('header-status'),
-            ctlBtn:        document.getElementById('ctl-btn'),
-            ctlIcon:       document.getElementById('ctl-icon'),
-            ctlText:       document.getElementById('ctl-text'),
-            ctlStatus:     document.getElementById('ctl-status-text'),
-            pulse:         document.getElementById('ctl-pulse'),
-            monBtn:        document.getElementById('mon-btn'),
-            valTemp:       document.getElementById('val-temp'),
-            cardTemp:      document.getElementById('card-temp-visual'),
-            valPH:         document.getElementById('val-ph'),
-            cardPH:        document.getElementById('card-ph-visual'),
-            valSpeed:      document.getElementById('val-speed'),
-            valR:          document.getElementById('val-r'),
-            valG:          document.getElementById('val-g'),
-            valB:          document.getElementById('val-b'),
-            colorPreview:  document.getElementById('color-preview'),
-            colorName:     document.getElementById('color-name'),
-            timerSec:      document.getElementById('timer-sec'),
-            timerMs:       document.getElementById('timer-ms'),
-            timerTotal:    document.getElementById('timer-total')
-        };
-
-        /* ---- Tab switching ---- */
-        function switchTab(tab) {
-            if (tab === 'monitoring' && !isLinked) return;
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.section-view').forEach(el => el.classList.remove('active'));
-            if (tab === 'control') {
-                ui.navControl.classList.add('active');
-                document.getElementById('control').classList.add('active');
-                document.getElementById('page-title').innerText = "Device Connection";
-                document.getElementById('page-subtitle').innerText = "Textile Wastewater Treatment System";
-            } else {
-                ui.navMonitoring.classList.add('active');
-                document.getElementById('monitoring').classList.add('active');
-                document.getElementById('page-title').innerText = "Monitoring Dashboard";
-                document.getElementById('page-subtitle').innerText = "Real-time Treatment Process Analysis";
-            }
-            closeMobileSidebar();
-        }
-
-        /* ---- Control ---- */
-        function handleControlAction() {
-            if (!isLinked) {
-                document.getElementById('overlay-scan').classList.add('visible');
-                setTimeout(() => {
-                    document.getElementById('overlay-scan').classList.remove('visible');
-                    setSystemLinked(true);
-                }, 1200);
-            } else {
-                if (isHardwareOn) toggleHardware();
-                setSystemLinked(false);
-            }
-        }
-
-        function setSystemLinked(status) {
-            isLinked = status;
-            if (status) {
-                ui.ctlBtn.className = "hw-btn hw-btn-active";
-                ui.ctlIcon.className = "fa-solid fa-link";
-                ui.ctlText.innerText = "LINKED";
-                ui.ctlStatus.innerText = "Connected to Treatment System Controller";
-                ui.pulse.classList.add('active');
-                ui.headerStatus.className = "badge badge-success";
-                ui.headerStatus.innerText = "CONNECTED";
-                ui.navMonitoring.classList.remove('disabled');
-                setTimeout(() => { switchTab('monitoring'); initializeChart(); }, 600);
-            } else {
-                ui.ctlBtn.className = "hw-btn hw-btn-unlinked";
-                ui.ctlIcon.className = "fa-solid fa-wifi";
-                ui.ctlText.innerText = "CONNECT";
-                ui.ctlStatus.innerText = "Click to scan for hardware";
-                ui.pulse.classList.remove('active');
-                ui.headerStatus.className = "badge badge-danger";
-                ui.headerStatus.innerText = "DISCONNECTED";
-                ui.navMonitoring.classList.add('disabled');
-            }
-        }
-
-        function toggleHardware() {
-            if (isProcessCompleted) {
-                isProcessCompleted = false;
-                elapsedTime = 0;
-                treatmentParams.colorIntensity = 1.0;
-                ui.monBtn.className = "power-btn-sm power-btn-sm-standby";
-                ui.monBtn.innerHTML = '<i class="fa-solid fa-power-off"></i>';
-                document.getElementById('process-status-text').innerText = "STANDBY";
-                return;
-            }
-            isHardwareOn = !isHardwareOn;
-            if (isHardwareOn) {
-                ui.monBtn.className = "power-btn-sm power-btn-sm-active";
-                ui.monBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
-                document.getElementById('process-status-text').innerText = "TREATING";
-                startTime = Date.now() - elapsedTime;
-                timerInterval    = setInterval(updateTimer, 50);
-                sensorInterval   = setInterval(updateSensors, 100);
-                dataLogInterval  = setInterval(logData, 500);
-                updateSensors();
-                logData();
-            } else {
-                ui.monBtn.className = "power-btn-sm power-btn-sm-standby";
-                ui.monBtn.innerHTML = '<i class="fa-solid fa-power-off"></i>';
-                document.getElementById('process-status-text').innerText = "PAUSED";
-                clearInterval(timerInterval);
-                clearInterval(sensorInterval);
-                clearInterval(dataLogInterval);
-            }
-        }
-
-        function checkWaterPurity(r, g, b) {
-            const t = treatmentParams.purityThreshold;
-            return r >= t.minR && g >= t.minG && b >= t.minB && (r+g+b) >= t.minTotal;
-        }
-
-        function completeProcess() {
-            isHardwareOn = false;
-            isProcessCompleted = true;
-            clearInterval(timerInterval);
-            clearInterval(sensorInterval);
-            clearInterval(dataLogInterval);
-            ui.monBtn.className = "power-btn-sm power-btn-sm-completed completion-animation";
-            ui.monBtn.innerHTML = '<i class="fa-solid fa-check"></i>';
-            document.getElementById('process-status-text').innerText = "COMPLETED";
-            document.getElementById('overlay-complete').classList.add('visible');
-            setTimeout(() => document.getElementById('overlay-complete').classList.remove('visible'), 3500);
-            logData();
-        }
-
-        function updateTimer() {
-            elapsedTime = Date.now() - startTime;
-            let totalSec = Math.floor(elapsedTime / 1000);
-            let ms = Math.floor((elapsedTime % 1000) / 10);
-            let min = Math.floor(totalSec / 60);
-            let sec = totalSec % 60;
-            ui.timerSec.innerText = sec.toString().padStart(2, '0');
-            ui.timerMs.innerText  = ms.toString().padStart(2, '0');
-            ui.timerTotal.innerText = `${min.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
-        }
-
-        function updateSensors() {
-            let p = Math.min(elapsedTime / treatmentParams.treatmentDuration, 1);
-
-            let temp = treatmentParams.initialTemp - (treatmentParams.initialTemp - treatmentParams.targetTemp) * p + (Math.random() * 1.5 - 0.75);
-            temp = Math.max(treatmentParams.targetTemp, Math.min(treatmentParams.initialTemp, temp));
-            ui.valTemp.innerText = temp.toFixed(1);
-            if (temp >= 33)      ui.cardTemp.style.background = "linear-gradient(145deg, #EF4444, #DC2626)";
-            else if (temp < 29)  ui.cardTemp.style.background = "linear-gradient(145deg, #10B981, #059669)";
-            else                 ui.cardTemp.style.background = "linear-gradient(145deg, #EF4444 0%, #DC2626 50%, #1D4ED8 100%)";
-
-            let ph = treatmentParams.initialPH - (treatmentParams.initialPH - treatmentParams.targetPH) * p + (Math.random() * 0.3 - 0.15);
-            ph = Math.max(treatmentParams.targetPH, Math.min(treatmentParams.initialPH, ph));
-            ui.valPH.innerText = ph.toFixed(1);
-            if (ph > 9)         ui.cardPH.style.background = "linear-gradient(145deg, #EC4899, #9333EA)";
-            else if (ph < 6.5)  ui.cardPH.style.background = "linear-gradient(145deg, #F59E0B, #D97706)";
-            else                ui.cardPH.style.background = "linear-gradient(145deg, #10B981, #059669)";
-
-            let speed = 2.5 + Math.sin(p * Math.PI * 2) * 0.8 + (Math.random() * 0.4 - 0.2);
-            ui.valSpeed.innerText = Math.max(1.0, speed).toFixed(1);
-
-            treatmentParams.colorIntensity = Math.max(0, 1 - p);
-            let r = Math.floor(30  + 170 * (1 - treatmentParams.colorIntensity) + (Math.random()*20-10));
-            let g = Math.floor(64  + 156 * (1 - treatmentParams.colorIntensity) + (Math.random()*20-10));
-            let b = Math.floor(175 +  65 * (1 - treatmentParams.colorIntensity) + (Math.random()*20-10));
-            r = Math.max(0, Math.min(255, r));
-            g = Math.max(0, Math.min(255, g));
-            b = Math.max(0, Math.min(255, b));
-            ui.valR.innerText = r;
-            ui.valG.innerText = g;
-            ui.valB.innerText = b;
-            ui.colorPreview.style.backgroundColor = `rgb(${r},${g},${b})`;
-
-            if      (treatmentParams.colorIntensity > 0.7)  ui.colorName.innerText = "Highly Polluted Textile Wastewater";
-            else if (treatmentParams.colorIntensity > 0.4)  ui.colorName.innerText = "Treatment In Progress";
-            else if (treatmentParams.colorIntensity > 0.15) ui.colorName.innerText = "Semi-Purified Water";
-            else                                            ui.colorName.innerText = "Clean Transparent Water";
-
-            if (isHardwareOn && checkWaterPurity(r, g, b)) completeProcess();
-        }
-
-        function logData() {
-            let ts   = new Date();
-            let time = `${ts.getHours().toString().padStart(2,'0')}:${ts.getMinutes().toString().padStart(2,'0')}:${ts.getSeconds().toString().padStart(2,'0')}.${ts.getMilliseconds().toString().padStart(3,'0').substr(0,2)}`;
-            let temp = parseFloat(ui.valTemp.innerText);
-            let ph   = parseFloat(ui.valPH.innerText);
-            let spd  = parseFloat(ui.valSpeed.innerText);
-            let dur  = ui.timerTotal.innerText;
-            let wq   = ui.colorName.innerText;
-            let r    = parseInt(ui.valR.innerText);
-            let g    = parseInt(ui.valG.innerText);
-            let bv   = parseInt(ui.valB.innerText);
-            let pure = checkWaterPurity(r, g, bv);
-
-            let status = isProcessCompleted ? "Treatment Completed" : (pure ? "Purification Complete" : "Treatment Active");
-            let cls    = isProcessCompleted ? "badge badge-completed" : (pure ? "badge badge-clean" : "badge badge-polluted");
-
-            let row = document.createElement('tr');
-            row.innerHTML = `<td>${time}</td><td>${temp.toFixed(1)}</td><td>${ph.toFixed(1)}</td><td>${spd.toFixed(1)}</td><td>${dur}</td><td style="font-family:'DM Sans',sans-serif;">${wq}</td><td><span class="${cls}">${status}</span></td>`;
-            let tbody = document.getElementById('log-table-body');
-            tbody.insertBefore(row, tbody.firstChild);
-            while (tbody.children.length > 30) tbody.removeChild(tbody.lastChild);
-
-            dataLog.push({ time: `${ts.getSeconds()}.${ts.getMilliseconds().toString().padStart(3,'0').substr(0,1)}s`, ph, temp, speed: spd, colorIntensity: treatmentParams.colorIntensity, r, g, b: bv, isPure: pure });
-            if (dataLog.length > 30) dataLog.shift();
-            updateChart();
-        }
-
-        function initializeChart() {
-            if (phChart) { phChart.destroy(); phChart = null; }
-            const ctx = document.getElementById('phChart').getContext('2d');
-            const cs  = getComputedStyle(document.documentElement);
-            const tc  = cs.getPropertyValue('--text-main').trim();
-            const bc  = cs.getPropertyValue('--border').trim();
-            phChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: [],
-                    datasets: [{
-                        label: 'pH Level',
-                        data: [],
-                        borderColor: '#EC4899',
-                        backgroundColor: 'rgba(236,72,153,0.08)',
-                        borderWidth: 2.5,
-                        tension: 0.4,
-                        fill: true,
-                        pointRadius: 3,
-                        pointBackgroundColor: '#EC4899',
-                        pointBorderColor: '#fff',
-                        pointBorderWidth: 2
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    aspectRatio: 3,
-                    plugins: {
-                        legend: { display: true, position: 'top', labels: { color: tc, font: { family: 'DM Sans', size: 12, weight: '600' } } },
-                        tooltip: { backgroundColor: 'rgba(13,17,23,0.92)', titleColor: '#fff', bodyColor: '#fff', borderColor: bc, borderWidth: 1, padding: 12, callbacks: { label: ctx => 'pH: ' + ctx.parsed.y.toFixed(1) } }
-                    },
-                    scales: {
-                        y: { beginAtZero: false, min: 6, max: 12, grid: { color: bc }, ticks: { color: tc, font: { family: 'DM Mono', size: 11 }, callback: v => v.toFixed(1) }, title: { display: true, text: 'pH Level', color: tc, font: { family: 'DM Sans', size: 12, weight: '600' } } },
-                        x: { grid: { color: bc }, ticks: { color: tc, font: { family: 'DM Mono', size: 10 }, maxRotation: 45, minRotation: 45 }, title: { display: true, text: 'Time (seconds)', color: tc, font: { family: 'DM Sans', size: 12, weight: '600' } } }
-                    },
-                    interaction: { intersect: false, mode: 'index' }
-                }
-            });
-        }
-
-        function updateChart() {
-            if (!phChart) return;
-            phChart.data.labels = dataLog.map(d => d.time);
-            phChart.data.datasets[0].data = dataLog.map(d => d.ph);
-            phChart.update('none');
-        }
-
-        function updateChartTheme() {
-            if (!phChart) return;
-            const cs = getComputedStyle(document.documentElement);
-            const tc = cs.getPropertyValue('--text-main').trim();
-            const bc = cs.getPropertyValue('--border').trim();
-            phChart.options.plugins.legend.labels.color = tc;
-            ['x','y'].forEach(axis => {
-                phChart.options.scales[axis].grid.color  = bc;
-                phChart.options.scales[axis].ticks.color = tc;
-                phChart.options.scales[axis].title.color = tc;
-            });
-            phChart.update('none');
-        }
-
-        let resizeTimer;
-        window.addEventListener('resize', () => {
-            clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(() => { if (phChart) phChart.resize(); }, 250);
-        });
-    </script>
-    <script src="{% static 'js/iziToast.js' %}"></script>
-    <script src="{% static 'js/iziToast.min.js' %}"></script>
-    {% if messages %}
-    {% for message in messages %}
-    <script>
-        iziToast.{{message.tags}}({
-            title: '{{message}}',
-            position: 'topRight'
-        });
-    </script>
+<!-- ═══════════════════════════════════════════
+     SCRIPTS
+═══════════════════════════════════════════ -->
+<script>
+/* ─────────────────────────────────────────────
+   DJANGO DATA INJECTION — initial load
+───────────────────────────────────────────── */
+const DB_DATA = [
+    {% for s in dataSensor %}
+    {
+        id:      {{ s.pk }},
+        created: "{{ s.created|date:'Y-m-d H:i:s' }}",
+        red:     {{ s.red|default:0 }},
+        green:   {{ s.green|default:0 }},
+        blue:    {{ s.blue|default:0 }},
+        temp:    {{ s.temp|default:0 }},
+        lux:     {{ s.lux|default:0 }},
+        ph:      {% if s.ph %}{{ s.ph }}{% else %}null{% endif %}
+    }{% if not forloop.last %},{% endif %}
     {% endfor %}
-    {% endif %}
+];
+
+/* ─────────────────────────────────────────────
+   WATER QUALITY HELPERS
+───────────────────────────────────────────── */
+function isPure(r,g,b){ return r>=200 && g>=200 && b>=200 && (r+g+b)>=630; }
+
+function wqLabel(r,g,b){
+    const d = 1 - ((r+g+b)/765);
+    if(d>0.7)  return "Highly Polluted Wastewater";
+    if(d>0.4)  return "Treatment In Progress";
+    if(d>0.15) return "Semi-Purified Water";
+    return "Clean Transparent Water";
+}
+
+function statusPill(r,g,b){
+    return isPure(r,g,b)
+        ? '<span class="pill pill-ok">Purified ✓</span>'
+        : '<span class="pill pill-proc">On Process</span>';
+}
+
+function phClass(ph){
+    if(ph < 6)   return 'ph-acidic';
+    if(ph > 8)   return 'ph-basic';
+    return 'ph-neutral';
+}
+
+/* ─────────────────────────────────────────────
+   BUILD ROW HTML
+───────────────────────────────────────────── */
+function buildRow(s){
+    const r=parseFloat(s.red||0), g=parseFloat(s.green||0), b=parseFloat(s.blue||0);
+    const hasColor = s.red && s.green && s.blue;
+    const dash = '<span style="opacity:.3;">—</span>';
+    const phVal = s.ph != null ? parseFloat(s.ph) : null;
+    const phTd  = phVal != null
+        ? `<span class="${phClass(phVal)}">${phVal.toFixed(2)}</span>`
+        : dash;
+    return `
+    <tr class="db-row" data-id="${s.id}">
+        <td>${s.created}</td>
+        <td>${s.temp!=null?parseFloat(s.temp).toFixed(2):dash}</td>
+        <td class="ph-cell">${phTd}</td>
+        <td>${s.red!=null?parseFloat(s.red).toFixed(0):dash}</td>
+        <td>${s.green!=null?parseFloat(s.green).toFixed(0):dash}</td>
+        <td>${s.blue!=null?parseFloat(s.blue).toFixed(0):dash}</td>
+        <td>${s.lux!=null?parseFloat(s.lux).toFixed(1):dash}</td>
+        <td style="font-family:var(--font-body);font-size:0.78rem;">
+            ${hasColor?`<span style="display:inline-flex;align-items:center;gap:6px;">
+                <span style="width:8px;height:8px;border-radius:50%;background:rgb(${r},${g},${b});flex-shrink:0;display:inline-block;"></span>
+                ${wqLabel(r,g,b)}</span>`:dash}
+        </td>
+        <td>${hasColor?statusPill(r,g,b):'<span class="pill pill-bad">No Data</span>'}</td>
+    </tr>`;
+}
+
+/* ─────────────────────────────────────────────
+   DOM READY
+───────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', ()=>{
+    // Patch server-rendered water quality & status labels
+    document.querySelectorAll('.wq-lbl').forEach(el=>{
+        const r=+el.dataset.r, g=+el.dataset.g, b=+el.dataset.b;
+        el.textContent = wqLabel(r,g,b);
+    });
+    document.querySelectorAll('.status-lbl').forEach(el=>{
+        const r=+el.dataset.r, g=+el.dataset.g, b=+el.dataset.b;
+        el.outerHTML = statusPill(r,g,b);
+    });
+
+    if(DB_DATA.length) seedChart();
+    pg.init();
+    RT.init();
+    initTheme();
+    initSidebar();
+});
+
+/* ─────────────────────────────────────────────
+   REALTIME POLLING ENGINE
+───────────────────────────────────────────── */
+const RT = (function(){
+    const INTERVAL = 5000;
+    const URL_PATH = window.location.pathname;
+    let timer=null, latestId=0, syncedAt=null;
+
+    function maxIdFromDOM(){
+        let mx=0;
+        document.querySelectorAll('#tbl-body tr[data-id]').forEach(r=>{
+            const id=parseInt(r.dataset.id||0);
+            if(id>mx) mx=id;
+        });
+        return mx;
+    }
+
+    async function fetch_data(){
+        try{
+            const u=new URL(URL_PATH, window.location.origin);
+            u.searchParams.set('since_id', latestId);
+            const res=await fetch(u.toString(),{
+                headers:{'X-Requested-With':'XMLHttpRequest','Accept':'application/json'},
+                credentials:'same-origin'
+            });
+            if(!res.ok) throw new Error('HTTP '+res.status);
+            return await res.json();
+        }catch(e){
+            console.warn('[RT]',e);
+            return null;
+        }
+    }
+
+    function insertRows(records){
+        if(!records||!records.length) return;
+        const tbody = document.getElementById('tbl-body');
+        const emptyR = document.getElementById('empty-row');
+        if(emptyR) emptyR.remove();
+        let added=0;
+        records.forEach(s=>{
+            if(parseInt(s.id)<=latestId) return;
+            if(tbody.querySelector(`tr[data-id="${s.id}"]`)) return;
+            const tmp=document.createElement('tbody');
+            tmp.innerHTML=buildRow(s);
+            const row=tmp.firstElementChild;
+            const first=tbody.querySelector('tr.db-row');
+            first ? tbody.insertBefore(row,first) : tbody.appendChild(row);
+            requestAnimationFrame(()=>{
+                row.classList.add('row-flash');
+                setTimeout(()=>row.classList.remove('row-flash'),1400);
+            });
+            added++;
+        });
+        if(records.length){
+            const mx=Math.max(...records.map(s=>parseInt(s.id)));
+            if(mx>latestId) latestId=mx;
+        }
+        if(added>0){ pg.p=1; pg.render(); }
+    }
+
+    async function poll(){
+        setIndicator('syncing');
+        const data=await fetch_data();
+        if(data&&data.sensor_data){
+            insertRows(data.sensor_data);
+            syncedAt=new Date();
+            updateSyncTxt();
+            setIndicator('live');
+        } else {
+            setIndicator('offline');
+        }
+    }
+
+    function setIndicator(state){
+        const badge=document.getElementById('rt-badge');
+        const dot  =document.getElementById('rt-dot');
+        const lbl  =document.getElementById('rt-lbl');
+        if(!badge) return;
+        badge.className='rt-badge '+state;
+        dot.className  ='rt-dot'+(state==='live'?'':' paused');
+        lbl.textContent= state==='live'?'LIVE': state==='syncing'?'SYNCING':'OFFLINE';
+    }
+
+    function updateSyncTxt(){
+        const el=document.getElementById('sync-txt');
+        if(!el) return;
+        if(!syncedAt){el.textContent='Never';return;}
+        const d=Math.floor((Date.now()-syncedAt)/1000);
+        if(d<5)        el.textContent='Just now';
+        else if(d<60)  el.textContent=`${d}s ago`;
+        else if(d<3600)el.textContent=`${Math.floor(d/60)}m ago`;
+        else           el.textContent=syncedAt.toLocaleTimeString();
+    }
+    setInterval(updateSyncTxt,1000);
+
+    return {
+        init(){
+            latestId=maxIdFromDOM();
+            setIndicator('syncing');
+            poll();
+            timer=setInterval(poll,INTERVAL);
+        },
+        stop(){ clearInterval(timer); setIndicator('offline'); }
+    };
+})();
+
+/* ─────────────────────────────────────────────
+   PAGINATION
+───────────────────────────────────────────── */
+const pg = {
+    p:1, pp:10, tot:1,
+    rows(){ return [...document.querySelectorAll('#tbl-body tr:not(#empty-row)')]; },
+    init(){ this.p=1; this.render(); },
+    setPerPage(n){ this.pp=n; this.p=1; this.render(); },
+    go(n){
+        this.tot=Math.max(1,Math.ceil(this.rows().length/this.pp));
+        if(n<1||n>this.tot) return;
+        this.p=n; this.render();
+    },
+    render(){
+        const all=this.rows(), total=all.length;
+        this.tot=Math.max(1,Math.ceil(total/this.pp));
+        if(this.p>this.tot) this.p=this.tot;
+        if(this.p<1) this.p=1;
+        const s=(this.p-1)*this.pp, e=s+this.pp;
+        all.forEach((r,i)=>{
+            r.style.display=(i>=s&&i<e)?'':'none';
+        });
+        const info=document.getElementById('pg-info');
+        info.textContent = total===0?'No records':`Showing ${s+1}–${Math.min(e,total)} of ${total} records`;
+        const meta=document.getElementById('tbl-meta');
+        if(meta) meta.textContent=`${total} record${total!==1?'s':''}`;
+        ['pg-first','pg-prev'].forEach(id=>document.getElementById(id).disabled=this.p<=1);
+        ['pg-next','pg-last'].forEach(id=>document.getElementById(id).disabled=this.p>=this.tot);
+        this.renderNums();
+        const bar=document.getElementById('pg-bar');
+        bar.style.display=(total<=this.pp&&this.tot<=1)?'none':'flex';
+    },
+    renderNums(){
+        const c=document.getElementById('pg-nums');
+        c.innerHTML='';
+        const cur=this.p, tot=this.tot;
+        const pages=new Set([1,tot]);
+        for(let i=cur-1;i<=cur+1;i++) if(i>=1&&i<=tot) pages.add(i);
+        const sorted=[...pages].sort((a,b)=>a-b);
+        let prev=0;
+        sorted.forEach(n=>{
+            if(n-prev>1){ const s=document.createElement('span'); s.className='pellipsis'; s.textContent='…'; c.appendChild(s); }
+            const b=document.createElement('button');
+            b.className='pnum'+(n===cur?' on':'');
+            b.textContent=n;
+            b.onclick=()=>pg.go(n);
+            c.appendChild(b);
+            prev=n;
+        });
+    }
+};
+
+/* ─────────────────────────────────────────────
+   CHART
+───────────────────────────────────────────── */
+let chart=null, chartData=[];
+
+function seedChart(){
+    chartData = DB_DATA.slice(-30).map(d=>({
+        time:  d.created.substr(11,8),
+        ph:    d.ph!=null ? parseFloat(d.ph) : null,
+        temp:  parseFloat(d.temp)
+    }));
+}
+
+function initChart(){
+    if(chart){ chart.destroy(); chart=null; }
+    const ctx=document.getElementById('phChart').getContext('2d');
+    const cs=getComputedStyle(document.documentElement);
+    const tc=cs.getPropertyValue('--tx').trim();
+    const bc=cs.getPropertyValue('--border').trim();
+    const bc2=cs.getPropertyValue('--border-2').trim();
+
+    chart = new Chart(ctx,{
+        type:'line',
+        data:{
+            labels: chartData.map(d=>d.time),
+            datasets:[
+                {
+                    label:'pH Level',
+                    data: chartData.map(d=>d.ph),
+                    borderColor:'#EC4899', backgroundColor:'rgba(236,72,153,0.08)',
+                    borderWidth:2.5, tension:0.4, fill:true,
+                    pointRadius:3, pointBackgroundColor:'#EC4899',
+                    pointBorderColor:'#fff', pointBorderWidth:2,
+                    spanGaps:true
+                },
+                {
+                    label:'Temperature °C',
+                    data: chartData.map(d=>d.temp),
+                    borderColor:'#F59E0B', backgroundColor:'rgba(245,158,11,0.05)',
+                    borderWidth:2, tension:0.4, fill:false,
+                    pointRadius:2, pointBackgroundColor:'#F59E0B',
+                    pointBorderColor:'#fff', pointBorderWidth:1.5,
+                    yAxisID:'y2', spanGaps:true
+                }
+            ]
+        },
+        options:{
+            responsive:true, maintainAspectRatio:true, aspectRatio:3,
+            plugins:{
+                legend:{ display:true, position:'top', labels:{ color:tc, font:{family:"'Space Grotesk',sans-serif",size:12,weight:'600'}, usePointStyle:true, pointStyleWidth:8 } },
+                tooltip:{ backgroundColor:'rgba(13,17,23,0.95)', titleColor:'#fff', bodyColor:'rgba(255,255,255,0.7)', borderColor:bc2, borderWidth:1, padding:12, cornerRadius:10 }
+            },
+            scales:{
+                y:  { beginAtZero:false, min:5, max:13, grid:{color:bc}, ticks:{color:tc,font:{family:"'JetBrains Mono',monospace",size:11},callback:v=>v.toFixed(1)+'pH'}, title:{display:true,text:'pH Level',color:tc,font:{family:"'Space Grotesk'",size:12,weight:'600'}} },
+                y2: { position:'right', beginAtZero:false, min:18, max:42, grid:{drawOnChartArea:false}, ticks:{color:'#F59E0B',font:{family:"'JetBrains Mono',monospace",size:11},callback:v=>v+'°C'}, title:{display:true,text:'Temp °C',color:'#F59E0B',font:{family:"'Space Grotesk'",size:12,weight:'600'}} },
+                x:  { grid:{color:bc}, ticks:{color:tc,font:{family:"'JetBrains Mono',monospace",size:10},maxRotation:45}, title:{display:true,text:'Time',color:tc,font:{family:"'Space Grotesk'",size:12,weight:'600'}} }
+            },
+            interaction:{ intersect:false, mode:'index' }
+        }
+    });
+}
+
+function refreshChart(){
+    if(!chart) return;
+    chart.data.labels           = chartData.map(d=>d.time);
+    chart.data.datasets[0].data = chartData.map(d=>d.ph);
+    chart.data.datasets[1].data = chartData.map(d=>d.temp);
+    chart.update('none');
+}
+
+function updateChartTheme(){
+    if(!chart) return;
+    const cs=getComputedStyle(document.documentElement);
+    const tc=cs.getPropertyValue('--tx').trim();
+    const bc=cs.getPropertyValue('--border').trim();
+    chart.options.plugins.legend.labels.color=tc;
+    ['x','y'].forEach(a=>{
+        chart.options.scales[a].grid.color=bc;
+        chart.options.scales[a].ticks.color=tc;
+        chart.options.scales[a].title.color=tc;
+    });
+    chart.update('none');
+}
+
+window.addEventListener('resize',()=>{ if(chart) chart.resize(); });
+
+/* ─────────────────────────────────────────────
+   HARDWARE / PROCESS SIMULATION
+───────────────────────────────────────────── */
+let linked=false, procOn=false, procDone=false;
+let timerInt, sensorInt, logInt;
+let t0=0, elapsed=0, simLog=[];
+const sim={
+    iPH:11.5, tPH:7.0,
+    iTemp:35, tTemp:28,
+    duration:5000, intensity:1.0
+};
+
+const U={
+    vTemp:  ()=>document.getElementById('v-temp'),
+    vPH:    ()=>document.getElementById('v-ph'),
+    vSpeed: ()=>document.getElementById('v-speed'),
+    vR:     ()=>document.getElementById('v-r'),
+    vG:     ()=>document.getElementById('v-g'),
+    vB:     ()=>document.getElementById('v-b'),
+    colorBar: ()=>document.getElementById('color-bar'),
+    colorName:()=>document.getElementById('color-name'),
+    tSec:   ()=>document.getElementById('t-sec'),
+    tMs:    ()=>document.getElementById('t-ms'),
+    tTotal: ()=>document.getElementById('t-total'),
+    pill:   ()=>document.getElementById('proc-pill'),
+    procBtn:()=>document.getElementById('proc-btn'),
+    hdrSt:  ()=>document.getElementById('hdr-status'),
+};
+
+function handleConnect(){
+    if(!linked){
+        document.getElementById('modal-scan').classList.add('on');
+        setTimeout(()=>{
+            document.getElementById('modal-scan').classList.remove('on');
+            setLinked(true);
+        },1300);
+    } else {
+        if(procOn) stopProcess();
+        setLinked(false);
+    }
+}
+
+function setLinked(v){
+    linked=v;
+    const btn=document.getElementById('hw-btn');
+    const ico=document.getElementById('hw-ico');
+    const txt=document.getElementById('hw-txt');
+    const hint=document.getElementById('conn-hint');
+    const r1=document.getElementById('ring1'), r2=document.getElementById('ring2');
+    if(v){
+        btn.className='hw-btn hw-linked';
+        ico.className='fa-solid fa-link';
+        txt.textContent='LINKED';
+        hint.textContent='Connected to Treatment System Controller';
+        r1.classList.add('pulse'); r2.classList.add('pulse');
+        U.hdrSt().className='status-badge badge-ok';
+        U.hdrSt().textContent='CONNECTED';
+        document.getElementById('nl-mon').classList.remove('disabled');
+        setTimeout(()=>{ switchView('monitoring'); initChart(); },600);
+    } else {
+        btn.className='hw-btn hw-unlinked';
+        ico.className='fa-solid fa-wifi';
+        txt.textContent='CONNECT';
+        hint.textContent='Click to scan for hardware';
+        r1.classList.remove('pulse'); r2.classList.remove('pulse');
+        U.hdrSt().className='status-badge badge-err';
+        U.hdrSt().textContent='DISCONNECTED';
+        document.getElementById('nl-mon').classList.add('disabled');
+    }
+}
+
+function toggleProcess(){
+    if(procDone){
+        procDone=false; elapsed=0; sim.intensity=1.0;
+        U.procBtn().className='proc-btn proc-standby';
+        U.procBtn().innerHTML='<i class="fa-solid fa-power-off"></i>';
+        U.pill().textContent='STANDBY';
+        return;
+    }
+    procOn=!procOn;
+    if(procOn){
+        U.procBtn().className='proc-btn proc-active';
+        U.procBtn().innerHTML='<i class="fa-solid fa-pause"></i>';
+        U.pill().textContent='TREATING';
+        t0=Date.now()-elapsed;
+        timerInt  = setInterval(tick,   50);
+        sensorInt = setInterval(sense, 120);
+        logInt    = setInterval(logRow,600);
+        sense(); logRow();
+    } else {
+        stopProcess();
+        U.pill().textContent='PAUSED';
+    }
+}
+
+function stopProcess(){
+    procOn=false;
+    clearInterval(timerInt); clearInterval(sensorInt); clearInterval(logInt);
+    U.procBtn().className='proc-btn proc-standby';
+    U.procBtn().innerHTML='<i class="fa-solid fa-power-off"></i>';
+}
+
+function finish(){
+    procOn=false; procDone=true;
+    clearInterval(timerInt); clearInterval(sensorInt); clearInterval(logInt);
+    U.procBtn().className='proc-btn proc-done';
+    U.procBtn().innerHTML='<i class="fa-solid fa-check"></i>';
+    U.pill().textContent='COMPLETED';
+    const m=document.getElementById('modal-done');
+    m.classList.add('on');
+    setTimeout(()=>m.classList.remove('on'),3500);
+    logRow();
+}
+
+function tick(){
+    elapsed=Date.now()-t0;
+    const s=Math.floor(elapsed/1000);
+    const ms=Math.floor((elapsed%1000)/10);
+    const mn=Math.floor(s/60);
+    U.tSec().textContent=((s%60)).toString().padStart(2,'0');
+    U.tMs().textContent=ms.toString().padStart(2,'0');
+    U.tTotal().textContent=`${mn.toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
+}
+
+function sense(){
+    const p=Math.min(elapsed/sim.duration,1);
+    let temp=sim.iTemp-(sim.iTemp-sim.tTemp)*p+(Math.random()*1.5-.75);
+    temp=Math.max(sim.tTemp,Math.min(sim.iTemp,temp));
+    U.vTemp().textContent=temp.toFixed(1);
+
+    let ph=sim.iPH-(sim.iPH-sim.tPH)*p+(Math.random()*.3-.15);
+    ph=Math.max(sim.tPH,Math.min(sim.iPH,ph));
+    U.vPH().textContent=ph.toFixed(1);
+
+    const spd=2.5+Math.sin(p*Math.PI*2)*.8+(Math.random()*.4-.2);
+    U.vSpeed().textContent=Math.max(1,spd).toFixed(1);
+
+    sim.intensity=Math.max(0,1-p);
+    let r=Math.floor(30+170*(1-sim.intensity)+(Math.random()*20-10));
+    let g=Math.floor(64+156*(1-sim.intensity)+(Math.random()*20-10));
+    let b=Math.floor(175+65*(1-sim.intensity)+(Math.random()*20-10));
+    r=Math.max(0,Math.min(255,r));
+    g=Math.max(0,Math.min(255,g));
+    b=Math.max(0,Math.min(255,b));
+    U.vR().textContent=r; U.vG().textContent=g; U.vB().textContent=b;
+    U.colorBar().style.backgroundColor=`rgb(${r},${g},${b})`;
+    U.colorName().textContent=wqLabel(r,g,b);
+    if(procOn && isPure(r,g,b)) finish();
+}
+
+function logRow(){
+    const now=new Date();
+    const time=`${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+    const temp=parseFloat(U.vTemp().textContent)||0;
+    const ph  =parseFloat(U.vPH().textContent)||0;
+    const r=parseInt(U.vR().textContent)||0;
+    const gv=parseInt(U.vG().textContent)||0;
+    const bv=parseInt(U.vB().textContent)||0;
+    const wq=U.colorName().textContent;
+    const pure=isPure(r,gv,bv);
+    const statusHtml = procDone
+        ? '<span class="pill pill-ok">Completed ✓</span>'
+        : (pure ? '<span class="pill pill-ok">Purified ✓</span>' : '<span class="pill pill-proc">On Process</span>');
+    const dash='<span style="opacity:.3;">—</span>';
+    const phCl=phClass(ph);
+    const row=document.createElement('tr');
+    row.className='rt-row';
+    row.innerHTML=`
+        <td>${time}</td>
+        <td>${temp.toFixed(1)}</td>
+        <td class="ph-cell"><span class="${phCl}">${ph.toFixed(1)}</span></td>
+        <td>${r}</td><td>${gv}</td><td>${bv}</td>
+        <td>${dash}</td>
+        <td style="font-family:var(--font-body);font-size:0.78rem;">
+            <span style="display:inline-flex;align-items:center;gap:6px;">
+            <span style="width:8px;height:8px;border-radius:50%;background:rgb(${r},${gv},${bv});display:inline-block;flex-shrink:0;"></span>
+            ${wq}</span>
+        </td>
+        <td>${statusHtml}</td>`;
+    const tbody=document.getElementById('tbl-body');
+    const first=tbody.querySelector('.db-row');
+    const empty=document.getElementById('empty-row');
+    if(first) tbody.insertBefore(row,first);
+    else if(empty) tbody.insertBefore(row,empty);
+    else tbody.insertBefore(row,tbody.firstChild);
+    const rt=[...tbody.querySelectorAll('.rt-row')];
+    if(rt.length>100) rt[rt.length-1].remove();
+    pg.p=1; pg.render();
+
+    // Feed chart
+    simLog.push({time,ph,temp,r,g:gv,b:bv});
+    if(simLog.length>30) simLog.shift();
+    chartData=[...chartData.slice(-10), ...simLog].slice(-30).map(d=>d);
+    // Merge
+    const merged = [...(chartData.length?[]:DB_DATA.slice(-10).map(d=>({time:d.created.substr(11,8),ph:d.ph!=null?parseFloat(d.ph):null,temp:parseFloat(d.temp)}))), ...simLog].slice(-30);
+    chart && (chart.data.labels=merged.map(d=>d.time),
+               chart.data.datasets[0].data=merged.map(d=>d.ph),
+               chart.data.datasets[1].data=merged.map(d=>d.temp),
+               chart.update('none'));
+}
+
+/* ─────────────────────────────────────────────
+   SIDEBAR
+───────────────────────────────────────────── */
+let sbCollapsed=false;
+function initSidebar(){
+    const s=localStorage.getItem('sb');
+    if(s==='1') collapseSb(true,false);
+}
+function collapseSb(v,save=true){
+    sbCollapsed=v;
+    document.getElementById('sidebar').classList.toggle('collapsed',v);
+    document.getElementById('shell').classList.toggle('sb-collapsed',v);
+    document.getElementById('sb-icon').className=v?'fa-solid fa-angles-right':'fa-solid fa-angles-left';
+    if(save) localStorage.setItem('sb',v?'1':'0');
+}
+function toggleSidebar(){ collapseSb(!sbCollapsed); }
+function openMobile(){
+    document.getElementById('sidebar').classList.add('open');
+    document.getElementById('backdrop').classList.add('visible');
+}
+function closeMobile(){
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('backdrop').classList.remove('visible');
+}
+
+/* ─────────────────────────────────────────────
+   TABS
+───────────────────────────────────────────── */
+function switchView(v){
+    if(v==='monitoring' && !linked) return;
+    ['connection','monitoring'].forEach(id=>{
+        document.getElementById('view-'+id).classList.toggle('on', id===v);
+    });
+    document.getElementById('nl-conn').classList.toggle('active', v==='connection');
+    document.getElementById('nl-mon').classList.toggle('active',  v==='monitoring');
+    document.getElementById('page-title').textContent = v==='connection' ? 'Device Connection' : 'Monitoring Dashboard';
+    document.getElementById('page-sub').textContent   = v==='connection' ? 'Textile Wastewater Treatment System' : 'Real-time Treatment Process Analysis';
+    closeMobile();
+}
+
+/* ─────────────────────────────────────────────
+   THEME
+───────────────────────────────────────────── */
+function initTheme(){
+    const saved=localStorage.getItem('theme');
+    applyTheme(saved||'dark');
+}
+function setTheme(m){
+    localStorage.setItem('theme',m);
+    applyTheme(m);
+}
+function applyTheme(m){
+    let actual=m;
+    if(m==='system') actual=window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';
+    document.documentElement.setAttribute('data-theme',actual);
+    ['light','system','dark'].forEach(k=>{
+        document.getElementById('tbtn-'+k).classList.toggle('on',k===m);
+    });
+    setTimeout(updateChartTheme,100);
+}
+window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change',()=>{
+    if(localStorage.getItem('theme')==='system') applyTheme('system');
+});
+</script>
+
+<script src="{% static 'js/iziToast.min.js' %}"></script>
+{% if messages %}
+{% for message in messages %}
+<script>
+    iziToast.{{ message.tags }}({
+        title: '{{ message }}',
+        position: 'topRight'
+    });
+</script>
+{% endfor %}
+{% endif %}
+
 </body>
 </html>
-
-
