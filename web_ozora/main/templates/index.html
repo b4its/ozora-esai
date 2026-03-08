@@ -12,14 +12,13 @@
                         <span id="hw-txt">CONNECT</span>
                     </button>
                 </div>
-                <p class="connect-hint" id="conn-hint">Click to scan for hardware</p>
+                <p class="connect-hint" id="conn-hint">Click to scan for IoT devices</p>
             </div>
         </section>
 
         <!-- ═══ MONITORING VIEW ═══ -->
         <section id="view-monitoring" class="view">
 
-            <!-- Process bar -->
             <div class="proc-bar">
                 <div class="proc-bar-info">
                     <h3>Treatment Process Control</h3>
@@ -30,43 +29,34 @@
                 </button>
             </div>
 
-            <!-- Metrics -->
             <div class="metrics">
-
-                <!-- Temperature -->
                 <div class="metric-card mc-temp">
                     <div>
                         <div class="mc-label">Temperature</div>
-                        <div class="mc-value" style="color:#fff;"><span id="v-temp">—</span><span class="mc-unit">°C</span></div>
+                        <div class="mc-value"><span id="v-temp">—</span><span class="mc-unit">°C</span></div>
                     </div>
                     <svg class="mc-wave" viewBox="0 0 500 70" preserveAspectRatio="none">
                         <path fill="white" d="M0,35 C100,70 200,0 300,35 C400,70 450,20 500,35 L500,70 L0,70 Z"/>
                     </svg>
                 </div>
-
-                <!-- pH -->
                 <div class="metric-card mc-ph">
                     <div>
                         <div class="mc-label">pH Level</div>
-                        <div class="mc-value" style="color:#fff;"><span id="v-ph">—</span><span class="mc-unit"> pH</span></div>
+                        <div class="mc-value"><span id="v-ph">—</span><span class="mc-unit"> pH</span></div>
                     </div>
                     <svg class="mc-wave" viewBox="0 0 500 70" preserveAspectRatio="none">
                         <path fill="white" d="M0,35 C125,70 375,0 500,35 L500,70 L0,70 Z"/>
                     </svg>
                 </div>
-
-                <!-- Flow Speed -->
                 <div class="metric-card mc-speed">
                     <div>
                         <div class="mc-label">Flow Speed</div>
-                        <div class="mc-value" style="color:#fff;"><span id="v-speed">—</span><span class="mc-unit"> L/s</span></div>
+                        <div class="mc-value"><span id="v-speed">—</span><span class="mc-unit"> L/s</span></div>
                     </div>
                     <svg class="mc-wave" viewBox="0 0 500 70" preserveAspectRatio="none">
                         <path fill="white" d="M0,35 C150,0 350,70 500,35 L500,70 L0,70 Z"/>
                     </svg>
                 </div>
-
-                <!-- Color / Quality -->
                 <div class="metric-card mc-color" style="display:flex;flex-direction:column;">
                     <div class="mc-label" style="color:var(--tx-2);">Water Quality Sensor</div>
                     <div class="color-name-txt" id="color-name">Detecting…</div>
@@ -77,8 +67,6 @@
                         <div class="rgb-chip"><span class="rgb-num" id="v-b">175</span><span class="rgb-ch cb">BLU</span></div>
                     </div>
                 </div>
-
-                <!-- Timer -->
                 <div class="metric-card mc-timer">
                     <div>
                         <div class="mc-label">Treatment Duration</div>
@@ -92,30 +80,19 @@
                         <path fill="white" d="M0,50 C120,10 380,60 500,30 L500,70 L0,70 Z"/>
                     </svg>
                 </div>
+            </div>
 
-            </div><!-- /metrics -->
-
-            <!-- Chart -->
             <div class="chart-card">
                 <div class="card-head">
-                    <div class="card-title">
-                        <i class="fa-solid fa-chart-line"></i>
-                        pH & Temperature Trend
-                    </div>
+                    <div class="card-title"><i class="fa-solid fa-chart-line"></i>pH & Temperature Trend</div>
                 </div>
                 <canvas id="phChart"></canvas>
             </div>
 
-            <!-- ══════════════════════════════════════════
-                 TREATMENT LOG HISTORY — REAL-TIME
-            ══════════════════════════════════════════ -->
             <div class="log-card">
                 <div class="log-head">
                     <div class="log-head-left">
-                        <div class="card-title">
-                            <i class="fa-solid fa-database"></i>
-                            Treatment Log History
-                        </div>
+                        <div class="card-title"><i class="fa-solid fa-database"></i>Treatment Log History</div>
                         <div class="rt-badge live" id="rt-badge">
                             <div class="rt-dot" id="rt-dot"></div>
                             <span id="rt-lbl">LIVE</span>
@@ -138,7 +115,6 @@
                         <div class="tbl-meta" id="tbl-meta">{{ dataSensor|length }} record{{ dataSensor|length|pluralize }}</div>
                     </div>
                 </div>
-
                 <div class="tbl-scroll">
                     <table>
                         <thead>
@@ -161,9 +137,7 @@
                                 <td>{% if s.temp %}{{ s.temp|floatformat:2 }}{% else %}<span style="opacity:.3;">—</span>{% endif %}</td>
                                 <td class="ph-cell">
                                     {% if s.ph %}
-                                        <span class="{% if s.ph < 6 %}ph-acidic{% elif s.ph > 8 %}ph-basic{% else %}ph-neutral{% endif %}">
-                                            {{ s.ph|floatformat:2 }}
-                                        </span>
+                                        <span class="{% if s.ph < 6 %}ph-acidic{% elif s.ph > 8 %}ph-basic{% else %}ph-neutral{% endif %}">{{ s.ph|floatformat:2 }}</span>
                                     {% else %}<span style="opacity:.3;">—</span>{% endif %}
                                 </td>
                                 <td>{% if s.red %}{{ s.red|floatformat:0 }}{% else %}<span style="opacity:.3;">—</span>{% endif %}</td>
@@ -197,21 +171,18 @@
                         </tbody>
                     </table>
                 </div>
-
-                <!-- Pagination -->
                 <div class="pg-bar" id="pg-bar">
                     <div class="pg-info" id="pg-info"></div>
                     <div class="pg-btns">
-                        <button class="pbt" id="pg-first" onclick="pg.go(1)" title="First"><i class="fa-solid fa-angles-left"></i></button>
-                        <button class="pbt" id="pg-prev"  onclick="pg.go(pg.p-1)" title="Prev"><i class="fa-solid fa-angle-left"></i></button>
+                        <button class="pbt" id="pg-first" onclick="pg.go(1)"       title="First"><i class="fa-solid fa-angles-left"></i></button>
+                        <button class="pbt" id="pg-prev"  onclick="pg.go(pg.p-1)"  title="Prev"><i class="fa-solid fa-angle-left"></i></button>
                         <div id="pg-nums" style="display:flex;gap:3px;"></div>
-                        <button class="pbt" id="pg-next"  onclick="pg.go(pg.p+1)" title="Next"><i class="fa-solid fa-angle-right"></i></button>
-                        <button class="pbt" id="pg-last"  onclick="pg.go(pg.tot)" title="Last"><i class="fa-solid fa-angles-right"></i></button>
+                        <button class="pbt" id="pg-next"  onclick="pg.go(pg.p+1)"  title="Next"><i class="fa-solid fa-angle-right"></i></button>
+                        <button class="pbt" id="pg-last"  onclick="pg.go(pg.tot)"  title="Last"><i class="fa-solid fa-angles-right"></i></button>
                     </div>
                 </div>
-            </div><!-- /log-card -->
+            </div>
 
-        </section><!-- /monitoring -->
-
+        </section>
     </main>
         {% endblock content %}
