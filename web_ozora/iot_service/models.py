@@ -32,6 +32,8 @@ class IoTDevice(models.Model):
     rssi        = models.IntegerField(default=0,   help_text="Kekuatan sinyal WiFi (dBm)")
     firmware    = models.CharField(max_length=20,  blank=True)
     last_seen   = models.DateTimeField(auto_now=True, help_text="Diperbarui otomatis tiap heartbeat")
+    
+    target_status = models.BooleanField(default=False, help_text="True = Mesin ON, False = Mesin OFF", null=True)
 
     class Meta:
         unique_together = ('user', 'device_id')

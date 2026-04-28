@@ -816,7 +816,8 @@ function setLinked(v, device) {
    REALTIME POLLING ENGINE
 ───────────────────────────────────────────── */
 const RT = (function(){
-    const INTERVAL = 5000;
+    {% comment %} const INTERVAL = 5000; {% endcomment %}
+    const INTERVAL = 2000;
     let timer=null, latestId=0, syncedAt=null;
 
     function maxIdFromDOM(){
@@ -1023,7 +1024,8 @@ window.addEventListener('resize',()=>{ if(chart) chart.resize(); });
 let procOn=false, procDone=false;
 let timerInt, sensorInt, logInt;
 let t0=0, elapsed=0, simLog=[];
-const sim = { iPH:11.5, tPH:7.0, iTemp:35, tTemp:28, duration:5000, intensity:1.0 };
+{% comment %} const sim = { iPH:11.5, tPH:7.0, iTemp:35, tTemp:28, duration:5000, intensity:1.0 }; {% endcomment %}
+const sim = { iPH:11.5, tPH:7.0, iTemp:35, tTemp:28, duration:2000, intensity:1.0 };
 
 const U = {
     vTemp:    ()=>document.getElementById('v-temp'),
