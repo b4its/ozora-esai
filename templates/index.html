@@ -21,8 +21,8 @@
 
             /* Gradients */
             --grad-temp-default: linear-gradient(180deg, #D31027 0%, #EA384D 40%, #2B32B2 100%);
-            --grad-temp-hot: linear-gradient(180deg, #FF416C 0%, #FF4B2B 100%); /* Merah Panas */
-            --grad-temp-cold: linear-gradient(180deg, #2193b0 0%, #6dd5ed 100%); /* Biru Dingin */
+            --grad-temp-hot: linear-gradient(180deg, #FF416C 0%, #FF4B2B 100%);
+            --grad-temp-cold: linear-gradient(180deg, #2193b0 0%, #6dd5ed 100%);
             
             --grad-process: linear-gradient(180deg, #11998e 0%, #38ef7d 50%, #1A2980 100%);
             --bg-dark-card: #2D2D2D;
@@ -110,7 +110,7 @@
             flex-direction: column;
             justify-content: space-between;
             box-shadow: 0 15px 35px rgba(0,0,0,0.15);
-            transition: transform 0.3s, background 0.5s ease; /* Added transition for background */
+            transition: transform 0.3s, background 0.5s ease;
         }
         .ozora-card:hover { transform: translateY(-5px); }
 
@@ -342,6 +342,7 @@
                         </tr>
                     </thead>
                     <tbody id="log-table-body">
+                        <!-- Table Data Here (Bisa diisi dinamis nanti) -->
                         <tr>
                             <td>10:00:05</td>
                             <td>33.2 °C</td>
@@ -375,163 +376,236 @@
         </div>
     </div>
 
-    <script>
-        // =========================================
-        // LOGIC JAVASCRIPT
-        // =========================================
-        
-        let isLinked = false;
-        let isHardwareOn = false;
-        let timerInterval = null;
-        let sensorInterval = null;
-        let startTime = 0;
-        let elapsedTime = 0;
+<script>
+    // =========================================
+    // LOGIC JAVASCRIPT & AJAX INTEGRATION
+    // =========================================
+    const apiToken = "{{ api_token }}"; 
+    let isLinked = false;
+    let activeDeviceId = null;
+    let isHardwareOn = true; 
 
-        // Elements
-        const navControl = document.getElementById('nav-control');
-        const navMonitoring = document.getElementById('nav-monitoring');
-        const headerStatus = document.getElementById('header-status');
-        const ctlBtn = document.getElementById('ctl-btn');
-        const ctlIcon = document.getElementById('ctl-icon');
-        const ctlText = document.getElementById('ctl-text');
-        const ctlStatusText = document.getElementById('ctl-status-text');
-        const monBtn = document.getElementById('mon-btn');
-        const processStatusText = document.getElementById('process-status-text');
+    let timerInterval = null;
+    let dataPollingInterval = null;
+    let startTime = 0;
+    let elapsedTime = 0;
 
-        const valTemp = document.getElementById('val-temp');
-        const cardTempVisual = document.getElementById('card-temp-visual'); // Target Kartu Temp
+    // Elements
+    const navControl = document.getElementById('nav-control');
+    const navMonitoring = document.getElementById('nav-monitoring');
+    const headerStatus = document.getElementById('header-status');
+    const ctlBtn = document.getElementById('ctl-btn');
+    const ctlIcon = document.getElementById('ctl-icon');
+    const ctlText = document.getElementById('ctl-text');
+    const ctlStatusText = document.getElementById('ctl-status-text');
+    const monBtn = document.getElementById('mon-btn');
+    const processStatusText = document.getElementById('process-status-text');
 
-        const valR = document.getElementById('val-r');
-        const valG = document.getElementById('val-g');
-        const valB = document.getElementById('val-b');
-        const colorPreview = document.getElementById('color-preview');
-        const colorName = document.getElementById('color-name');
-        
-        const timerSec = document.getElementById('timer-sec');
-        const timerMs = document.getElementById('timer-ms');
-        const timerMicro = document.getElementById('timer-micro');
+    const valTemp = document.getElementById('val-temp');
+    const cardTempVisual = document.getElementById('card-temp-visual');
+    const valR = document.getElementById('val-r');
+    const valG = document.getElementById('val-g');
+    const valB = document.getElementById('val-b');
+    const colorPreview = document.getElementById('color-preview');
+    const colorName = document.getElementById('color-name');
 
-        // Nav Logic
-        function switchTab(tab) {
-            if (tab === 'monitoring' && !isLinked) return;
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-            if (tab === 'control') {
-                navControl.classList.add('active');
-                document.getElementById('page-title').innerText = "Device Connection";
-                document.getElementById('page-subtitle').innerText = "Manage Web to Hardware Link";
-            } else {
-                navMonitoring.classList.add('active');
-                document.getElementById('page-title').innerText = "Monitoring";
-                document.getElementById('page-subtitle').innerText = "Real-time Sensor Data";
+    const timerSec = document.getElementById('timer-sec');
+    const timerMs = document.getElementById('timer-ms');
+    const timerMicro = document.getElementById('timer-micro');
+
+    // CSRF Token Helper
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
             }
-            document.querySelectorAll('.section-view').forEach(el => el.classList.remove('active'));
-            document.getElementById(tab).classList.add('active');
         }
+        return cookieValue;
+    }
 
-        // Control Logic
-        function handleControlAction() {
-            if (!isLinked) {
-                document.getElementById('overlay-scan').classList.add('visible');
-                setTimeout(() => {
-                    document.getElementById('overlay-scan').classList.remove('visible');
+    // Nav Logic
+    function switchTab(tab) {
+        if (tab === 'monitoring' && !isLinked) return;
+        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+        if (tab === 'control') {
+            navControl.classList.add('active');
+            document.getElementById('page-title').innerText = "Device Connection";
+            document.getElementById('page-subtitle').innerText = "Manage Web to Hardware Link";
+        } else {
+            navMonitoring.classList.add('active');
+            document.getElementById('page-title').innerText = "Monitoring";
+            document.getElementById('page-subtitle').innerText = "Real-time Sensor Data";
+        }
+        document.querySelectorAll('.section-view').forEach(el => el.classList.remove('active'));
+        document.getElementById(tab).classList.add('active');
+    }
+
+    // Control Logic: Connect to ESP32
+    function handleControlAction() {
+        if (!isLinked) {
+            document.getElementById('overlay-scan').classList.add('visible');
+            
+            // Cek device yang online di Django
+            fetch('/api/devices/online/', {
+                method: 'GET',
+                headers: { 'Authorization': 'Token ' + apiToken }
+            })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('overlay-scan').classList.remove('visible');
+                if(data.count > 0) {
+                    activeDeviceId = data.devices[0].device_id;
+                    isHardwareOn = data.devices[0].target_status;
                     setSystemLinked(true);
-                }, 1500);
-            } else {
-                if (isHardwareOn) toggleHardware();
-                setSystemLinked(false);
+                } else {
+                    alert("Tidak ada device Ozora yang sedang online. Pastikan alat menyala dan terhubung ke WiFi.");
+                }
+            })
+            .catch(err => {
+                document.getElementById('overlay-scan').classList.remove('visible');
+                alert("Error menghubungkan ke server.");
+            });
+        } else {
+            setSystemLinked(false);
+        }
+    }
+
+    function setSystemLinked(status) {
+        isLinked = status;
+        if (status) {
+            ctlBtn.className = "hardware-btn btn-standby";
+            ctlIcon.className = "fa-solid fa-link";
+            ctlText.innerText = "LINKED";
+            ctlStatusText.innerText = "Hardware Connected. ID: " + activeDeviceId;
+            headerStatus.style.background = "#C6F6D5";
+            headerStatus.style.color = "#22543D";
+            headerStatus.innerText = "CONNECTED";
+            navMonitoring.classList.remove('disabled');
+            
+            updateUIStatus(isHardwareOn);
+            dataPollingInterval = setInterval(pollSensorData, 5000); 
+            
+            setTimeout(() => switchTab('monitoring'), 500);
+        } else {
+            activeDeviceId = null;
+            clearInterval(dataPollingInterval);
+            clearInterval(timerInterval);
+            
+            ctlBtn.className = "hardware-btn btn-unlinked";
+            ctlIcon.className = "fa-solid fa-wifi";
+            ctlText.innerText = "CONNECT";
+            ctlStatusText.innerText = "Device Unlinked";
+            headerStatus.style.background = "#FED7D7";
+            headerStatus.style.color = "#C53030";
+            headerStatus.innerText = "DISCONNECTED";
+            navMonitoring.classList.add('disabled');
+        }
+    }
+
+    // Control Logic: Target API (ON/OFF Mesin)
+    function toggleHardware() {
+        if (!isLinked || !activeDeviceId) return;
+
+        let nextStatus = !isHardwareOn; 
+
+        fetch('/api/device/control/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Token ' + apiToken,
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                device_id: activeDeviceId,
+                target_status: nextStatus
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.status === 'success') {
+                isHardwareOn = data.target_status;
+                updateUIStatus(isHardwareOn);
             }
-        }
+        });
+    }
 
-        function setSystemLinked(status) {
-            isLinked = status;
-            if (status) {
-                ctlBtn.className = "hardware-btn btn-standby";
-                ctlIcon.className = "fa-solid fa-link";
-                ctlText.innerText = "LINKED";
-                ctlStatusText.innerText = "Hardware Connected. ESP32.";
-                headerStatus.style.background = "#C6F6D5";
-                headerStatus.style.color = "#22543D";
-                headerStatus.innerText = "CONNECTED";
-                navMonitoring.classList.remove('disabled');
-                setTimeout(() => switchTab('monitoring'), 500);
-            } else {
-                ctlBtn.className = "hardware-btn btn-unlinked";
-                ctlIcon.className = "fa-solid fa-wifi";
-                ctlText.innerText = "CONNECT";
-                ctlStatusText.innerText = "Device Unlinked";
-                headerStatus.style.background = "#FED7D7";
-                headerStatus.style.color = "#C53030";
-                headerStatus.innerText = "DISCONNECTED";
-                navMonitoring.classList.add('disabled');
+    function updateUIStatus(isOn) {
+        if (isOn) {
+            monBtn.className = "hardware-btn btn-active";
+            processStatusText.innerText = "Running";
+            startTime = Date.now() - elapsedTime;
+            timerInterval = setInterval(updateTimer, 10);
+        } else {
+            monBtn.className = "hardware-btn btn-standby";
+            processStatusText.innerText = "Standby (Mesin Mati)";
+            clearInterval(timerInterval);
+        }
+    }
+
+    function updateTimer() {
+        let now = Date.now();
+        elapsedTime = now - startTime;
+        let diffDate = new Date(elapsedTime);
+        timerSec.innerText = diffDate.getUTCSeconds().toString().padStart(2, '0');
+        timerMs.innerText = Math.floor(diffDate.getUTCMilliseconds() / 10).toString().padStart(2, '0');
+        timerMicro.innerText = (diffDate.getUTCMilliseconds() % 10).toString() + "0";
+    }
+
+    // Fetch Real Data via AJAX
+    let lastSensorId = 0;
+    function pollSensorData() {
+        fetch('/tools/?since_id=' + lastSensorId, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
             }
-        }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.sensor_data && data.sensor_data.length > 0) {
+                let latest = data.sensor_data[0];
+                lastSensorId = latest.id;
+                
+                // Update UI Temp
+                valTemp.innerText = latest.temp;
+                if (latest.temp >= 35.0) {
+                    cardTempVisual.style.background = "linear-gradient(180deg, #FF416C 0%, #FF4B2B 100%)";
+                } else if (latest.temp < 34.0) {
+                    cardTempVisual.style.background = "linear-gradient(180deg, #2193b0 0%, #6dd5ed 100%)";
+                } else {
+                    cardTempVisual.style.background = "linear-gradient(180deg, #D31027 0%, #EA384D 40%, #2B32B2 100%)";
+                }
 
-        // Hardware Toggle
-        function toggleHardware() {
-            isHardwareOn = !isHardwareOn;
-            if (isHardwareOn) {
-                monBtn.className = "hardware-btn btn-active";
-                processStatusText.innerText = "Running";
-                startTime = Date.now() - elapsedTime;
-                timerInterval = setInterval(updateTimer, 10);
-                sensorInterval = setInterval(updateSensors, 800);
-                updateSensors();
-            } else {
-                monBtn.className = "hardware-btn btn-standby";
-                processStatusText.innerText = "Stopped";
-                clearInterval(timerInterval);
-                clearInterval(sensorInterval);
+                // Update UI Color
+                valR.innerText = latest.red;
+                valG.innerText = latest.green;
+                valB.innerText = latest.blue;
+                
+                // Normalisasi 16-bit ke 8-bit untuk merubah preview background CSS
+                let maxColor = Math.max(latest.red, latest.green, latest.blue);
+                let scale = maxColor > 255 ? (255 / maxColor) : 1;
+                
+                let cssR = Math.round(latest.red * scale);
+                let cssG = Math.round(latest.green * scale);
+                let cssB = Math.round(latest.blue * scale);
+
+                colorPreview.style.backgroundColor = `rgb(${cssR}, ${cssG}, ${cssB})`;
+                
+                // Simple Color Logic mapping (Tetap pakai nilai mentah dari sensor)
+                if (latest.red > 200 && latest.green > 200 && latest.blue < 100) colorName.innerText = "Yellow";
+                else if (latest.red > 200 && latest.green < 100 && latest.blue < 100) colorName.innerText = "Red";
+                else if (latest.red < 100 && latest.green > 200 && latest.blue < 100) colorName.innerText = "Green";
+                else if (latest.red < 100 && latest.green < 100 && latest.blue > 200) colorName.innerText = "Blue";
+                else if (latest.red > 200 && latest.green > 200 && latest.blue > 200) colorName.innerText = "White";
+                else colorName.innerText = "Mixed";
             }
-        }
-
-        function updateTimer() {
-            let now = Date.now();
-            elapsedTime = now - startTime;
-            let diffDate = new Date(elapsedTime);
-            let sec = diffDate.getUTCSeconds().toString().padStart(2, '0');
-            let ms = Math.floor(diffDate.getUTCMilliseconds() / 10).toString().padStart(2, '0');
-            let micro = (diffDate.getUTCMilliseconds() % 10).toString() + "0";
-            timerSec.innerText = sec;
-            timerMs.innerText = ms;
-            timerMicro.innerText = micro;
-        }
-
-        // === LOGIKA BARU UNTUK SENSOR ===
-        function updateSensors() {
-            // 1. Temperature Simulation (Range diperlebar 28 - 36 agar kena logika Hot)
-            let temp = (Math.random() * (36 - 28) + 28).toFixed(1);
-            valTemp.innerText = temp;
-
-            // Logika Warna Background Temperature
-            if (temp >= 35.0) {
-                // PANAS -> Merah
-                cardTempVisual.style.background = "linear-gradient(180deg, #FF416C 0%, #FF4B2B 100%)";
-            } else if (temp < 34.0) {
-                // DINGIN/BAWAH -> Biru
-                cardTempVisual.style.background = "linear-gradient(180deg, #2193b0 0%, #6dd5ed 100%)";
-            } else {
-                // DEFAULT (Antara 34 - 35) -> Gradient Original
-                cardTempVisual.style.background = "linear-gradient(180deg, #D31027 0%, #EA384D 40%, #2B32B2 100%)";
-            }
-
-            // 2. Color Sensor Simulation
-            let r = Math.floor(Math.random() * 255);
-            let g = Math.floor(Math.random() * 255);
-            let b = Math.floor(Math.random() * 255);
-
-            valR.innerText = r;
-            valG.innerText = g;
-            valB.innerText = b;
-            colorPreview.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
-
-            if (r > 200 && g > 200 && b < 100) colorName.innerText = "Yellow";
-            else if (r > 200 && g < 100 && b < 100) colorName.innerText = "Red";
-            else if (r < 100 && g > 200 && b < 100) colorName.innerText = "Green";
-            else if (r < 100 && g < 100 && b > 200) colorName.innerText = "Blue";
-            else if (r > 200 && g > 200 && b > 200) colorName.innerText = "White";
-            else colorName.innerText = "Mixed";
-        }
-
-    </script>
+        });
+    }
+</script>
 </body>
 </html>

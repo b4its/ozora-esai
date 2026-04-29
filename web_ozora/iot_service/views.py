@@ -1,6 +1,7 @@
 import requests as req_lib
 
 from django.utils import timezone
+from django.shortcuts import get_object_or_404
 
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.authentication import TokenAuthentication
@@ -71,7 +72,7 @@ def receive_iot_data(request):
 #  ENDPOINT 2: ESP32 register / heartbeat ke Django
 #  POST /api/device/heartbeat/
 #  Dipanggil firmware setiap 15 detik secara otomatis.
-#  Menggunakan update_or_create → last_seen diperbarui tiap call.
+#  Menggunakan update_or_create -> last_seen diperbarui tiap call.
 # ============================================================
 
 @api_view(['POST'])
@@ -99,12 +100,38 @@ def device_heartbeat(request):
         }
     )
 
+    # ESP32 akan membaca target_status dari response ini untuk menyalakan/mematikan mesin
     return Response({
-        'status':     'ok',
-        'device_id':  device.device_id,
-        'registered': created,
-        'message':    'Device registered' if created else 'Heartbeat received'
+        'status':        'ok',
+        'device_id':     device.device_id,
+        'target_status': device.target_status,
+        'registered':    created,
+        'message':       'Device registered' if created else 'Heartbeat received'
     }, status=status.HTTP_200_OK)
+
+
+# ============================================================
+#  ENDPOINT BARU: Web mengirim perintah Kontrol
+#  POST /api/device/control/
+#  Menyimpan target_status dari dashboard ke database
+# ============================================================
+
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def toggle_device_status(request):
+    device_id = request.data.get('device_id')
+    new_status = request.data.get('target_status') # Boolean True/False
+
+    device = get_object_or_404(IoTDevice, user=request.user, device_id=device_id)
+    device.target_status = new_status
+    device.save()
+
+    return Response({
+        'status': 'success',
+        'message': f"Device {device_id} diset ke {'ON' if new_status else 'OFF'}",
+        'target_status': device.target_status
+    })
 
 
 # ============================================================
@@ -131,6 +158,7 @@ def devices_online(request):
         'ssid':               d.ssid,
         'rssi':               d.rssi,
         'firmware':           d.firmware,
+        'target_status':      d.target_status, # UI butuh ini untuk sinkronisasi tombol
         'last_seen':          d.last_seen.strftime('%H:%M:%S'),
         'seconds_since_seen': d.seconds_since_seen,
         'source':             'registry',
@@ -149,12 +177,6 @@ def devices_online(request):
 #  Kegunaan: Bypass browser Mixed-Content block.
 #  Browser tidak bisa fetch http://esp32.local dari halaman HTTPS,
 #  tapi Django (server) bisa fetch HTTP ke LAN.
-#
-#  Alur:
-#    1. Ambil IP device dari registry (heartbeat terakhir)
-#    2. Coba fetch http://<ip>/info  (timeout 2 detik per device)
-#    3. Fallback: coba http://esp32sensor.local/info
-#    4. Return merged list ke frontend
 # ============================================================
 
 @api_view(['GET'])
@@ -173,9 +195,9 @@ def probe_devices(request):
                 'source_hint': 'proxy_ip'
             })
 
-    # Fallback mDNS (mungkin resolve di jaringan server)
+    # Fallback mDNS disesuaikan dengan kode ESP32 V2
     targets.append({
-        'url':         'http://esp32sensor.local/info',
+        'url':         'http://esp32ozora.local/info',
         'source_hint': 'proxy_mdns'
     })
 
@@ -194,7 +216,7 @@ def probe_devices(request):
                     info['discovery_url'] = t['url']
                     found.append(info)
         except Exception:
-            # Device tidak reachable dari server → skip
+            # Device tidak reachable dari server -> skip
             continue
 
     return Response({

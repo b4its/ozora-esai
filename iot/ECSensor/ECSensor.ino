@@ -43,8 +43,8 @@
 const char* AP_SSID      = "ESP32_Sensor_Color";
 const char* AP_PASSWORD  = "Admin1234";
 const char* MDNS_NAME    = "esp32sensor";
-const char* SERVER_URL   = "https://ozora.b4its.tech/api/receive-data/";
-const char* HEARTBEAT_URL = "https://ozora.b4its.tech/api/device/heartbeat/";
+const char* SERVER_URL   = "https://ozora.b4its.cloud/api/receive-data/";
+const char* HEARTBEAT_URL = "https://ozora.b4its.cloud/api/device/heartbeat/";
 
 #define TRIGGER_PIN             0
 #define SEND_INTERVAL           10000

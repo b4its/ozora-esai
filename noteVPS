@@ -11,3 +11,14 @@ gunicorn --bind 0.0.0.0:8000 web_ozora.wsgi:application
 
 sudo chown -R root:root /var/www/ozora/static
 sudo nginx -t && sudo systemctl restart nginx
+
+ip lama
+2.57.91.91
+
+cek hacdn atau bukan
+curl -I http://ozora.b4its.cloud/.well-known/acme-challenge/test
+
+
+jika bukan maka jalankan ssl
+certbot --nginx -d ozora.b4its.cloud
+systemctl reload nginx
