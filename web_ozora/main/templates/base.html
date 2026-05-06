@@ -996,7 +996,6 @@ const pg = {
         });
     }
 };
-
 /* ─────────────────────────────────────────────
    CHART
 ───────────────────────────────────────────── */
@@ -1006,7 +1005,10 @@ function seedChart(){
     chartData = DB_DATA.slice(-30).map(d=>({
         time: d.created.substr(11,8),
         ph:   d.ph!=null ? parseFloat(d.ph) : null,
-        temp: parseFloat(d.temp)
+        temp: parseFloat(d.temp),
+        r:    parseInt(d.red||0),
+        g:    parseInt(d.green||0),
+        b:    parseInt(d.blue||0)
     }));
 }
 
@@ -1017,24 +1019,34 @@ function initChart(){
     const tc=cs.getPropertyValue('--tx').trim();
     const bc=cs.getPropertyValue('--border').trim();
     const bc2=cs.getPropertyValue('--border-2').trim();
+    
     chart = new Chart(ctx, {
         type:'line',
         data:{
             labels: chartData.map(d=>d.time),
             datasets:[
-                { label:'pH Level',       data:chartData.map(d=>d.ph),   borderColor:'#EC4899', backgroundColor:'rgba(236,72,153,0.08)', borderWidth:2.5, tension:0.4, fill:true,  pointRadius:3, pointBackgroundColor:'#EC4899', pointBorderColor:'#fff', pointBorderWidth:2, spanGaps:true },
-                { label:'Temperature °C', data:chartData.map(d=>d.temp), borderColor:'#F59E0B', backgroundColor:'rgba(245,158,11,0.05)',  borderWidth:2,   tension:0.4, fill:false, pointRadius:2, pointBackgroundColor:'#F59E0B', pointBorderColor:'#fff', pointBorderWidth:1.5, yAxisID:'y2', spanGaps:true }
+                { label:'pH Level',       data:chartData.map(d=>d.ph),   borderColor:'#EC4899', backgroundColor:'rgba(236,72,153,0.08)', borderWidth:2.5, tension:0.4, fill:true,  pointRadius:3, pointBackgroundColor:'#EC4899', pointBorderColor:'#fff', pointBorderWidth:2, spanGaps:true, yAxisID:'y' },
+                { label:'Temperature °C', data:chartData.map(d=>d.temp), borderColor:'#F59E0B', backgroundColor:'rgba(245,158,11,0.05)',  borderWidth:2,   tension:0.4, fill:false, pointRadius:2, pointBackgroundColor:'#F59E0B', pointBorderColor:'#fff', pointBorderWidth:1.5, yAxisID:'y2', spanGaps:true },
+                // Tambahan Dataset RGB
+                { label:'Red',            data:chartData.map(d=>d.r),    borderColor:'#EF4444', backgroundColor:'transparent', borderWidth:1.5, tension:0.4, fill:false, pointRadius:0, hitRadius:5, yAxisID:'y3', spanGaps:true },
+                { label:'Green',          data:chartData.map(d=>d.g),    borderColor:'#10B981', backgroundColor:'transparent', borderWidth:1.5, tension:0.4, fill:false, pointRadius:0, hitRadius:5, yAxisID:'y3', spanGaps:true },
+                { label:'Blue',           data:chartData.map(d=>d.b),    borderColor:'#38BDF8', backgroundColor:'transparent', borderWidth:1.5, tension:0.4, fill:false, pointRadius:0, hitRadius:5, yAxisID:'y3', spanGaps:true }
             ]
         },
         options:{
             responsive:true, maintainAspectRatio:true, aspectRatio:3,
             plugins:{
-                legend:{ display:true, position:'top', labels:{ color:tc, font:{family:"'Space Grotesk',sans-serif",size:12,weight:'600'}, usePointStyle:true, pointStyleWidth:8 } },
+                legend:{ display:true, position:'top', labels:{ color:tc, font:{family:"'Space Grotesk',sans-serif",size:11,weight:'600'}, usePointStyle:true, pointStyleWidth:8 } },
                 tooltip:{ backgroundColor:'rgba(13,17,23,0.95)', titleColor:'#fff', bodyColor:'rgba(255,255,255,0.7)', borderColor:bc2, borderWidth:1, padding:12, cornerRadius:10 }
             },
             scales:{
-                y:  { beginAtZero:false, min:5, max:13, grid:{color:bc}, ticks:{color:tc,font:{family:"'JetBrains Mono',monospace",size:11},callback:v=>v.toFixed(1)+'pH'}, title:{display:true,text:'pH Level',color:tc,font:{family:"'Space Grotesk'",size:12,weight:'600'}} },
+                // Y1: pH (Kiri)
+                y:  { position:'left', beginAtZero:false, min:5, max:13, grid:{color:bc}, ticks:{color:tc,font:{family:"'JetBrains Mono',monospace",size:11},callback:v=>v.toFixed(1)+'pH'}, title:{display:true,text:'pH Level',color:tc,font:{family:"'Space Grotesk'",size:12,weight:'600'}} },
+                // Y2: Suhu (Kanan)
                 y2: { position:'right', beginAtZero:false, min:18, max:42, grid:{drawOnChartArea:false}, ticks:{color:'#F59E0B',font:{family:"'JetBrains Mono',monospace",size:11},callback:v=>v+'°C'}, title:{display:true,text:'Temp °C',color:'#F59E0B',font:{family:"'Space Grotesk'",size:12,weight:'600'}} },
+                // Y3: RGB (Kanan, tidak ada grid agar tidak berantakan)
+                y3: { position:'right', min:0, max:260, grid:{drawOnChartArea:false}, ticks:{color:tc,font:{family:"'JetBrains Mono',monospace",size:10}}, title:{display:true,text:'RGB (0-255)',color:tc,font:{family:"'Space Grotesk'",size:11,weight:'600'}} },
+                // X: Waktu
                 x:  { grid:{color:bc}, ticks:{color:tc,font:{family:"'JetBrains Mono',monospace",size:10},maxRotation:45}, title:{display:true,text:'Time',color:tc,font:{family:"'Space Grotesk'",size:12,weight:'600'}} }
             },
             interaction:{ intersect:false, mode:'index' }
@@ -1048,7 +1060,8 @@ function updateChartTheme(){
     const tc=cs.getPropertyValue('--tx').trim();
     const bc=cs.getPropertyValue('--border').trim();
     chart.options.plugins.legend.labels.color=tc;
-    ['x','y'].forEach(a=>{ chart.options.scales[a].grid.color=bc; chart.options.scales[a].ticks.color=tc; chart.options.scales[a].title.color=tc; });
+    // Tambahkan y3 agar temanya ikut berubah
+    ['x','y','y3'].forEach(a=>{ chart.options.scales[a].grid.color=bc; chart.options.scales[a].ticks.color=tc; chart.options.scales[a].title.color=tc; });
     chart.update('none');
 }
 window.addEventListener('resize',()=>{ if(chart) chart.resize(); });

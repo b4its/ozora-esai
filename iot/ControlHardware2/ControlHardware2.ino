@@ -1,7 +1,7 @@
 /**
  * ============================================================
  *  ESP32 + TCS34725 + AC Dimmer + Relays — IoT Web Controlled
- *  Version : 4.0 (Ozora System)
+ *  Version : 4.0.1 (Ozora System - Always On Portal)
  * ============================================================
  */
 
@@ -19,54 +19,53 @@
 //  KONFIGURASI JARINGAN & SERVER
 // ============================================================
 const char* AP_SSID     = "ESP32_Ozora_System";
-const char* AP_PASSWORD = "Admin1234";
 const char* MDNS_NAME   = "esp32ozora";
 
-// Endpoints Django
 const char* SERVER_URL_DATA      = "https://ozora.b4its.cloud/api/receive-data/";
 const char* SERVER_URL_HEARTBEAT = "https://ozora.b4its.cloud/api/device/heartbeat/";
 
 #define TRIGGER_PIN 0
 #define CONFIG_FILE "/config.json" 
 
-// Interval
-#define HEARTBEAT_INTERVAL 15000 // 15 detik polling status ON/OFF
-#define SENSOR_INTERVAL    10000 // 10 detik kirim data saat mesin ON
+#define HEARTBEAT_INTERVAL 15000 
+#define SENSOR_INTERVAL    10000 
 
 #define MAX_RECONNECT_ATTEMPTS 3
 #define RECONNECT_BASE_DELAY   3000
 
 // ============================================================
-//  DEFINISI PIN HARDWARE (ZONA HIJAU)
+//  DEFINISI PIN HARDWARE
 // ============================================================
 #define TCS_LED_PIN 4
 #define LED_HIJAU_PIN 19
-#define RELAY_1_PIN 25  // Pompa
-#define RELAY_2_PIN 26  // Chiller
-#define RELAY_3_PIN 27  // Tambahan
+#define RELAY_1_PIN 25  
+#define RELAY_2_PIN 26  
+#define RELAY_3_PIN 27  
 #define DIMMER_ZC_PIN 13
 #define DIMMER_DIM_PIN 14
 
 // ============================================================
-//  VARIABEL GLOBAL
+//  VARIABEL GLOBAL & INSTANCE WIFIMANAGER BACKGROUND
 // ============================================================
 char apiToken[150] = "";
-bool shouldSaveConfig   = false;
 int  reconnectAttempts  = 0;
 
 unsigned long lastHeartbeatTime = 0;
 unsigned long lastSensorTime = 0;
 
-// State Machine
 bool isSystemOn = false;
 
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_50MS, TCS34725_GAIN_4X);
 
+// [KUNCI 1] Pindahkan Instance WiFiManager ke Global Scope
+WiFiManager wm;
+WiFiManagerParameter param_token("token", "API Token (format: Token xxxxx)", apiToken, 148);
+
 // ============================================================
 //  CUSTOM DRIVER AC DIMMER ESP32 V3
 // ============================================================
-volatile int currentDimmerPower = 0; // 0 - 100%
+volatile int currentDimmerPower = 0; 
 hw_timer_t *dimmerTimer = NULL;
 
 void IRAM_ATTR onDimmerTimer() {
@@ -92,7 +91,7 @@ void IRAM_ATTR zcDetectISR() {
 }
 
 // ============================================================
-//  PORTAL WIFIMANAGER (UI PREMIUM)
+//  PORTAL WIFIMANAGER (HTML)
 // ============================================================
 const char CUSTOM_HEAD[] PROGMEM = R"rawliteral(
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -171,7 +170,7 @@ const char CUSTOM_BODY[] PROGMEM = R"rawliteral(
   {v}
   <div class="access-info">
     <strong>🌐 Akses Portal Kapan Saja</strong>
-    Akses portal via: <span class="url-badge">http://esp32ozora.local</span>
+    Akses portal via: <span class="url-badge">http://esp32ozora.local</span> atau <span class="url-badge">192.168.4.1</span>
   </div>
 </div>
 <div class="footer">Ozora Industrial System &nbsp;·&nbsp; v4.0</div>
@@ -229,29 +228,24 @@ void startupMesin() {
 
   int jedaAman = 800; 
 
-  // 1. Ozonator (Dimmer Naik)
   lcd.setCursor(0, 1); lcd.print("Ozonator ON...  ");
   for (int p = 0; p <= 100; p += 2) {
     currentDimmerPower = p;
     delay(20);
   }
 
-  // 2. Relay 1 (Pompa)
   delay(jedaAman);
   digitalWrite(RELAY_1_PIN, HIGH);
   lcd.setCursor(0, 1); lcd.print("Pompa ON        ");
 
-  // 3. Relay 2 (Chiller)
   delay(jedaAman);
   digitalWrite(RELAY_2_PIN, HIGH);
   lcd.setCursor(0, 1); lcd.print("Chiller ON      ");
 
-  // 4. Relay 3 
   delay(jedaAman);
   digitalWrite(RELAY_3_PIN, HIGH);
   lcd.setCursor(0, 1); lcd.print("Relay 3 ON      ");
 
-  // 5. Lampu Hijau & LED Sensor Nyala 
   delay(jedaAman);
   digitalWrite(LED_HIJAU_PIN, HIGH);
   digitalWrite(TCS_LED_PIN, HIGH);
@@ -262,7 +256,6 @@ void startupMesin() {
   lcd.print("MESIN AKTIF     ");
   lcd.setCursor(0, 1);
   lcd.print("SENSOR BERJALAN ");
-  Serial.println("[M-CONTROL] Seluruh Mesin Telah Dinyalakan.");
 }
 
 void shutdownMesin() {
@@ -275,37 +268,32 @@ void shutdownMesin() {
 
   int jedaShutdown = 3000; 
 
-  // 1. Ozonator (Dimmer Turun)
   lcd.setCursor(0, 1); lcd.print("Ozonator OFF... ");
   for (int p = currentDimmerPower; p >= 0; p -= 2) {
     currentDimmerPower = p;
     delay(20);
   }
 
-  // 2. Lampu Hijau & LED Sensor Mati
   delay(jedaShutdown);
   digitalWrite(LED_HIJAU_PIN, LOW);
   digitalWrite(TCS_LED_PIN, LOW);
   lcd.setCursor(0, 1); lcd.print("Sensor OFF      ");
 
-  // 3. Relay 1 (Pompa)
   delay(jedaShutdown);
   digitalWrite(RELAY_1_PIN, LOW);
   lcd.setCursor(0, 1); lcd.print("Pompa OFF       ");
 
-  // 4. Relay 2 (Chiller)
   delay(jedaShutdown);
   digitalWrite(RELAY_2_PIN, LOW);
   lcd.setCursor(0, 1); lcd.print("Chiller OFF     ");
 
-  // 5. Relay 3 
   delay(jedaShutdown);
   digitalWrite(RELAY_3_PIN, LOW);
   lcd.setCursor(0, 1); lcd.print("Relay 3 OFF     ");
 
   delay(jedaShutdown);
   digitalWrite(LED_HIJAU_PIN, LOW);
-  lcd.setCursor(0, 1); lcd.print("LED HIJAU OFF     ");
+  lcd.setCursor(0, 1); lcd.print("LED HIJAU OFF   ");
   
   isSystemOn = false; 
   lcd.clear();
@@ -313,14 +301,26 @@ void shutdownMesin() {
   lcd.print("MESIN OFFLINE   ");
   lcd.setCursor(0, 1);
   lcd.print("STANDBY WEB...  ");
-  Serial.println("[M-CONTROL] Seluruh Mesin Telah Dimatikan.");
 }
 
 // ============================================================
 //  FUNGSI SISTEM INTI
 // ============================================================
+void saveConfig() {
+  StaticJsonDocument<512> doc;
+  doc["apiToken"] = apiToken;
+  File f = LittleFS.open(CONFIG_FILE, "w");
+  if (f) {
+    serializeJson(doc, f);
+    f.close();
+  }
+}
+
+// [KUNCI 2] Ubah callback agar langsung menyimpan value dari param_token global
 void saveConfigCallback() {
-  shouldSaveConfig = true;
+  Serial.println("[WIFI] Konfigurasi Tersimpan dari Portal!");
+  strlcpy(apiToken, param_token.getValue(), sizeof(apiToken));
+  saveConfig();
 }
 
 void loadConfig() {
@@ -336,16 +336,6 @@ void loadConfig() {
   f.close();
 }
 
-void saveConfig() {
-  StaticJsonDocument<512> doc;
-  doc["apiToken"] = apiToken;
-  File f = LittleFS.open(CONFIG_FILE, "w");
-  if (f) {
-    serializeJson(doc, f);
-    f.close();
-  }
-}
-
 String getAuthHeader() {
   String auth = String(apiToken);
   auth.trim();
@@ -353,40 +343,6 @@ String getAuthHeader() {
     auth = "Token " + auth;
   }
   return auth;
-}
-
-void startWiFiManager(bool forcePortal = false) {
-  WiFiManager wm;
-  wm.setSaveConfigCallback(saveConfigCallback);
-  wm.setConfigPortalTimeout(180);
-  wm.setCustomHeadElement(CUSTOM_HEAD);
-  wm.setCustomMenuHTML(CUSTOM_BODY);
-
-  WiFiManagerParameter param_token("token", "API Token (format: Token xxxxx)", apiToken, 148);
-  wm.addParameter(&param_token);
-
-  bool connected = false;
-  if (forcePortal) {
-    connected = wm.startConfigPortal(AP_SSID, AP_PASSWORD);
-  } else {
-    connected = wm.autoConnect(AP_SSID, AP_PASSWORD);
-  }
-
-  if (!connected) {
-    delay(3000);
-    ESP.restart();
-  }
-
-  strlcpy(apiToken, param_token.getValue(), sizeof(apiToken));
-  if (shouldSaveConfig) {
-    saveConfig();
-    shouldSaveConfig = false;
-  }
-
-  reconnectAttempts = 0;
-  if (MDNS.begin(MDNS_NAME)) {
-    Serial.printf("[mDNS] Akses portal via http://%s.local\n", MDNS_NAME);
-  }
 }
 
 // ============================================================
@@ -420,17 +376,14 @@ void sendHeartbeat() {
     if (!err && respDoc.containsKey("target_status")) {
       bool targetStatus = respDoc["target_status"];
       
-      // LOGIKA STATE MACHINE MENGGUNAKAN RESPONSE DJANGO
       if (targetStatus && !isSystemOn) {
-        Serial.println("[SYNC] Menerima Perintah ON dari Server Django.");
+        Serial.println("[SYNC] Perintah ON diterima.");
         startupMesin();
       } else if (!targetStatus && isSystemOn) {
-        Serial.println("[SYNC] Menerima Perintah OFF dari Server Django.");
+        Serial.println("[SYNC] Perintah OFF diterima.");
         shutdownMesin();
       }
     }
-  } else {
-    Serial.printf("[HTTP] Heartbeat Error: %d\n", code);
   }
   http.end();
 }
@@ -441,36 +394,21 @@ void sendSensorData() {
   colorTemp = tcs.calculateColorTemperature_dn40(r, g, b, c);
   lux       = tcs.calculateLux(r, g, b);
 
-  Serial.printf("[Sensor] C:%u R:%u G:%u B:%u | Lux:%u Temp:%uK\n", c, r, g, b, lux, colorTemp);
-
-  lcd.setCursor(0, 0);
-  lcd.printf("R:%-3u G:%-3u B:%-3u", r, g, b);
-  lcd.setCursor(0, 1);
-  lcd.printf("L:%-4u K:%-4u   ", lux, colorTemp);
+  lcd.setCursor(0, 0); lcd.printf("R:%-3u G:%-3u B:%-3u", r, g, b);
+  lcd.setCursor(0, 1); lcd.printf("L:%-4u K:%-4u   ", lux, colorTemp);
 
   StaticJsonDocument<256> doc;
-  doc["raw_light"] = c;
-  doc["red"]       = r;
-  doc["green"]     = g;
-  doc["blue"]      = b;
-  doc["temp"]      = colorTemp;
-  doc["lux"]       = lux;
+  doc["raw_light"] = c; doc["red"] = r; doc["green"] = g;
+  doc["blue"] = b; doc["temp"] = colorTemp; doc["lux"] = lux;
 
-  String body;
-  serializeJson(doc, body);
+  String body; serializeJson(doc, body);
 
   HTTPClient http;
   http.begin(SERVER_URL_DATA);
   http.addHeader("Content-Type", "application/json");
   http.addHeader("Authorization", getAuthHeader());
   http.setTimeout(8000);
-
-  int code = http.POST(body);
-  if (code == 201) {
-    Serial.println("[HTTP] Data Sensor Terkirim.");
-  } else {
-    Serial.printf("[HTTP] Gagal Kirim Sensor: %d\n", code);
-  }
+  http.POST(body);
   http.end();
 }
 
@@ -484,11 +422,6 @@ void handleReconnect() {
     reconnectAttempts = 0;
     MDNS.end();
     MDNS.begin(MDNS_NAME);
-    return;
-  }
-  if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-    reconnectAttempts = 0;
-    startWiFiManager(true); 
   }
 }
 
@@ -502,94 +435,100 @@ void setup() {
 
   Serial.println("\n[SYSTEM] Booting Ozora Industrial IoT...");
 
-  // I2C Setup (Khusus Pin 16 & 17)
-  Wire.begin(16, 17); 
-  Wire.setClock(100000); 
+  Wire.begin(16, 17); Wire.setClock(100000); 
 
-  // Pinout Initialization
-  pinMode(TCS_LED_PIN, OUTPUT);
-  pinMode(LED_HIJAU_PIN, OUTPUT);
-  pinMode(RELAY_1_PIN, OUTPUT);
-  pinMode(RELAY_2_PIN, OUTPUT);
-  pinMode(RELAY_3_PIN, OUTPUT);
-  pinMode(DIMMER_DIM_PIN, OUTPUT);
+  pinMode(TCS_LED_PIN, OUTPUT); pinMode(LED_HIJAU_PIN, OUTPUT);
+  pinMode(RELAY_1_PIN, OUTPUT); pinMode(RELAY_2_PIN, OUTPUT);
+  pinMode(RELAY_3_PIN, OUTPUT); pinMode(DIMMER_DIM_PIN, OUTPUT);
   pinMode(DIMMER_ZC_PIN, INPUT_PULLUP);
 
-  digitalWrite(RELAY_1_PIN, LOW);
-  digitalWrite(RELAY_2_PIN, LOW);
-  digitalWrite(RELAY_3_PIN, LOW);
-  digitalWrite(LED_HIJAU_PIN, LOW); 
-  digitalWrite(DIMMER_DIM_PIN, LOW); 
-  digitalWrite(TCS_LED_PIN, LOW);  
+  digitalWrite(RELAY_1_PIN, LOW); digitalWrite(RELAY_2_PIN, LOW);
+  digitalWrite(RELAY_3_PIN, LOW); digitalWrite(LED_HIJAU_PIN, LOW); 
+  digitalWrite(DIMMER_DIM_PIN, LOW); digitalWrite(TCS_LED_PIN, LOW);  
 
-  // Dimmer Timer Setup
   dimmerTimer = timerBegin(1000000); 
   timerAttachInterrupt(dimmerTimer, &onDimmerTimer); 
   attachInterrupt(digitalPinToInterrupt(DIMMER_ZC_PIN), zcDetectISR, RISING); 
   currentDimmerPower = 0; 
 
-  // LCD Initialization
-  lcd.init();
-  lcd.backlight();
-  lcd.setCursor(0, 0);
-  lcd.print("BOOTING OZORA...");
+  lcd.init(); lcd.backlight();
+  lcd.setCursor(0, 0); lcd.print("BOOTING OZORA...");
 
   LittleFS.begin(true);
   loadConfig();
 
   // Reset Button Check
   if (digitalRead(TRIGGER_PIN) == LOW) {
-    WiFiManager wm;
     wm.resetSettings();
     LittleFS.remove(CONFIG_FILE);
     delay(2000);
     ESP.restart();
   }
 
-  startWiFiManager(false);
+  // ====================================================================
+  //  [KUNCI 3] PENGATURAN WIFIMANAGER NON-BLOCKING AGAR PORTAL TIDAK MATI
+  // ====================================================================
+  wm.setSaveConfigCallback(saveConfigCallback);
+  wm.setCustomHeadElement(CUSTOM_HEAD);
+  wm.setCustomMenuHTML(CUSTOM_BODY);
+  wm.addParameter(&param_token);
 
-  // Sensor Initialization
+  // Jadikan non-blocking! Kode akan langsung lanjut meskipun gagal connect.
+  wm.setConfigPortalBlocking(false); 
+
+  // Auto connect tanpa password di start (berusaha konek ke jaringan sebelumnya)
+  if(wm.autoConnect(AP_SSID)) {
+      Serial.println("[WIFI] Sukses terhubung ke jaringan!");
+  } else {
+      Serial.println("[WIFI] Memulai Config Portal...");
+  }
+
+  // [KUNCI PENTING] Paksa Web Portal (DNS & Port 80) tetap menyala!
+  wm.startWebPortal(); 
+
+  // Paksa agar Access Point tetap dipancarkan ke Publik (OPEN)
+  WiFi.mode(WIFI_AP_STA);
+  WiFi.softAP(AP_SSID);
+  
+  if (MDNS.begin(MDNS_NAME)) {
+    Serial.printf("[mDNS] Akses portal via http://%s.local\n", MDNS_NAME);
+  }
+
   if (!tcs.begin()) {
     Serial.println("[ERROR] TCS34725 Tidak Ditemukan!");
-    lcd.clear();
-    lcd.print("SENSOR ERROR!");
+    lcd.clear(); lcd.print("SENSOR ERROR!");
     while (1) delay(1000);
   }
 
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("KONEKSI BERHASIL");
-  lcd.setCursor(0, 1);
-  lcd.print("STANDBY WEB...  ");
+  lcd.clear(); lcd.setCursor(0, 0); lcd.print("SYSTEM READY    ");
 }
 
 void loop() {
+  // [KUNCI 4] WAJIB dipanggil agar Web Server WiFiManager menangani request di background
+  wm.process();
+
+  // Cek Tombol Reset
   if (digitalRead(TRIGGER_PIN) == LOW) {
     delay(50);
     if (digitalRead(TRIGGER_PIN) == LOW) {
       delay(3000);
       if (digitalRead(TRIGGER_PIN) == LOW) {
-        WiFiManager wm;
         wm.resetSettings();
         LittleFS.remove(CONFIG_FILE);
         delay(1000);
         ESP.restart();
       }
-      startWiFiManager(true);
-      return;
     }
   }
 
   if (WiFi.status() == WL_CONNECTED) {
     unsigned long currentMillis = millis();
 
-    // 1. Polling Heartbeat setiap 15 detik untuk mendapatkan status ON/OFF Web
     if (currentMillis - lastHeartbeatTime >= HEARTBEAT_INTERVAL || lastHeartbeatTime == 0) {
       sendHeartbeat();
       lastHeartbeatTime = currentMillis;
     }
 
-    // 2. Kirim Data Sensor setiap 10 detik HANYA saat Mesin ON
     if (isSystemOn && (currentMillis - lastSensorTime >= SENSOR_INTERVAL)) {
       sendSensorData();
       lastSensorTime = currentMillis;
