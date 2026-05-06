@@ -267,11 +267,14 @@
     .mc-wave  { position:absolute; bottom:0; left:0; right:0; height:70px; opacity:0.15; pointer-events:none; }
     .color-bar  { width:100%; height:56px; border-radius:10px; margin:10px 0; transition:background 0.4s ease; border:1px solid var(--border); }
     .color-name-txt { font-size:0.82rem; font-weight:600; color:var(--tx); }
-    .rgb-row  { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-top:auto; }
-    .rgb-chip { background:var(--bg-3); border:1px solid var(--border); border-radius:8px; padding:7px; text-align:center; }
-    .rgb-num  { font-family:var(--font-mono); font-size:0.9rem; font-weight:500; display:block; }
-    .rgb-ch   { font-size:0.6rem; font-weight:700; letter-spacing:1px; text-transform:uppercase; display:block; margin-top:2px; }
+
+    /* CSS YANG DIUPDATE UNTUK 5 KOLOM (RGB + LUX + TEMP) */
+    .rgb-row  { display:grid; grid-template-columns:repeat(5, 1fr); gap:4px; margin-top:auto; }
+    .rgb-chip { background:var(--bg-3); border:1px solid var(--border); border-radius:6px; padding:6px 2px; text-align:center; }
+    .rgb-num  { font-family:var(--font-mono); font-size:0.8rem; font-weight:500; display:block; }
+    .rgb-ch   { font-size:0.5rem; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; display:block; margin-top:2px; }
     .cr { color:#EF4444; } .cg { color:#10B981; } .cb { color:#38BDF8; }
+
     .timer-big  { font-family:var(--font-mono); font-size:2.6rem; font-weight:400; letter-spacing:-2px; line-height:1; color:#fff; }
     .timer-sub  { font-family:var(--font-mono); font-size:0.75rem; color:rgba(255,255,255,0.5); margin-top:4px; }
     .proc-pill  { display:inline-flex; align-items:center; padding:4px 10px; border-radius:20px; font-size:0.65rem; font-weight:700; letter-spacing:1px; background:rgba(255,255,255,0.15); backdrop-filter:blur(4px); color:#fff; width:fit-content; }
@@ -427,7 +430,7 @@
     </div>
 </div>
 
-<!-- Device Picker (muncul jika >1 device ditemukan) -->
+<!-- Device Picker -->
 <div class="modal" id="modal-device-picker">
     <div class="modal-box" style="max-width:440px;text-align:left;padding:32px 28px;">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
@@ -461,17 +464,6 @@
     </div>
 </div>
 
-<!-- Treatment done -->
-<div class="modal" id="modal-done">
-    <div class="modal-box">
-        <i class="fa-solid fa-circle-check modal-ico" style="color:var(--emerald);"></i>
-        <h3>Treatment Completed!</h3>
-        <p style="margin-top:6px;">Water purified to transparent state.</p>
-        <p style="margin-top:4px;opacity:.6;font-size:.8rem;">Process automatically stopped.</p>
-    </div>
-</div>
-
-
 <!-- ═══════════════════════════════════════════
      SCRIPTS
 ═══════════════════════════════════════════ -->
@@ -494,7 +486,6 @@ const DB_DATA = [
     {% endfor %}
 ];
 
-// Token untuk API calls (injected dari Django)
 const API_TOKEN = "{{ api_token }}";
 
 /* ─────────────────────────────────────────────
@@ -560,7 +551,12 @@ document.addEventListener('DOMContentLoaded', ()=>{
     document.querySelectorAll('.status-lbl').forEach(el=>{
         el.outerHTML = statusPill(+el.dataset.r, +el.dataset.g, +el.dataset.b);
     });
-    if(DB_DATA.length) seedChart();
+    
+    if(DB_DATA.length) {
+        seedChart();
+        updateMetricCards(DB_DATA[0]);
+    }
+    
     pg.init();
     RT.init();
     initTheme();
@@ -568,16 +564,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 /* ─────────────────────────────────────────────
-   DEVICE DISCOVERY — 3-Layer Cascade
-   
-   Layer 1 (Registry): Tanya Django siapa yang heartbeat < 30 detik
-   Layer 2 (Proxy)   : Django fetch http://<ip>/info langsung ke ESP32
-                       (bypass HTTPS→HTTP mixed-content block)
-   Layer 3 (mDNS)    : Browser langsung fetch http://esp32sensor.local/info
-                       (hanya bisa jika halaman diakses via HTTP, bukan HTTPS)
+   DEVICE DISCOVERY API
 ───────────────────────────────────────────── */
 const Discovery = {
-
     async fromRegistry() {
         try {
             const res = await fetch('/api/devices/online/', {
@@ -611,21 +600,17 @@ const Discovery = {
     },
 
     async fromMDNS() {
-        // Browser block HTTPS → HTTP, jadi hanya coba di HTTP
         if (window.location.protocol === 'https:') return [];
         try {
             const ctrl = new AbortController();
             setTimeout(() => ctrl.abort(), 2000);
-            const res = await fetch('http://esp32sensor.local/info', {
-                signal: ctrl.signal
-            });
+            const res = await fetch('http://esp32sensor.local/info', { signal: ctrl.signal });
             if (!res.ok) return [];
             const d = await res.json();
             return [{ ...d, source: 'mdns' }];
         } catch { return []; }
     },
 
-    // Gabung semua hasil, deduplikasi by device_id
     merge(...lists) {
         const seen = new Set();
         const result = [];
@@ -641,12 +626,11 @@ const Discovery = {
         return result;
     },
 
-    // Badge visual per sumber discovery
     sourceBadge(source) {
         const map = {
             registry: { label: 'Cloud Registry', color: '#38BDF8' },
-            proxy:    { label: 'LAN Proxy',       color: '#10B981' },
-            mdns:     { label: 'mDNS Direct',      color: '#A855F7' },
+            proxy:    { label: 'LAN Proxy',      color: '#10B981' },
+            mdns:     { label: 'mDNS Direct',    color: '#A855F7' },
         };
         const s = map[source] || { label: source || 'Unknown', color: '#8896B3' };
         return `<span style="font-size:0.6rem;font-weight:700;letter-spacing:0.5px;
@@ -655,7 +639,6 @@ const Discovery = {
                     border:1px solid ${s.color}44;white-space:nowrap;">${s.label}</span>`;
     },
 
-    // Signal strength visual
     rssiBar(rssi) {
         if (!rssi) return '';
         const pct = Math.min(100, Math.max(0, (rssi + 100) * 2));
@@ -673,20 +656,17 @@ let linked = false;
 window.activeDevice = null;
 
 async function handleConnect() {
-    // Jika sudah linked → disconnect
     if (linked) {
-        if (procOn) stopProcess();
+        if (procOn) stopProcessUI();
         setLinked(false, null);
         return;
     }
 
-    // Tampilkan modal scanning
     const scanModal = document.getElementById('modal-scan');
     document.getElementById('modal-scan-title').textContent = 'Scanning Network…';
     document.getElementById('modal-scan-desc').textContent  = 'Searching for ESP32 devices';
     scanModal.classList.add('on');
 
-    // Jalankan 3 layer discovery secara paralel
     const [reg, proxy, mdns] = await Promise.all([
         Discovery.fromRegistry(),
         Discovery.fromProxy(),
@@ -697,7 +677,6 @@ async function handleConnect() {
     scanModal.classList.remove('on');
 
     if (devices.length === 0) {
-        // Tidak ada device ditemukan
         const m = document.getElementById('modal-no-device');
         m.classList.add('on');
         setTimeout(() => m.classList.remove('on'), 3500);
@@ -705,10 +684,8 @@ async function handleConnect() {
     }
 
     if (devices.length === 1) {
-        // Langsung connect ke satu-satunya device
         connectToDevice(devices[0]);
     } else {
-        // Tampilkan picker jika ada banyak device
         showDevicePicker(devices);
     }
 }
@@ -716,6 +693,10 @@ async function handleConnect() {
 function connectToDevice(device) {
     window.activeDevice = device;
     setLinked(true, device);
+    
+    if (device.target_status === true) {
+        startProcessUI(false); 
+    }
 }
 
 function showDevicePicker(devices) {
@@ -726,7 +707,6 @@ function showDevicePicker(devices) {
         const fw     = d.firmware ? `v${d.firmware}` : '';
         const badge  = Discovery.sourceBadge(d.source);
         const rssiEl = Discovery.rssiBar(d.rssi);
-        // Encode device data sebagai JSON yang aman di onclick
         const dStr   = encodeURIComponent(JSON.stringify(d));
         return `
         <button onclick="connectToDevice(JSON.parse(decodeURIComponent('${dStr}'))); closeDevicePicker();"
@@ -816,8 +796,7 @@ function setLinked(v, device) {
    REALTIME POLLING ENGINE
 ───────────────────────────────────────────── */
 const RT = (function(){
-    {% comment %} const INTERVAL = 5000; {% endcomment %}
-    const INTERVAL = 2000;
+    const INTERVAL = 3000;
     let timer=null, latestId=0, syncedAt=null;
 
     function maxIdFromDOM(){
@@ -839,7 +818,7 @@ const RT = (function(){
             });
             if(!res.ok) throw new Error('HTTP '+res.status);
             return await res.json();
-        }catch(e){ console.warn('[RT]',e); return null; }
+        }catch(e){ return null; }
     }
 
     function insertRows(records){
@@ -848,6 +827,10 @@ const RT = (function(){
         const emptyR=document.getElementById('empty-row');
         if(emptyR) emptyR.remove();
         let added=0;
+        
+        // Panggil update UI ke kartu-kartu metrik atas (hanya record terbaru/index 0)
+        updateMetricCards(records[0]);
+
         records.forEach(s=>{
             if(parseInt(s.id)<=latestId) return;
             if(tbody.querySelector(`tr[data-id="${s.id}"]`)) return;
@@ -861,7 +844,23 @@ const RT = (function(){
                 setTimeout(()=>row.classList.remove('row-flash'),1400);
             });
             added++;
+            
+            if(chart) {
+                const timeStr = s.created.substr(11,8);
+                chartData.push({
+                    time: timeStr, 
+                    ph: s.ph != null ? parseFloat(s.ph) : null, 
+                    temp: parseFloat(s.temp)
+                });
+                if(chartData.length > 30) chartData.shift();
+                
+                chart.data.labels = chartData.map(d => d.time);
+                chart.data.datasets[0].data = chartData.map(d => d.ph);
+                chart.data.datasets[1].data = chartData.map(d => d.temp);
+                chart.update('none');
+            }
         });
+
         if(records.length){
             const mx=Math.max(...records.map(s=>parseInt(s.id)));
             if(mx>latestId) latestId=mx;
@@ -913,6 +912,42 @@ const RT = (function(){
         stop(){ clearInterval(timer); setIndicator('offline'); }
     };
 })();
+
+/* ─────────────────────────────────────────────
+   FUNGSI UPDATE NILAI CHIP/KARTU ATAS DARI JSON API
+───────────────────────────────────────────── */
+function updateMetricCards(s) {
+    if (!s) return;
+    const dash = '—';
+    
+    // Parse value untuk Temp dan Lux
+    const tempVal = s.temp != null ? parseFloat(s.temp).toFixed(1) : dash;
+    const luxVal  = s.lux != null ? parseFloat(s.lux).toFixed(0) : dash;
+
+    // Update Kartu Utama
+    document.getElementById('v-temp').textContent = tempVal;
+    document.getElementById('v-ph').textContent = s.ph != null ? parseFloat(s.ph).toFixed(2) : dash;
+    document.getElementById('v-speed').textContent = "2.5"; // Dummy konstan
+    
+    const r = parseInt(s.red||0), g = parseInt(s.green||0), b = parseInt(s.blue||0);
+    const hasColor = s.red && s.green && s.blue;
+    
+    if (hasColor) {
+        document.getElementById('v-r').textContent = r;
+        document.getElementById('v-g').textContent = g;
+        document.getElementById('v-b').textContent = b;
+        
+        // Update Chip Baru LUX dan TEMP yang ada di dalam grid warna
+        const luxChip = document.getElementById('v-lux-chip');
+        if(luxChip) luxChip.textContent = luxVal;
+        
+        const tempChip = document.getElementById('v-temp-chip');
+        if(tempChip) tempChip.textContent = tempVal;
+
+        document.getElementById('color-bar').style.backgroundColor = `rgb(${r},${g},${b})`;
+        document.getElementById('color-name').textContent = wqLabel(r,g,b);
+    }
+}
 
 /* ─────────────────────────────────────────────
    PAGINATION
@@ -1019,156 +1054,98 @@ function updateChartTheme(){
 window.addEventListener('resize',()=>{ if(chart) chart.resize(); });
 
 /* ─────────────────────────────────────────────
-   TREATMENT PROCESS SIMULATION
+   API HARDWARE CONTROL (START/STOP)
 ───────────────────────────────────────────── */
-let procOn=false, procDone=false;
-let timerInt, sensorInt, logInt;
-let t0=0, elapsed=0, simLog=[];
-{% comment %} const sim = { iPH:11.5, tPH:7.0, iTemp:35, tTemp:28, duration:5000, intensity:1.0 }; {% endcomment %}
-const sim = { iPH:11.5, tPH:7.0, iTemp:35, tTemp:28, duration:2000, intensity:1.0 };
+let procOn = false;
+let timerInt;
+let t0 = 0, elapsed = 0;
 
-const U = {
-    vTemp:    ()=>document.getElementById('v-temp'),
-    vPH:      ()=>document.getElementById('v-ph'),
-    vSpeed:   ()=>document.getElementById('v-speed'),
-    vR:       ()=>document.getElementById('v-r'),
-    vG:       ()=>document.getElementById('v-g'),
-    vB:       ()=>document.getElementById('v-b'),
-    colorBar: ()=>document.getElementById('color-bar'),
-    colorName:()=>document.getElementById('color-name'),
-    tSec:     ()=>document.getElementById('t-sec'),
-    tMs:      ()=>document.getElementById('t-ms'),
-    tTotal:   ()=>document.getElementById('t-total'),
-    pill:     ()=>document.getElementById('proc-pill'),
-    procBtn:  ()=>document.getElementById('proc-btn'),
-};
-
-function toggleProcess(){
-    if(procDone){
-        procDone=false; elapsed=0; sim.intensity=1.0;
-        U.procBtn().className='proc-btn proc-standby';
-        U.procBtn().innerHTML='<i class="fa-solid fa-power-off"></i>';
-        U.pill().textContent='STANDBY';
+function toggleProcess() {
+    if (!window.activeDevice) {
+        alert("Harap hubungkan (CONNECT) perangkat terlebih dahulu.");
         return;
     }
-    procOn=!procOn;
-    if(procOn){
-        U.procBtn().className='proc-btn proc-active';
-        U.procBtn().innerHTML='<i class="fa-solid fa-pause"></i>';
-        U.pill().textContent='TREATING';
-        t0=Date.now()-elapsed;
-        timerInt =setInterval(tick,   50);
-        sensorInt=setInterval(sense, 120);
-        logInt   =setInterval(logRow,600);
-        sense(); logRow();
-    } else {
-        stopProcess();
-        U.pill().textContent='PAUSED';
+
+    const btn = document.getElementById('proc-btn');
+    btn.disabled = true;
+    btn.style.opacity = "0.5";
+
+    let targetState = !procOn;
+
+    fetch('/api/device/control/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Token ' + API_TOKEN
+        },
+        body: JSON.stringify({
+            device_id: window.activeDevice.device_id || window.activeDevice.ip,
+            target_status: targetState
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'success') {
+            if (data.target_status) {
+                startProcessUI();
+            } else {
+                stopProcessUI();
+            }
+        } else {
+            alert("Gagal mengontrol relay: " + (data.error || "Unknown error"));
+        }
+    })
+    .catch(err => {
+        console.error("Error Fetch API:", err);
+        alert("Terjadi kesalahan jaringan.");
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.style.opacity = "1";
+    });
+}
+
+function startProcessUI(resetTimer = true) {
+    procOn = true;
+    const btn = document.getElementById('proc-btn');
+    const pill = document.getElementById('proc-pill');
+    
+    btn.className = 'proc-btn proc-active';
+    btn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+    pill.textContent = 'RUNNING';
+    pill.classList.add('active');
+    
+    if (resetTimer) {
+        t0 = Date.now() - elapsed;
+        clearInterval(timerInt);
+        timerInt = setInterval(tick, 50);
     }
 }
 
-function stopProcess(){
-    procOn=false;
-    clearInterval(timerInt); clearInterval(sensorInt); clearInterval(logInt);
-    U.procBtn().className='proc-btn proc-standby';
-    U.procBtn().innerHTML='<i class="fa-solid fa-power-off"></i>';
-}
-
-function finish(){
-    procOn=false; procDone=true;
-    clearInterval(timerInt); clearInterval(sensorInt); clearInterval(logInt);
-    U.procBtn().className='proc-btn proc-done';
-    U.procBtn().innerHTML='<i class="fa-solid fa-check"></i>';
-    U.pill().textContent='COMPLETED';
-    const m=document.getElementById('modal-done');
-    m.classList.add('on');
-    setTimeout(()=>m.classList.remove('on'),3500);
-    logRow();
+function stopProcessUI() {
+    procOn = false;
+    const btn = document.getElementById('proc-btn');
+    const pill = document.getElementById('proc-pill');
+    
+    clearInterval(timerInt);
+    btn.className = 'proc-btn proc-standby';
+    btn.innerHTML = '<i class="fa-solid fa-power-off"></i>';
+    pill.textContent = 'STANDBY';
+    pill.classList.remove('active');
 }
 
 function tick(){
-    elapsed=Date.now()-t0;
-    const s=Math.floor(elapsed/1000);
-    const ms=Math.floor((elapsed%1000)/10);
-    const mn=Math.floor(s/60);
-    U.tSec().textContent=(s%60).toString().padStart(2,'0');
-    U.tMs().textContent=ms.toString().padStart(2,'0');
-    U.tTotal().textContent=`${mn.toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
-}
-
-function sense(){
-    const p=Math.min(elapsed/sim.duration,1);
-    let temp=sim.iTemp-(sim.iTemp-sim.tTemp)*p+(Math.random()*1.5-.75);
-    temp=Math.max(sim.tTemp,Math.min(sim.iTemp,temp));
-    U.vTemp().textContent=temp.toFixed(1);
-    let ph=sim.iPH-(sim.iPH-sim.tPH)*p+(Math.random()*.3-.15);
-    ph=Math.max(sim.tPH,Math.min(sim.iPH,ph));
-    U.vPH().textContent=ph.toFixed(1);
-    const spd=2.5+Math.sin(p*Math.PI*2)*.8+(Math.random()*.4-.2);
-    U.vSpeed().textContent=Math.max(1,spd).toFixed(1);
-    sim.intensity=Math.max(0,1-p);
-    let r=Math.floor(30+170*(1-sim.intensity)+(Math.random()*20-10));
-    let g=Math.floor(64+156*(1-sim.intensity)+(Math.random()*20-10));
-    let b=Math.floor(175+65*(1-sim.intensity)+(Math.random()*20-10));
-    r=Math.max(0,Math.min(255,r)); g=Math.max(0,Math.min(255,g)); b=Math.max(0,Math.min(255,b));
-    U.vR().textContent=r; U.vG().textContent=g; U.vB().textContent=b;
-    U.colorBar().style.backgroundColor=`rgb(${r},${g},${b})`;
-    U.colorName().textContent=wqLabel(r,g,b);
-    if(procOn && isPure(r,g,b)) finish();
-}
-
-function logRow(){
-    const now=new Date();
-    const time=`${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
-    const temp=parseFloat(U.vTemp().textContent)||0;
-    const ph  =parseFloat(U.vPH().textContent)||0;
-    const r=parseInt(U.vR().textContent)||0;
-    const gv=parseInt(U.vG().textContent)||0;
-    const bv=parseInt(U.vB().textContent)||0;
-    const wq=U.colorName().textContent;
-    const pure=isPure(r,gv,bv);
-    const statusHtml=procDone
-        ?'<span class="pill pill-ok">Completed ✓</span>'
-        :(pure?'<span class="pill pill-ok">Purified ✓</span>':'<span class="pill pill-proc">On Process</span>');
-    const dash='<span style="opacity:.3;">—</span>';
-    const row=document.createElement('tr');
-    row.className='rt-row';
-    row.innerHTML=`
-        <td>${time}</td>
-        <td>${temp.toFixed(1)}</td>
-        <td class="ph-cell"><span class="${phClass(ph)}">${ph.toFixed(1)}</span></td>
-        <td>${r}</td><td>${gv}</td><td>${bv}</td>
-        <td>${dash}</td>
-        <td style="font-family:var(--font-body);font-size:0.78rem;">
-            <span style="display:inline-flex;align-items:center;gap:6px;">
-                <span style="width:8px;height:8px;border-radius:50%;background:rgb(${r},${gv},${bv});display:inline-block;flex-shrink:0;"></span>
-                ${wq}
-            </span>
-        </td>
-        <td>${statusHtml}</td>`;
-    const tbody=document.getElementById('tbl-body');
-    const first=tbody.querySelector('.db-row');
-    const empty=document.getElementById('empty-row');
-    if(first) tbody.insertBefore(row,first);
-    else if(empty) tbody.insertBefore(row,empty);
-    else tbody.insertBefore(row,tbody.firstChild);
-    const rt=[...tbody.querySelectorAll('.rt-row')];
-    if(rt.length>100) rt[rt.length-1].remove();
-    pg.p=1; pg.render();
-    // Feed chart
-    simLog.push({time,ph,temp,r,g:gv,b:bv});
-    if(simLog.length>30) simLog.shift();
-    if(chart){
-        const merged=[...DB_DATA.slice(-10).map(d=>({time:d.created.substr(11,8),ph:d.ph!=null?parseFloat(d.ph):null,temp:parseFloat(d.temp)})),...simLog].slice(-30);
-        chart.data.labels           =merged.map(d=>d.time);
-        chart.data.datasets[0].data =merged.map(d=>d.ph);
-        chart.data.datasets[1].data =merged.map(d=>d.temp);
-        chart.update('none');
-    }
+    elapsed = Date.now() - t0;
+    const s = Math.floor(elapsed / 1000);
+    const ms = Math.floor((elapsed % 1000) / 10);
+    const mn = Math.floor(s / 60);
+    document.getElementById('t-sec').textContent = (s % 60).toString().padStart(2,'0');
+    document.getElementById('t-ms').textContent  = ms.toString().padStart(2,'0');
+    document.getElementById('t-total').textContent = `${mn.toString().padStart(2,'0')}:${(s % 60).toString().padStart(2,'0')}`;
 }
 
 /* ─────────────────────────────────────────────
-   SIDEBAR
+   SIDEBAR & VIEW SWITCHER
 ───────────────────────────────────────────── */
 let sbCollapsed=false;
 function initSidebar(){
@@ -1192,9 +1169,6 @@ function closeMobile(){
     document.getElementById('backdrop').classList.remove('visible');
 }
 
-/* ─────────────────────────────────────────────
-   VIEW SWITCHER
-───────────────────────────────────────────── */
 function switchView(v){
     if(v==='monitoring' && !linked) return;
     ['connection','monitoring'].forEach(id=>{

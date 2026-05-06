@@ -9,4 +9,7 @@ urlpatterns = [
     path('device/heartbeat/',  views.device_heartbeat, name='deviceHeartbeat'),
     path('devices/online/',    views.devices_online,   name='devicesOnline'),
     path('devices/probe/',     views.probe_devices,    name='probeDevices'),
+
+    # ENDPOINT BARU UNTUK KONTROL DARI WEB
+    path('device/control/',    views.toggle_device_status, name='deviceControl'),
 ]
