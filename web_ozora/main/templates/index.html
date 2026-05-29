@@ -2,14 +2,12 @@
 {% block content %}
 {% load static %}
     <main>
-
-        <!-- === CONNECTION VIEW === -->
         <section id="view-connection" class="view on">
             <div class="connect-stage">
                 <div class="ring-wrap">
                     <div class="ring ring-1" id="ring1"></div>
                     <div class="ring ring-2" id="ring2"></div>
-                    <button class="hw-btn hw-unlinked" id="hw-btn" onclick="handleConnect()">
+                    <button class="hw-btn hw-unlinked" id="hw-btn" onclick="handleMainButton()">
                         <i class="fa-solid fa-wifi" id="hw-ico"></i>
                         <span id="hw-txt">CONNECT</span>
                     </button>
@@ -18,7 +16,6 @@
             </div>
         </section>
 
-        <!-- === MONITORING VIEW === -->
         <section id="view-monitoring" class="view">
 
             <div class="proc-bar">
@@ -35,7 +32,7 @@
                 <div class="metric-card mc-temp">
                     <div>
                         <div class="mc-label">Temperature</div>
-                        <div class="mc-value"><span id="v-temp">—</span><span class="mc-unit">°C</span></div>
+                        <div class="mc-value"><span id="v-temp">—</span><span class="mc-unit">°K</span></div>
                     </div>
                     <svg class="mc-wave" viewBox="0 0 500 70" preserveAspectRatio="none">
                         <path fill="white" d="M0,35 C100,70 200,0 300,35 C400,70 450,20 500,35 L500,70 L0,70 Z"/>
@@ -60,7 +57,6 @@
                     </svg>
                 </div>
                 
-                <!-- KARTU SENSOR KUALITAS AIR YANG DIUPDATE (RGB + LUX + TEMP) -->
                 <div class="metric-card mc-color" style="display:flex;flex-direction:column;">
                     <div class="mc-label" style="color:var(--tx-2);">Water Quality Sensor</div>
                     <div class="color-name-txt" id="color-name">Detecting…</div>
@@ -127,7 +123,7 @@
                         <thead>
                             <tr>
                                 <th>Timestamp</th>
-                                <th>Temp °C</th>
+                                <th>Temp °K</th>
                                 <th>pH</th>
                                 <th>Red</th>
                                 <th>Green</th>
@@ -155,7 +151,7 @@
                                     {% if s.red and s.green and s.blue %}
                                     <span style="display:inline-flex;align-items:center;gap:6px;">
                                         <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:rgb({{ s.red|floatformat:0 }},{{ s.green|floatformat:0 }},{{ s.blue|floatformat:0 }});flex-shrink:0;"></span>
-                                        <span class="wq-lbl" data-r="{{ s.red|floatformat:0 }}" data-g="{{ s.green|floatformat:0 }}" data-b="{{ s.blue|floatformat:0 }}"></span>
+                                        <span class="wq-lbl" data-r="{{ s.red|floatformat:0 }}" data-g="255" data-b="{{ s.blue|floatformat:0 }}"></span>
                                     </span>
                                     {% else %}<span style="opacity:.3;">—</span>{% endif %}
                                 </td>

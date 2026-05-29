@@ -1,0 +1,30 @@
+{% load static %}
+<aside class="sidebar" id="sidebar">
+    <a class="sb-logo" href="#">
+        <div class="sb-logo-mark"><i class="fa-solid fa-flask-vial"></i></div>
+        <div class="sb-logo-text">
+            Ozora Panel
+            <small>Wastewater Treatment</small>
+        </div>
+    </a>
+    <button class="sb-toggle" id="sb-toggle" onclick="toggleSidebar()">
+        <i class="fa-solid fa-angles-left" id="sb-icon"></i>
+    </button>
+    <nav class="sb-nav">
+        <div class="sb-section-label">Navigation</div>
+        <a class="nav-link active" id="nl-conn" data-tip="Connection" onclick="switchView('connection'); return false;" href="#">
+            <div class="nav-icon"><i class="fa-solid fa-tower-broadcast"></i></div>
+            <span class="nav-text">Connection</span>
+        </a>
+        <a class="nav-link disabled" id="nl-mon" data-tip="Monitoring" onclick="switchView('monitoring'); return false;" href="#">
+            <div class="nav-icon"><i class="fa-solid fa-chart-area"></i></div>
+            <span class="nav-text">Monitoring</span>
+        </a>
+    </nav>
+    <div class="sb-footer">
+        <a href="{% url 'logout' %}" class="logout-link">
+            <div class="logout-icon"><i class="fa-solid fa-right-from-bracket"></i></div>
+            <span class="logout-text">Logout</span>
+        </a>
+    </div>
+</aside>

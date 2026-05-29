@@ -360,40 +360,11 @@
 </head>
 <body>
 
-<!-- ═══════ SIDEBAR ═══════ -->
-<aside class="sidebar" id="sidebar">
-    <a class="sb-logo" href="#">
-        <div class="sb-logo-mark"><i class="fa-solid fa-flask-vial"></i></div>
-        <div class="sb-logo-text">
-            Ozora Panel
-            <small>Wastewater Treatment</small>
-        </div>
-    </a>
-    <button class="sb-toggle" id="sb-toggle" onclick="toggleSidebar()">
-        <i class="fa-solid fa-angles-left" id="sb-icon"></i>
-    </button>
-    <nav class="sb-nav">
-        <div class="sb-section-label">Navigation</div>
-        <a class="nav-link active" id="nl-conn" data-tip="Connection" onclick="switchView('connection'); return false;" href="#">
-            <div class="nav-icon"><i class="fa-solid fa-tower-broadcast"></i></div>
-            <span class="nav-text">Connection</span>
-        </a>
-        <a class="nav-link disabled" id="nl-mon" data-tip="Monitoring" onclick="switchView('monitoring'); return false;" href="#">
-            <div class="nav-icon"><i class="fa-solid fa-chart-area"></i></div>
-            <span class="nav-text">Monitoring</span>
-        </a>
-    </nav>
-    <div class="sb-footer">
-        <a href="{% url 'logout' %}" class="logout-link">
-            <div class="logout-icon"><i class="fa-solid fa-right-from-bracket"></i></div>
-            <span class="logout-text">Logout</span>
-        </a>
-    </div>
-</aside>
+{% include 'components/sidebar_panel.html' %}
+
 
 <div class="backdrop" id="backdrop" onclick="closeMobile()"></div>
 
-<!-- ═══════ SHELL ═══════ -->
 <div class="shell" id="shell">
 
     <header class="topbar">
@@ -419,9 +390,6 @@
 
 </div>
 
-<!-- ═══════ MODALS ═══════ -->
-
-<!-- Scanning -->
 <div class="modal" id="modal-scan">
     <div class="modal-box">
         <i class="fa-solid fa-satellite-dish fa-spin modal-ico" style="color:var(--cyan);"></i>
@@ -430,7 +398,6 @@
     </div>
 </div>
 
-<!-- Device Picker -->
 <div class="modal" id="modal-device-picker">
     <div class="modal-box" style="max-width:440px;text-align:left;padding:32px 28px;">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
@@ -452,7 +419,6 @@
     </div>
 </div>
 
-<!-- No device found -->
 <div class="modal" id="modal-no-device">
     <div class="modal-box">
         <i class="fa-solid fa-tower-broadcast modal-ico" style="color:var(--amber);"></i>
@@ -464,9 +430,38 @@
     </div>
 </div>
 
-<!-- ═══════════════════════════════════════════
-     SCRIPTS
-═══════════════════════════════════════════ -->
+<div class="modal" id="modal-connect-options">
+    <div class="modal-box" style="max-width:400px; padding:32px 28px;">
+        <i class="fa-solid fa-network-wired modal-ico" style="color:var(--cyan);"></i>
+        <h3 style="font-family:var(--font-display); font-size:1.15rem; font-weight:700;">Pilih Mode Akses</h3>
+        <p style="font-size:0.85rem; color:var(--tx-2); margin-bottom:24px;">
+            Apakah Anda ingin menghubungkan website ke perangkat IoT untuk kontrol penuh, atau hanya melihat data monitoring yang ada?
+        </p>
+        
+        <div style="display:flex; flex-direction:column; gap:12px;">
+            <button onclick="startHardwareConnect()" 
+                style="background:linear-gradient(135deg, var(--cyan), var(--indigo)); border:none; border-radius:12px; padding:14px; color:#fff; font-size:0.9rem; font-weight:600; cursor:pointer; font-family:var(--font-body); transition:transform 0.2s, box-shadow 0.2s;"
+                onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px var(--glow-a)'"
+                onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                <i class="fa-solid fa-link" style="margin-right:8px;"></i> Hubungkan Perangkat IoT
+            </button>
+            
+            <button onclick="viewMonitoringOnly()" 
+                style="background:var(--bg-3); border:1px solid var(--border); border-radius:12px; padding:14px; color:var(--tx); font-size:0.9rem; font-weight:600; cursor:pointer; font-family:var(--font-body); transition:border-color 0.2s, background 0.2s;"
+                onmouseover="this.style.borderColor='var(--violet)'; this.style.background='var(--bg-4)'"
+                onmouseout="this.style.borderColor='var(--border)'; this.style.background='var(--bg-3)'">
+                <i class="fa-solid fa-chart-line" style="margin-right:8px;"></i> Lihat Monitoring Saja
+            </button>
+        </div>
+        
+        <button onclick="closeConnectOptions()" 
+            style="width:100%; margin-top:16px; background:transparent; border:none; color:var(--tx-3); cursor:pointer; font-family:var(--font-body); font-size:0.8rem; transition:color 0.2s;"
+            onmouseover="this.style.color='var(--tx)'" onmouseout="this.style.color='var(--tx-3)'">
+            Batal
+        </button>
+    </div>
+</div>
+
 <script>
 /* ─────────────────────────────────────────────
    DJANGO DATA INJECTION
@@ -489,9 +484,61 @@ const DB_DATA = [
 const API_TOKEN = "{{ api_token }}";
 
 /* ─────────────────────────────────────────────
+   ENVIRONMENTAL COLOR CORRECTION (ALGORITHMIC)
+───────────────────────────────────────────── */
+// Menghitung referensi RGB dari Color Temperature (Kelvin) menggunakan Algoritma Tanner-Helland
+function cctToRGB(kelvin) {
+    let temp = kelvin / 100.0;
+    let r, g, b;
+
+    if (temp <= 66) {
+        r = 255;
+        g = 99.4708025861 * Math.log(temp) - 161.1195681661;
+        b = temp <= 19 ? 0 : (138.5177312231 * Math.log(temp - 10) - 305.0447927307);
+    } else {
+        r = 329.698727446 * Math.pow(temp - 60, -0.1332047592);
+        g = 288.1221695283 * Math.pow(temp - 60, -0.0755148492);
+        b = 255;
+    }
+
+    return {
+        r: Math.max(1, Math.min(255, r)),
+        g: Math.max(1, Math.min(255, g)),
+        b: Math.max(1, Math.min(255, b))
+    };
+}
+
+// Logika Programatis Penuh untuk mengeliminasi bias cahaya
+function getTrueColor(rawR, rawG, rawB) {
+    // 1. Hindari kalkulasi kosong
+    if (rawR === 0 && rawG === 0 && rawB === 0) return { r: 0, g: 0, b: 0 };
+
+    // 2. Normalisasi Dynamic Range (Pengganti channel Clear)
+    // Mencari nilai puncak untuk menyeimbangkan intensitas cahaya lingkungan (Lux)
+    let maxVal = Math.max(rawR, rawG, rawB);
+
+    // 3. Konversi ke rentang Linear 0.0 - 1.0
+    let rLinear = rawR / maxVal;
+    let gLinear = rawG / maxVal;
+    let bLinear = rawB / maxVal;
+
+    // 4. Linear-to-sRGB Gamma Correction (Standard Gamma ~2.2)
+    // Ini wajib untuk mencegah mid-tone menjadi hitam dan highlight menjadi putih
+    let rGamma = Math.pow(rLinear, 1 / 2.2);
+    let gGamma = Math.pow(gLinear, 1 / 2.2);
+    let bGamma = Math.pow(bLinear, 1 / 2.2);
+
+    // 5. Skala kembali ke format 8-bit CSS (0-255)
+    return {
+        r: Math.round(rGamma * 255),
+        g: Math.round(gGamma * 255),
+        b: Math.round(bGamma * 255)
+    };
+}
+/* ─────────────────────────────────────────────
    WATER QUALITY HELPERS
 ───────────────────────────────────────────── */
-function isPure(r,g,b){ return r>=200 && g>=200 && b>=200 && (r+g+b)>=630; }
+function isPure(r,g,b){ return r>=180 && g>=180 && b>=180 && (r+g+b)>=580; }
 
 function wqLabel(r,g,b){
     const d = 1 - ((r+g+b)/765);
@@ -517,20 +564,29 @@ function phClass(ph){
    BUILD ROW HTML
 ───────────────────────────────────────────── */
 function buildRow(s){
-    const r=parseFloat(s.red||0), g=parseFloat(s.green||0), b=parseFloat(s.blue||0);
+    // Ambil data mentah
+    const rawR = parseFloat(s.red||0), rawG = parseFloat(s.green||0), rawB = parseFloat(s.blue||0);
     const hasColor = s.red && s.green && s.blue;
+    
+    // Terapkan Gamma Correction
+    let r=0, g=0, b=0;
+    if (hasColor) {
+        const tc = getTrueColor(rawR, rawG, rawB);
+        r = tc.r; g = tc.g; b = tc.b;
+    }
+
     const dash = '<span style="opacity:.3;">—</span>';
     const phVal = s.ph != null ? parseFloat(s.ph) : null;
-    const phTd  = phVal != null
-        ? `<span class="${phClass(phVal)}">${phVal.toFixed(2)}</span>` : dash;
+    const phTd  = phVal != null ? `<span class="${phClass(phVal)}">${phVal.toFixed(2)}</span>` : dash;
+    
     return `
     <tr class="db-row" data-id="${s.id}">
         <td>${s.created}</td>
         <td>${s.temp!=null?parseFloat(s.temp).toFixed(2):dash}</td>
         <td class="ph-cell">${phTd}</td>
-        <td>${s.red!=null?parseFloat(s.red).toFixed(0):dash}</td>
-        <td>${s.green!=null?parseFloat(s.green).toFixed(0):dash}</td>
-        <td>${s.blue!=null?parseFloat(s.blue).toFixed(0):dash}</td>
+        <td>${hasColor?r:dash}</td>
+        <td>${hasColor?g:dash}</td>
+        <td>${hasColor?b:dash}</td>
         <td>${s.lux!=null?parseFloat(s.lux).toFixed(1):dash}</td>
         <td style="font-family:var(--font-body);font-size:0.78rem;">
             ${hasColor?`<span style="display:inline-flex;align-items:center;gap:6px;">
@@ -650,18 +706,82 @@ const Discovery = {
 };
 
 /* ─────────────────────────────────────────────
-   CONNECT BUTTON HANDLER
+   CONNECT BUTTON HANDLER & OPTIONS
 ───────────────────────────────────────────── */
 let linked = false;
+let viewOnly = false; // State baru untuk mode monitoring-only
 window.activeDevice = null;
 
-async function handleConnect() {
-    if (linked) {
+// Fungsi untuk menangani klik tombol lingkaran raksasa
+function handleMainButton() {
+    if (linked || viewOnly) {
+        // Logika Disconnect / Keluar dari mode View Only
         if (procOn) stopProcessUI();
         setLinked(false, null);
+        viewOnly = false;
+        
+        // Bersihkan inline style jika sebelumnya dalam mode View Only
+        document.getElementById('hw-btn').style.background = '';
+        document.getElementById('hdr-status').style.background = '';
+        document.getElementById('hdr-status').style.color = '';
         return;
     }
 
+    // Tampilkan modal pilihan jika belum terhubung sama sekali
+    document.getElementById('modal-connect-options').classList.add('on');
+}
+
+function closeConnectOptions() {
+    document.getElementById('modal-connect-options').classList.remove('on');
+}
+
+// Handler Opsi 1: Hubungkan ke Perangkat Fisik
+function startHardwareConnect() {
+    closeConnectOptions();
+    handleConnect(); // Memanggil logika scanning asli
+}
+
+// Handler Opsi 2: Hanya Lihat Monitoring (Bypass Hardware)
+function viewMonitoringOnly() {
+    closeConnectOptions();
+    viewOnly = true;
+    linked = false; // Memastikan logic hardware tidak berjalan
+    
+    // Update UI tombol untuk merefleksikan mode "View Only"
+    const btn  = document.getElementById('hw-btn');
+    const ico  = document.getElementById('hw-ico');
+    const txt  = document.getElementById('hw-txt');
+    const hint = document.getElementById('conn-hint');
+    const r1   = document.getElementById('ring1');
+    const r2   = document.getElementById('ring2');
+    
+    btn.className = 'hw-btn hw-linked'; 
+    // Beri visual yang berbeda (Violet/Indigo) untuk membedakan dengan koneksi hardware (Cyan)
+    btn.style.background = 'linear-gradient(145deg, var(--violet), var(--indigo))';
+    ico.className = 'fa-solid fa-eye';
+    txt.textContent = 'VIEWING';
+    
+    hint.innerHTML = `
+        <strong style="color:var(--tx);font-size:1rem;">Mode Observasi Data</strong>
+        <br><span style="font-size:0.78rem;display:inline-block;margin-top:4px;">Menampilkan histori & data cloud tanpa akses kontrol relay.</span>`;
+    
+    r1.classList.add('pulse');
+    r2.classList.add('pulse');
+    
+    // Update Badge Header
+    const hdrBadge = document.getElementById('hdr-status');
+    hdrBadge.className = 'status-badge badge-ok';
+    hdrBadge.style.background = 'rgba(168,85,247,0.12)';
+    hdrBadge.style.color = 'var(--violet)';
+    hdrBadge.textContent = 'VIEW ONLY';
+    
+    // Izinkan akses ke sidebar monitoring
+    document.getElementById('nl-mon').classList.remove('disabled');
+    setTimeout(() => { switchView('monitoring'); initChart(); }, 600);
+}
+
+// Logika Scanning
+async function handleConnect() {
     const scanModal = document.getElementById('modal-scan');
     document.getElementById('modal-scan-title').textContent = 'Scanning Network…';
     document.getElementById('modal-scan-desc').textContent  = 'Searching for ESP32 devices';
@@ -920,32 +1040,41 @@ function updateMetricCards(s) {
     if (!s) return;
     const dash = '—';
     
-    // Parse value untuk Temp dan Lux
     const tempVal = s.temp != null ? parseFloat(s.temp).toFixed(1) : dash;
     const luxVal  = s.lux != null ? parseFloat(s.lux).toFixed(0) : dash;
 
-    // Update Kartu Utama
     document.getElementById('v-temp').textContent = tempVal;
     document.getElementById('v-ph').textContent = s.ph != null ? parseFloat(s.ph).toFixed(2) : dash;
-    document.getElementById('v-speed').textContent = "2.5"; // Dummy konstan
+    document.getElementById('v-speed').textContent = "2.5"; 
     
-    const r = parseInt(s.red||0), g = parseInt(s.green||0), b = parseInt(s.blue||0);
+    const rawR = parseInt(s.red || 0);
+    const rawG = parseInt(s.green || 0);
+    const rawB = parseInt(s.blue || 0);
+    const cctVal = s.temp != null ? parseFloat(s.temp) : 6500;
+    const luxNum = s.lux != null ? parseFloat(s.lux) : 0;
+    
     const hasColor = s.red && s.green && s.blue;
     
     if (hasColor) {
-        document.getElementById('v-r').textContent = r;
-        document.getElementById('v-g').textContent = g;
-        document.getElementById('v-b').textContent = b;
+        // Terapkan kompensasi lingkungan murni dengan logic program
+        const trueCol = getTrueColor(rawR, rawG, rawB, luxNum, cctVal);
+
+        // Tampilkan TRUE COLOR ke UI agar konsisten di semua lingkungan
+        document.getElementById('v-r').textContent = trueCol.r;
+        document.getElementById('v-g').textContent = trueCol.g;
+        document.getElementById('v-b').textContent = trueCol.b;
         
-        // Update Chip Baru LUX dan TEMP yang ada di dalam grid warna
         const luxChip = document.getElementById('v-lux-chip');
         if(luxChip) luxChip.textContent = luxVal;
         
         const tempChip = document.getElementById('v-temp-chip');
         if(tempChip) tempChip.textContent = tempVal;
 
-        document.getElementById('color-bar').style.backgroundColor = `rgb(${r},${g},${b})`;
-        document.getElementById('color-name').textContent = wqLabel(r,g,b);
+        // Visualisasikan True Color ke kotak warna
+        document.getElementById('color-bar').style.backgroundColor = `rgb(${trueCol.r}, ${trueCol.g}, ${trueCol.b})`;
+        
+        // Label Kualitas berdasarkan True Color
+        document.getElementById('color-name').textContent = wqLabel(trueCol.r, trueCol.g, trueCol.b);
     }
 }
 
@@ -996,6 +1125,7 @@ const pg = {
         });
     }
 };
+
 /* ─────────────────────────────────────────────
    CHART
 ───────────────────────────────────────────── */
@@ -1026,7 +1156,7 @@ function initChart(){
             labels: chartData.map(d=>d.time),
             datasets:[
                 { label:'pH Level',       data:chartData.map(d=>d.ph),   borderColor:'#EC4899', backgroundColor:'rgba(236,72,153,0.08)', borderWidth:2.5, tension:0.4, fill:true,  pointRadius:3, pointBackgroundColor:'#EC4899', pointBorderColor:'#fff', pointBorderWidth:2, spanGaps:true, yAxisID:'y' },
-                { label:'Temperature °C', data:chartData.map(d=>d.temp), borderColor:'#F59E0B', backgroundColor:'rgba(245,158,11,0.05)',  borderWidth:2,   tension:0.4, fill:false, pointRadius:2, pointBackgroundColor:'#F59E0B', pointBorderColor:'#fff', pointBorderWidth:1.5, yAxisID:'y2', spanGaps:true },
+                { label:'Temperature °K', data:chartData.map(d=>d.temp), borderColor:'#F59E0B', backgroundColor:'rgba(245,158,11,0.05)',  borderWidth:2,   tension:0.4, fill:false, pointRadius:2, pointBackgroundColor:'#F59E0B', pointBorderColor:'#fff', pointBorderWidth:1.5, yAxisID:'y2', spanGaps:true },
                 // Tambahan Dataset RGB
                 { label:'Red',            data:chartData.map(d=>d.r),    borderColor:'#EF4444', backgroundColor:'transparent', borderWidth:1.5, tension:0.4, fill:false, pointRadius:0, hitRadius:5, yAxisID:'y3', spanGaps:true },
                 { label:'Green',          data:chartData.map(d=>d.g),    borderColor:'#10B981', backgroundColor:'transparent', borderWidth:1.5, tension:0.4, fill:false, pointRadius:0, hitRadius:5, yAxisID:'y3', spanGaps:true },
@@ -1043,7 +1173,7 @@ function initChart(){
                 // Y1: pH (Kiri)
                 y:  { position:'left', beginAtZero:false, min:5, max:13, grid:{color:bc}, ticks:{color:tc,font:{family:"'JetBrains Mono',monospace",size:11},callback:v=>v.toFixed(1)+'pH'}, title:{display:true,text:'pH Level',color:tc,font:{family:"'Space Grotesk'",size:12,weight:'600'}} },
                 // Y2: Suhu (Kanan)
-                y2: { position:'right', beginAtZero:false, min:18, max:42, grid:{drawOnChartArea:false}, ticks:{color:'#F59E0B',font:{family:"'JetBrains Mono',monospace",size:11},callback:v=>v+'°C'}, title:{display:true,text:'Temp °C',color:'#F59E0B',font:{family:"'Space Grotesk'",size:12,weight:'600'}} },
+                y2: { position:'right', beginAtZero:false, min:18, max:42, grid:{drawOnChartArea:false}, ticks:{color:'#F59E0B',font:{family:"'JetBrains Mono',monospace",size:11},callback:v=>v+'°K'}, title:{display:true,text:'Temp °K',color:'#F59E0B',font:{family:"'Space Grotesk'",size:12,weight:'600'}} },
                 // Y3: RGB (Kanan, tidak ada grid agar tidak berantakan)
                 y3: { position:'right', min:0, max:260, grid:{drawOnChartArea:false}, ticks:{color:tc,font:{family:"'JetBrains Mono',monospace",size:10}}, title:{display:true,text:'RGB (0-255)',color:tc,font:{family:"'Space Grotesk'",size:11,weight:'600'}} },
                 // X: Waktu
@@ -1183,7 +1313,9 @@ function closeMobile(){
 }
 
 function switchView(v){
-    if(v==='monitoring' && !linked) return;
+    // Izinkan masuk jika hardware terkoneksi ATAU dalam mode monitoring saja
+    if(v==='monitoring' && !linked && !viewOnly) return; 
+
     ['connection','monitoring'].forEach(id=>{
         document.getElementById('view-'+id).classList.toggle('on', id===v);
     });
@@ -1215,6 +1347,7 @@ window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change',()=>{
     if(localStorage.getItem('theme')==='system') applyTheme('system');
 });
 </script>
+
 
 <script src="{% static 'js/iziToast.min.js' %}"></script>
 {% if messages %}
