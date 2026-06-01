@@ -509,32 +509,44 @@ function cctToRGB(kelvin) {
 }
 
 // Logika Programatis Penuh untuk mengeliminasi bias cahaya
+/* ─────────────────────────────────────────────
+   ENVIRONMENTAL COLOR CORRECTION (TRANSMISSION METHOD)
+───────────────────────────────────────────── */
+// NILAI KALIBRASI AIR JERNIH (BLANKING)
+// TODO: Isi dengan nilai rata-rata R, G, B saat sensor membaca AIR BERSIH 100%
+const REF_CLEAR_R = 250; 
+const REF_CLEAR_G = 250;
+const REF_CLEAR_B = 250;
+
 function getTrueColor(rawR, rawG, rawB) {
-    // 1. Hindari kalkulasi kosong
+    // 1. Hindari kalkulasi kosong atau sensor mati
     if (rawR === 0 && rawG === 0 && rawB === 0) return { r: 0, g: 0, b: 0 };
 
-    // 2. Normalisasi Dynamic Range (Pengganti channel Clear)
-    // Mencari nilai puncak untuk menyeimbangkan intensitas cahaya lingkungan (Lux)
-    let maxVal = Math.max(rawR, rawG, rawB);
+    // 2. Koreksi Transmisi (Mendekati Hukum Beer-Lambert)
+    // Menghitung seberapa banyak cahaya yang diteruskan dibanding saat air jernih
+    let rRatio = rawR / REF_CLEAR_R;
+    let gRatio = rawG / REF_CLEAR_G;
+    let bRatio = rawB / REF_CLEAR_B;
 
-    // 3. Konversi ke rentang Linear 0.0 - 1.0
-    let rLinear = rawR / maxVal;
-    let gLinear = rawG / maxVal;
-    let bLinear = rawB / maxVal;
+    // Pastikan rasio tidak lebih dari 1.0 (jika ada fluktuasi cahaya)
+    rRatio = Math.max(0, Math.min(1, rRatio));
+    gRatio = Math.max(0, Math.min(1, gRatio));
+    bRatio = Math.max(0, Math.min(1, bRatio));
 
-    // 4. Linear-to-sRGB Gamma Correction (Standard Gamma ~2.2)
-    // Ini wajib untuk mencegah mid-tone menjadi hitam dan highlight menjadi putih
-    let rGamma = Math.pow(rLinear, 1 / 2.2);
-    let gGamma = Math.pow(gLinear, 1 / 2.2);
-    let bGamma = Math.pow(bLinear, 1 / 2.2);
+    // 3. Linear-to-sRGB Gamma Correction (Gamma 2.2)
+    // Mengembalikan kontras yang hilang akibat pembiasan cairan
+    let rGamma = Math.pow(rRatio, 1 / 2.2);
+    let gGamma = Math.pow(gRatio, 1 / 2.2);
+    let bGamma = Math.pow(bRatio, 1 / 2.2);
 
-    // 5. Skala kembali ke format 8-bit CSS (0-255)
+    // 4. Skala kembali ke 8-bit CSS (0-255)
     return {
         r: Math.round(rGamma * 255),
         g: Math.round(gGamma * 255),
         b: Math.round(bGamma * 255)
     };
 }
+
 /* ─────────────────────────────────────────────
    WATER QUALITY HELPERS
 ───────────────────────────────────────────── */
