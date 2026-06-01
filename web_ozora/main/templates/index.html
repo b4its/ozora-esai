@@ -151,7 +151,7 @@
                                     {% if s.red and s.green and s.blue %}
                                     <span style="display:inline-flex;align-items:center;gap:6px;">
                                         <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:rgb({{ s.red|floatformat:0 }},{{ s.green|floatformat:0 }},{{ s.blue|floatformat:0 }});flex-shrink:0;"></span>
-                                        <span class="wq-lbl" data-r="{{ s.red|floatformat:0 }}" data-g="255" data-b="{{ s.blue|floatformat:0 }}"></span>
+                                        <span class="wq-lbl" data-r="{{ s.red|floatformat:0 }}" data-g="{{ s.green|floatformat:0 }}" data-b="{{ s.blue|floatformat:0 }}"></span>
                                     </span>
                                     {% else %}<span style="opacity:.3;">—</span>{% endif %}
                                 </td>

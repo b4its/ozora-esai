@@ -508,7 +508,6 @@ function cctToRGB(kelvin) {
     };
 }
 
-// Logika Programatis Penuh untuk mengeliminasi bias cahaya
 /* ─────────────────────────────────────────────
    ENVIRONMENTAL COLOR CORRECTION (TRANSMISSION METHOD)
 ───────────────────────────────────────────── */
@@ -1087,6 +1086,16 @@ function updateMetricCards(s) {
         
         // Label Kualitas berdasarkan True Color
         document.getElementById('color-name').textContent = wqLabel(trueCol.r, trueCol.g, trueCol.b);
+
+        // ========================================================
+        // LOGIKA AUTO-STOP: MATIKAN PROSES JIKA STATUS "PURIFIED"
+        // ========================================================
+        if (isPure(trueCol.r, trueCol.g, trueCol.b)) {
+            // Panggil toggleProcess dengan mode forceOff (true)
+            if (procOn && window.activeDevice && !viewOnly) {
+                toggleProcess(true);
+            }
+        }
     }
 }
 
@@ -1215,17 +1224,25 @@ let procOn = false;
 let timerInt;
 let t0 = 0, elapsed = 0;
 
-function toggleProcess() {
-    if (!window.activeDevice) {
-        alert("Harap hubungkan (CONNECT) perangkat terlebih dahulu.");
+// Parameter forceOff ditambahkan agar auto-stop bisa memaksa mati
+function toggleProcess(forceOff = false) {
+    if (viewOnly) {
+        if (!forceOff) alert("Mode View Only tidak memiliki akses kontrol relay.");
         return;
     }
+    
+    if (!window.activeDevice) {
+        if (!forceOff) alert("Harap hubungkan (CONNECT) perangkat terlebih dahulu.");
+        return;
+    }
+
+    if (forceOff && !procOn) return; // Mencegah loop jika posisi memang sudah STANDBY
 
     const btn = document.getElementById('proc-btn');
     btn.disabled = true;
     btn.style.opacity = "0.5";
 
-    let targetState = !procOn;
+    let targetState = forceOff ? false : !procOn;
 
     fetch('/api/device/control/', {
         method: 'POST',
@@ -1245,14 +1262,22 @@ function toggleProcess() {
                 startProcessUI();
             } else {
                 stopProcessUI();
+                // Jika proses berhenti karena intervensi auto-stop, beri tahu user
+                if (forceOff) {
+                    iziToast.success({
+                        title: 'Purified!',
+                        message: 'Air sudah mencapai kualitas jernih. Proses otomatis dihentikan.',
+                        position: 'topRight'
+                    });
+                }
             }
         } else {
-            alert("Gagal mengontrol relay: " + (data.error || "Unknown error"));
+            if (!forceOff) alert("Gagal mengontrol relay: " + (data.error || "Unknown error"));
         }
     })
     .catch(err => {
         console.error("Error Fetch API:", err);
-        alert("Terjadi kesalahan jaringan.");
+        if (!forceOff) alert("Terjadi kesalahan jaringan.");
     })
     .finally(() => {
         btn.disabled = false;
