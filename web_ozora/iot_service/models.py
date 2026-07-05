@@ -42,6 +42,15 @@ class IoTDevice(models.Model):
     # mengirim data — menunggu perintah ON dari website (tombol proc-btn).
     target_status = models.BooleanField(default=False, help_text="True = Mesin ON, False = Mesin OFF/standby")
 
+    # Eksperimen yang sedang aktif untuk perangkat ini. Data sensor yang masuk
+    # akan otomatis dikaitkan ke eksperimen ini (di-set dari dashboard saat
+    # pengguna masuk monitoring dengan eksperimen terpilih).
+    active_experiment = models.ForeignKey(
+        'ExperimentRoom', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='active_devices',
+        help_text="Eksperimen aktif; data masuk otomatis ditandai ke sini"
+    )
+
     # FIELD UNTUK DETEKSI STERIL / JERNIH
     is_sterile = models.BooleanField(default=False, help_text="True jika air terdeteksi sudah jernih/steril")
     sterile_lux_min      = models.FloatField(default=300.0,  help_text="Lux minimum agar dianggap jernih")

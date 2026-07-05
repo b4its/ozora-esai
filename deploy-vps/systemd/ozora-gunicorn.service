@@ -1,0 +1,15 @@
+[Unit]
+Description=Ozora Gunicorn Daemon
+After=network.target
+
+[Service]
+WorkingDirectory=/root/deploy/ozora/site/web_ozora
+Environment=DJANGO_SECRET_KEY=isi-dengan-random-key
+ExecStart=/root/deploy/ozora/site/env/bin/gunicorn \
+          --workers 3 \
+          --bind unix:/root/deploy/ozora/site/web_ozora/ozora.sock \
+          web_ozora.wsgi:application
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

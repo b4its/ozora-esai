@@ -126,7 +126,7 @@
                 <div class="exp-detail-metrics" id="exp-detail-metrics">
                     <div class="metric-card mc-temp">
                         <div>
-                            <div class="mc-label">Temperature</div>
+                            <div class="mc-label">Color Temperature</div>
                             <div class="mc-value"><span id="ed-temp">—</span><span class="mc-unit">°K</span></div>
                         </div>
                     </div>
@@ -145,7 +145,7 @@
                             <div class="rgb-chip"><span class="rgb-num" id="ed-g">—</span><span class="rgb-ch cg">GRN</span></div>
                             <div class="rgb-chip"><span class="rgb-num" id="ed-b">—</span><span class="rgb-ch cb">BLU</span></div>
                             <div class="rgb-chip"><span class="rgb-num" id="ed-lux">—</span><span class="rgb-ch" style="color:var(--amber);">LUX</span></div>
-                            <div class="rgb-chip"><span class="rgb-num" id="ed-temp-chip">—</span><span class="rgb-ch" style="color:var(--rose);">TEMP</span></div>
+                            <div class="rgb-chip"><span class="rgb-num" id="ed-temp-chip">—</span><span class="rgb-ch" style="color:var(--rose);">C.TEMP</span></div>
                         </div>
                     </div>
                     <div class="metric-card mc-timer">
@@ -184,7 +184,7 @@
                             <thead>
                                 <tr>
                                     <th>Timestamp</th>
-                                    <th>Temp °K</th>
+                                    <th>Color Temp °K</th>
                                     <th>pH</th>
                                     <th>Red</th>
                                     <th>Green</th>
@@ -192,7 +192,7 @@
                                     <th>Lux</th>
                                     <th>Water Quality</th>
                                     <th>Status</th>
-                                    <th>Action</th>
+                                    <th>Detail</th>
                                 </tr>
                             </thead>
                             <tbody id="ed-tbl-body">
@@ -219,20 +219,6 @@
                     </div>
                 </div>
 
-                <div class="exp-assign-section" id="exp-assign-section" style="display:none;">
-                    <div class="card-title" style="margin-bottom:12px;"><i class="fa-solid fa-arrow-right-arrow-left"></i> Assign to Experiment</div>
-                    <div style="display:flex;gap:10px;flex-wrap:wrap;">
-                        <select id="ed-assign-select" style="flex:1;min-width:200px;padding:8px 12px;border-radius:8px;background:var(--bg-3);border:1px solid var(--border);color:var(--tx);font-family:var(--font-body);font-size:0.82rem;outline:none;">
-                            <option value="">Eksperimen Default (unassign)</option>
-                            {% for e in experiments %}
-                            <option value="{{ e.id }}">{{ e.name|default:"Unnamed" }}</option>
-                            {% endfor %}
-                        </select>
-                        <button onclick="assignAllToExperiment()" style="padding:8px 16px;border-radius:8px;background:linear-gradient(135deg,var(--cyan),var(--indigo));border:none;color:#fff;font-weight:600;cursor:pointer;font-size:0.82rem;">
-                            Assign All Visible
-                        </button>
-                    </div>
-                </div>
             </div>
         </section>
 
@@ -260,6 +246,57 @@
                         <button type="submit" class="exp-form-submit" id="exp-form-btn">Create</button>
                     </div>
                 </form>
+            </div>
+        </div>
+
+        <!-- ═══ MODAL: SENSOR DATA DETAIL ═══ -->
+        <div class="modal modal-sensor" id="modal-sensor-detail" onclick="closeSensorDetail()">
+            <div class="modal-box" onclick="event.stopPropagation()">
+                <button class="modal-close" onclick="closeSensorDetail()"><i class="fa-solid fa-xmark"></i></button>
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+                    <span class="sd-swatch" style="width:20px;height:20px;"></span>
+                    <h3 style="font-family:var(--font-display);font-size:1rem;font-weight:700;margin:0;">Sensor Data Detail</h3>
+                </div>
+                <p class="sd-ts" style="font-size:0.78rem;color:var(--tx-2);margin:0;"></p>
+
+                <div class="sd-grid">
+                    <div class="sd-item">
+                        <div class="sd-label">Color Temperature</div>
+                        <div class="sd-value sd-temp">—</div>
+                    </div>
+                    <div class="sd-item">
+                        <div class="sd-label">pH</div>
+                        <div class="sd-value sd-ph">—</div>
+                    </div>
+                    <div class="sd-item">
+                        <div class="sd-label">Raw Light</div>
+                        <div class="sd-value sd-rawlight">—</div>
+                    </div>
+                    <div class="sd-item">
+                        <div class="sd-label">Lux</div>
+                        <div class="sd-value sd-lux">—</div>
+                    </div>
+                    <div class="sd-item">
+                        <div class="sd-label">Raw RGB</div>
+                        <div class="sd-value sd-rgb-raw" style="font-weight:400;font-family:var(--font-mono);font-size:0.82rem;">—</div>
+                    </div>
+                    <div class="sd-item">
+                        <div class="sd-label">True RGB</div>
+                        <div class="sd-value sd-rgb-true" style="font-weight:400;font-family:var(--font-mono);font-size:0.82rem;">—</div>
+                    </div>
+                    <div class="sd-item">
+                        <div class="sd-label">Water Quality</div>
+                        <div class="sd-value sd-wq">—</div>
+                    </div>
+                    <div class="sd-item">
+                        <div class="sd-label">Status</div>
+                        <div class="sd-value sd-status pill pill-bad" style="display:inline-block;margin-top:4px;">No Data</div>
+                    </div>
+                    <div class="sd-item full" style="opacity:.6;">
+                        <div class="sd-label">Record ID</div>
+                        <div class="sd-value sd-id" style="font-family:var(--font-mono);font-size:0.82rem;font-weight:400;">—</div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -303,7 +340,7 @@
             <div class="metrics">
                 <div class="metric-card mc-temp">
                     <div>
-                        <div class="mc-label">Temperature</div>
+                        <div class="mc-label">Color Temperature</div>
                         <div class="mc-value"><span id="v-temp">—</span><span class="mc-unit">°K</span></div>
                     </div>
                     <svg class="mc-wave" viewBox="0 0 500 70" preserveAspectRatio="none">
@@ -338,7 +375,7 @@
                         <div class="rgb-chip"><span class="rgb-num" id="v-g">64</span><span class="rgb-ch cg">GRN</span></div>
                         <div class="rgb-chip"><span class="rgb-num" id="v-b">175</span><span class="rgb-ch cb">BLU</span></div>
                         <div class="rgb-chip"><span class="rgb-num" id="v-lux-chip">0</span><span class="rgb-ch" style="color:var(--amber);">LUX</span></div>
-                        <div class="rgb-chip"><span class="rgb-num" id="v-temp-chip">0</span><span class="rgb-ch" style="color:var(--rose);">TEMP</span></div>
+                        <div class="rgb-chip"><span class="rgb-num" id="v-temp-chip">0</span><span class="rgb-ch" style="color:var(--rose);">C.TEMP</span></div>
                     </div>
                 </div>
 
@@ -359,7 +396,7 @@
 
             <div class="chart-card">
                 <div class="card-head">
-                    <div class="card-title"><i class="fa-solid fa-chart-line"></i>pH & Temperature Trend</div>
+                    <div class="card-title"><i class="fa-solid fa-chart-line"></i>Sensor Output Trend — RGB, Lux & Color Temperature</div>
                     <div id="mon-exp-badge" style="display:none;">
                         <span style="font-size:0.7rem;padding:4px 10px;border-radius:20px;background:rgba(56,189,248,0.12);color:var(--cyan);border:1px solid rgba(56,189,248,0.2);white-space:nowrap;">
                             <i class="fa-solid fa-flask"></i> <span id="mon-exp-name">—</span>
@@ -401,7 +438,7 @@
                         <thead>
                             <tr>
                                 <th>Timestamp</th>
-                                <th>Temp °K</th>
+                                <th>Color Temp °K</th>
                                 <th>pH</th>
                                 <th>Red</th>
                                 <th>Green</th>

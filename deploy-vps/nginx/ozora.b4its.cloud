@@ -1,0 +1,17 @@
+server {
+    listen 80;
+    server_name ozora.b4its.cloud;
+
+    location /static/ {
+        alias /root/deploy/ozora/site/web_ozora/staticfiles/;
+    }
+
+    location /media/ {
+        alias /root/deploy/ozora/site/web_ozora/media/;
+    }
+
+    location / {
+        include proxy_params;
+        proxy_pass http://unix:/root/deploy/ozora/site/web_ozora/ozora.sock;
+    }
+}

@@ -56,7 +56,7 @@
 //  KONFIGURASI
 // ============================================================
 
-const char* AP_SSID       = "ESP32_Sensor_Color";
+const char* AP_SSID       = "ESP32_Ozora_Portal";
 const char* AP_PASSWORD   = "Admin1234";
 const char* MDNS_NAME     = "esp32sensor";
 const char* SERVER_URL    = "http://192.168.101.6:8000/api/receive-data/";
@@ -94,6 +94,7 @@ bool shouldSaveConfig       = false;
 int  reconnectAttempts      = 0;
 bool serverReady            = false;  // True setelah heartbeat pertama sukses ke server
 bool welcomeShown           = false;  // True setelah pesan "Website terhubung" ditampilkan
+int  activeExperimentId     = 0;      // Experiment room aktif (dipandu web via heartbeat); 0 = tidak ada
 unsigned long lastHeartbeat = 0;
 unsigned long lastSensor    = 0;
 unsigned long lastLcdUpdate = 0;
@@ -558,7 +559,14 @@ void sendHeartbeat() {
     if (!welcomeShown) {
       welcomeShown = true;
       Serial.println(F("[Heartbeat] Website telah berhasil terhubung, siap untuk mengirim data"));
-      lcdPrint("Website terhubung", "Siap kirim data");
+      
+      // Halaman 1
+      lcdPrint("Web Terhubung!", "Siap kirim data");
+      delay(2000); 
+
+      // Halaman 2
+      String ipLine = WiFi.localIP().toString();
+      lcdPrint("Info Jaringan:", ipLine.c_str());
       delay(1500);
     } else {
       lcdPrintf(0, "Heartbeat OK");
@@ -569,6 +577,13 @@ void sendHeartbeat() {
     String resp = http.getString();
     StaticJsonDocument<256> respDoc;
     if (!deserializeJson(respDoc, resp)) {
+      // Experiment room aktif yang dipandu dari web — dipakai saat kirim data
+      int newExp = respDoc["active_experiment"] | 0;
+      if (newExp != activeExperimentId) {
+        activeExperimentId = newExp;
+        Serial.printf("[Experiment] Aktif diperbarui dari web: %d\n", activeExperimentId);
+      }
+
       bool target = respDoc["target_status"] | false;
       if (target) requestStartup();
       else        requestShutdown();
@@ -725,6 +740,8 @@ void sendSensorData() {
     doc["blue"]      = b;
     doc["temp"]      = colorTemp;
     doc["lux"]       = lux;
+    // Tautkan data ke experiment room aktif yang dipandu web (0 = default/tanpa room)
+    if (activeExperimentId > 0) doc["experiment"] = activeExperimentId;
 
     String body;
     serializeJson(doc, body);
@@ -951,10 +968,26 @@ void loop() {
       lastSensor = now;
     }
 
-    // Selama standby (mesin OFF & server ready): tampilkan info menunggu perintah web
-    if (serverReady && machineState == MACHINE_OFF && (now - lastSensor >= SEND_INTERVAL)) {
-      lcdPrint("Standby...", "Menunggu Web ON");
-      lastSensor = now;
+    // Selama standby (mesin OFF & server ready): tampilkan info bergantian tanpa memblokir sistem
+    if (serverReady && machineState == MACHINE_OFF) {
+      // Gunakan variabel statis agar nilainya bertahan di setiap iterasi loop()
+      static unsigned long lastLcdStandbyUpdate = 0;
+      static bool showIpPage = false;
+      
+      // Ganti tampilan setiap 3 detik (3000 ms)
+      if (now - lastLcdStandbyUpdate >= 3000) { 
+        if (!showIpPage) {
+          lcdPrint("Standby...", "Menunggu Web ON");
+        } else {
+          String ipLine = WiFi.localIP().toString();
+          // "Info Jaringan:" pas 14 karakter (aman untuk LCD 16x2)
+          lcdPrint("Info Jaringan:", ipLine.c_str()); 
+        }
+        
+        // Balikkan state untuk iterasi berikutnya
+        showIpPage = !showIpPage;
+        lastLcdStandbyUpdate = now;
+      }
     }
 
     // Tampilkan status menunggu server di LCD jika belum ready

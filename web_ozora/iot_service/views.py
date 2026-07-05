@@ -121,31 +121,6 @@ def experiment_data(request, pk):
 
 
 # ============================================================
-#  ENDPOINT: Pindahkan sensor data ke experiment room
-#  PATCH /api/sensor-data/<id>/assign/
-# ============================================================
-@api_view(['PATCH'])
-@authentication_classes([TokenAuthentication])
-@permission_classes([IsAuthenticated])
-def assign_sensor_data(request, pk):
-    record = get_object_or_404(SensorData, pk=pk, user=request.user)
-    experiment_id = request.data.get('experiment_id')
-
-    if experiment_id:
-        room = get_object_or_404(ExperimentRoom, pk=experiment_id, user=request.user)
-        record.experiment = room
-    else:
-        record.experiment = None  # Kembalikan ke default
-
-    record.save()
-    return Response({
-        'status': 'success',
-        'message': f"Data {pk} dipindahkan ke {'experiment #' + str(experiment_id) if experiment_id else 'Default'}",
-        'experiment_id': experiment_id,
-    })
-
-
-# ============================================================
 #  ENDPOINT 1: Terima data sensor dari ESP32
 #  POST /api/receive-data/
 # ============================================================
@@ -155,14 +130,67 @@ def assign_sensor_data(request, pk):
 def receive_iot_data(request):
     serializer = SensorDataSerializer(data=request.data)
     if serializer.is_valid():
-        serializer.save(user=request.user)
+        # Kaitkan data ke perangkat pengirim + experiment room-nya, agar
+        # experiment room tersinkron dengan data sensor yang masuk.
+        save_kwargs = {'user': request.user}
+        device_id = (request.data.get('device_id') or '').strip()
+        device = None
+        if device_id:
+            device = IoTDevice.objects.filter(user=request.user, device_id=device_id).first()
+        if device:
+            save_kwargs['device'] = device
+
+        # Tentukan experiment:
+        #  1) dari payload IoT (dipandu frontend via heartbeat) — divalidasi milik user
+        #  2) fallback ke active_experiment perangkat
+        experiment = None
+        exp_raw = request.data.get('experiment')
+        if exp_raw not in (None, '', 0, '0'):
+            experiment = ExperimentRoom.objects.filter(pk=exp_raw, user=request.user).first()
+        if experiment is None and device and device.active_experiment_id:
+            experiment = device.active_experiment
+        if experiment:
+            save_kwargs['experiment'] = experiment
+
+        serializer.save(**save_kwargs)
         return Response({
             "status":  "success",
-            "message": f"Data diterima untuk {request.user.username}"
+            "message": f"Data diterima untuk {request.user.username}",
+            "experiment_id": experiment.id if experiment else None,
         }, status=status.HTTP_201_CREATED)
 
     print(serializer.errors)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+# ============================================================
+#  ENDPOINT: Set eksperimen aktif untuk sebuah perangkat
+#  POST /api/device/active-experiment/
+#  body: { device_id, experiment_id }  (experiment_id 0/null = kosongkan)
+# ============================================================
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def set_active_experiment(request):
+    device_id = (request.data.get('device_id') or '').strip()
+    if not device_id:
+        return Response({'error': 'device_id wajib diisi'}, status=status.HTTP_400_BAD_REQUEST)
+
+    device = get_object_or_404(IoTDevice, user=request.user, device_id=device_id)
+
+    experiment_id = request.data.get('experiment_id')
+    if experiment_id in (None, '', 0, '0'):
+        device.active_experiment = None
+    else:
+        room = get_object_or_404(ExperimentRoom, pk=experiment_id, user=request.user)
+        device.active_experiment = room
+    device.save(update_fields=['active_experiment'])
+
+    return Response({
+        'status':            'ok',
+        'device_id':         device.device_id,
+        'active_experiment': device.active_experiment_id,
+    })
 
 
 # ============================================================
@@ -196,13 +224,15 @@ def device_heartbeat(request):
     )
 
     # ESP32 akan membaca target_status dari response ini untuk menyalakan/mematikan mesin
+    # dan active_experiment untuk menandai data yang dikirim ke experiment room.
     return Response({
-        'status':        'ok',
-        'device_id':     device.device_id,
-        'target_status': device.target_status,
-        'is_sterile':    device.is_sterile,
-        'registered':    created,
-        'message':       'Device registered' if created else 'Heartbeat received'
+        'status':            'ok',
+        'device_id':         device.device_id,
+        'target_status':     device.target_status,
+        'is_sterile':        device.is_sterile,
+        'active_experiment': device.active_experiment_id or 0,
+        'registered':        created,
+        'message':           'Device registered' if created else 'Heartbeat received'
     }, status=status.HTTP_200_OK)
 
 

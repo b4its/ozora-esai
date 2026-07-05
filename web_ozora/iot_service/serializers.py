@@ -41,7 +41,9 @@ class SensorDataSerializer(serializers.ModelSerializer):
     class Meta:
         model = SensorData
         fields = ['experiment', 'raw_light', 'red', 'green', 'blue', 'temp', 'lux', 'created']
-        read_only_fields = ['created']
+        # experiment ditentukan & divalidasi di view (kepemilikan user),
+        # bukan langsung dari payload perangkat.
+        read_only_fields = ['created', 'experiment']
 
 
 class IoTDeviceSerializer(serializers.ModelSerializer):

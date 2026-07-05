@@ -243,16 +243,36 @@
     }
     @media (max-width: 640px) { .exp-detail-metrics { grid-template-columns: 1fr 1fr; gap: 10px; } }
     @media (max-width: 480px) { .exp-detail-metrics { grid-template-columns: 1fr; } }
-    .exp-assign-section {
-        background: var(--bg-1); border: 1px solid var(--border);
-        border-radius: 18px; padding: 18px 20px; margin-bottom: 20px;
+
+    .ed-detail-btn {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 32px; height: 32px; border-radius: 8px;
+        background: rgba(56,189,248,0.08); color: var(--cyan);
+        border: 1px solid rgba(56,189,248,0.2); cursor: pointer;
+        font-size: 0.85rem; transition: .2s;
     }
-    .ed-assign-chip {
-        display: inline-flex; align-items: center; gap: 6px;
-        font-size: 0.7rem; padding: 3px 8px; border-radius: 6px;
-        background: rgba(56,189,248,0.1); color: var(--cyan);
-        border: 1px solid rgba(56,189,248,0.2);
+    .ed-detail-btn:hover { background: rgba(56,189,248,0.18); }
+
+    .modal-sensor .modal-box { max-width: 520px; text-align: left; padding: 32px 28px; background: var(--bg-1); border: 1px solid var(--border-2); }
+    .modal-sensor .modal-close {
+        position: absolute; top: 14px; right: 18px;
+        background: none; border: none; color: var(--tx-3);
+        font-size: 1.2rem; cursor: pointer; transition: .2s;
     }
+    .modal-sensor .modal-close:hover { color: var(--tx); }
+    .sd-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+    .sd-item {
+        background: var(--bg-2); border: 1px solid var(--border);
+        border-radius: 10px; padding: 10px 12px;
+    }
+    .sd-item.full { grid-column: 1 / -1; }
+    .sd-label { font-size: 0.7rem; color: var(--tx-2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+    .sd-value { font-size: 1rem; font-weight: 600; color: var(--tx); }
+    .sd-swatch {
+        display: inline-block; width: 16px; height: 16px; border-radius: 50%;
+        vertical-align: middle; margin-right: 8px; border: 1px solid rgba(255,255,255,0.1);
+    }
+    @media (max-width: 480px) { .sd-grid { grid-template-columns: 1fr; } }
 
     /* ══ RESPONSIVE BREAKPOINTS ══ */
     @media (max-width: 480px) {
@@ -524,7 +544,7 @@
     .mc-speed { background:linear-gradient(145deg, #1D4ED8 0%, #6D28D9 100%); box-shadow:0 8px 32px rgba(29,78,216,0.25); }
     .mc-color { background:var(--bg-1); border:1px solid var(--border); color:var(--tx); box-shadow:0 4px 16px rgba(0,0,0,0.1); }
     .mc-timer { background:linear-gradient(145deg, #0E7490 0%, #1D4ED8 100%); box-shadow:0 8px 32px rgba(14,116,144,0.25); }
-    .mc-label { font-size:0.63rem; font-weight:700; text-transform:uppercase; letter-spacing:2px; opacity:0.7; margin-bottom:6px; }
+    .mc-label { font-size:0.63rem; font-weight:700; text-transform:uppercase; letter-spacing:2px; opacity:0.7; margin-bottom:6px; color:white}
     .mc-color .mc-label { color:var(--tx-2); opacity:1; }
     .mc-value { font-family:var(--font-mono); font-size:3rem; font-weight:500; letter-spacing:-3px; line-height:1; color:#fff; }
     .mc-unit  { font-size:0.9rem; letter-spacing:0; font-weight:600; opacity:0.75; }
@@ -576,9 +596,9 @@
     tbody tr { transition:background 0.15s; }
     tbody tr:hover { background:var(--glass-2); }
     td.ph-cell { font-weight:600; }
-    td.ph-acidic  { color:#F87171; }
-    td.ph-neutral { color:#34D399; }
-    td.ph-basic   { color:#60A5FA; }
+    .ph-acidic  { color:#F87171; }
+    .ph-neutral { color:#34D399; }
+    .ph-basic   { color:#60A5FA; }
     .pill { display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:50px; font-size:0.64rem; font-weight:700; letter-spacing:0.3px; white-space:nowrap; font-family:var(--font-body); }
     .pill-ok   { background:rgba(16,185,129,0.12); color:#10B981; }
     .pill-proc { background:rgba(56,189,248,0.12);  color:#38BDF8; }
@@ -1334,6 +1354,22 @@ function calibSkipToMonitoring() {
     initChart();
 }
 
+/* Set eksperimen aktif perangkat = eksperimen yang sedang dibuka (?experiment).
+   Membuat data sensor yang masuk otomatis tertaut ke experiment room. */
+async function syncActiveExperiment() {
+    const dev = window.activeDevice;
+    if (!dev || !dev.device_id) return;               // view-only / tanpa device: lewati
+    if (DEVICE_PK_MAP[dev.device_id] == null) return; // device belum terdaftar di DB
+    const expId = new URLSearchParams(window.location.search).get('experiment') || null;
+    try {
+        await fetch('/api/device/active-experiment/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Token ' + API_TOKEN },
+            body: JSON.stringify({ device_id: dev.device_id, experiment_id: expId })
+        });
+    } catch (e) {}
+}
+
 /* Pulihkan sesi perangkat terkalibrasi setelah reload halaman */
 function restoreDeviceSession() {
     let saved = null;
@@ -1343,6 +1379,7 @@ function restoreDeviceSession() {
         const dev = JSON.parse(saved);
         if (dev && (dev.device_id || dev.ip)) {
             connectToDevice(dev, true);   // restore: langsung ke monitoring, tanpa modal
+            syncActiveExperiment();       // tautkan data masuk ke eksperimen yang dibuka
         }
     } catch (e) {}
 }
@@ -1498,10 +1535,13 @@ const RT = (function(){
         const emptyR=document.getElementById('empty-row');
         if(emptyR) emptyR.remove();
         let added=0;
-        
+        const newRecs=[];
+
         // Panggil update UI ke kartu-kartu metrik atas (hanya record terbaru/index 0)
         updateMetricCards(records[0]);
 
+        // records terurut TERBARU→terlama. Sisipkan baris baru di ATAS
+        // (data terbaru selalu berada di posisi teratas tabel).
         records.forEach(s=>{
             if(parseInt(s.id)<=latestId) return;
             if(tbody.querySelector(`tr[data-id="${s.id}"]`)) return;
@@ -1514,23 +1554,14 @@ const RT = (function(){
                 row.classList.add('row-flash');
                 setTimeout(()=>row.classList.remove('row-flash'),1400);
             });
+            newRecs.push(s);
             added++;
-            
-            if(chart) {
-                const timeStr = s.created.substr(11,8);
-                chartData.push({
-                    time: timeStr, 
-                    ph: s.ph != null ? parseFloat(s.ph) : null, 
-                    temp: parseFloat(s.temp)
-                });
-                if(chartData.length > 30) chartData.shift();
-                
-                chart.data.labels = chartData.map(d => d.time);
-                chart.data.datasets[0].data = chartData.map(d => d.ph);
-                chart.data.datasets[1].data = chartData.map(d => d.temp);
-                chart.update('none');
-            }
         });
+
+        // Grafik: tambahkan titik secara KRONOLOGIS (lama→baru) memakai output riil
+        if(chart && newRecs.length){
+            newRecs.slice().reverse().forEach(pushChartPoint);
+        }
 
         if(records.length){
             const mx=Math.max(...records.map(s=>parseInt(s.id)));
@@ -1697,15 +1728,22 @@ const pg = {
 ───────────────────────────────────────────── */
 let chart=null, chartData=[];
 
+// Bangun titik grafik dari OUTPUT RIIL sensor (nilai mentah/raw).
+function chartPoint(d){
+    return {
+        time: (d.created || '').substr(11,8),
+        r:    parseFloat(d.red   || 0),   // Red  (raw)
+        g:    parseFloat(d.green || 0),   // Green(raw)
+        b:    parseFloat(d.blue  || 0),   // Blue (raw)
+        lux:  parseFloat(d.lux   || 0),   // Lux
+        temp: parseFloat(d.temp  || 0)    // Color Temperature (Kelvin)
+    };
+}
+
 function seedChart(){
-    chartData = DB_DATA.slice(-30).map(d=>({
-        time: d.created.substr(11,8),
-        ph:   d.ph!=null ? parseFloat(d.ph) : null,
-        temp: parseFloat(d.temp),
-        r:    parseInt(d.red||0),
-        g:    parseInt(d.green||0),
-        b:    parseInt(d.blue||0)
-    }));
+    // DB_DATA terurut TERBARU→terlama. Ambil 30 terbaru lalu balik agar
+    // grafik kronologis (kiri=lama, kanan=baru) & data terbaru selalu tampil.
+    chartData = DB_DATA.slice(0,30).reverse().map(chartPoint);
 }
 
 function initChart(){
@@ -1715,18 +1753,18 @@ function initChart(){
     const tc=cs.getPropertyValue('--tx').trim();
     const bc=cs.getPropertyValue('--border').trim();
     const bc2=cs.getPropertyValue('--border-2').trim();
-    
+
     chart = new Chart(ctx, {
         type:'line',
         data:{
             labels: chartData.map(d=>d.time),
             datasets:[
-                { label:'pH Level',       data:chartData.map(d=>d.ph),   borderColor:'#EC4899', backgroundColor:'rgba(236,72,153,0.08)', borderWidth:2.5, tension:0.4, fill:true,  pointRadius:3, pointBackgroundColor:'#EC4899', pointBorderColor:'#fff', pointBorderWidth:2, spanGaps:true, yAxisID:'y' },
-                { label:'Temperature °K', data:chartData.map(d=>d.temp), borderColor:'#F59E0B', backgroundColor:'rgba(245,158,11,0.05)',  borderWidth:2,   tension:0.4, fill:false, pointRadius:2, pointBackgroundColor:'#F59E0B', pointBorderColor:'#fff', pointBorderWidth:1.5, yAxisID:'y2', spanGaps:true },
-                // Tambahan Dataset RGB
-                { label:'Red',            data:chartData.map(d=>d.r),    borderColor:'#EF4444', backgroundColor:'transparent', borderWidth:1.5, tension:0.4, fill:false, pointRadius:0, hitRadius:5, yAxisID:'y3', spanGaps:true },
-                { label:'Green',          data:chartData.map(d=>d.g),    borderColor:'#10B981', backgroundColor:'transparent', borderWidth:1.5, tension:0.4, fill:false, pointRadius:0, hitRadius:5, yAxisID:'y3', spanGaps:true },
-                { label:'Blue',           data:chartData.map(d=>d.b),    borderColor:'#38BDF8', backgroundColor:'transparent', borderWidth:1.5, tension:0.4, fill:false, pointRadius:0, hitRadius:5, yAxisID:'y3', spanGaps:true }
+                // Output riil sensor TCS34725
+                { label:'Red',   data:chartData.map(d=>d.r),   borderColor:'#EF4444', backgroundColor:'rgba(239,68,68,0.06)',  borderWidth:2,   tension:0.4, fill:false, pointRadius:2, hitRadius:5, yAxisID:'yRaw', spanGaps:true },
+                { label:'Green', data:chartData.map(d=>d.g),   borderColor:'#10B981', backgroundColor:'rgba(16,185,129,0.06)', borderWidth:2,   tension:0.4, fill:false, pointRadius:2, hitRadius:5, yAxisID:'yRaw', spanGaps:true },
+                { label:'Blue',  data:chartData.map(d=>d.b),   borderColor:'#38BDF8', backgroundColor:'rgba(56,189,248,0.06)', borderWidth:2,   tension:0.4, fill:false, pointRadius:2, hitRadius:5, yAxisID:'yRaw', spanGaps:true },
+                { label:'Lux',   data:chartData.map(d=>d.lux), borderColor:'#F59E0B', backgroundColor:'transparent',           borderWidth:2,   tension:0.4, fill:false, pointRadius:2, hitRadius:5, yAxisID:'yRaw', borderDash:[5,3], spanGaps:true },
+                { label:'Color Temp (K)', data:chartData.map(d=>d.temp), borderColor:'#A855F7', backgroundColor:'transparent', borderWidth:2.5, tension:0.4, fill:false, pointRadius:2, hitRadius:5, yAxisID:'yK', spanGaps:true }
             ]
         },
         options:{
@@ -1736,18 +1774,29 @@ function initChart(){
                 tooltip:{ backgroundColor:'rgba(13,17,23,0.95)', titleColor:'#fff', bodyColor:'rgba(255,255,255,0.7)', borderColor:bc2, borderWidth:1, padding:12, cornerRadius:10 }
             },
             scales:{
-                // Y1: pH (Kiri)
-                y:  { position:'left', beginAtZero:false, min:5, max:13, grid:{color:bc}, ticks:{color:tc,font:{family:"'JetBrains Mono',monospace",size:11},callback:v=>v.toFixed(1)+'pH'}, title:{display:true,text:'pH Level',color:tc,font:{family:"'Space Grotesk'",size:12,weight:'600'}} },
-                // Y2: Suhu (Kanan)
-                y2: { position:'right', beginAtZero:false, min:18, max:42, grid:{drawOnChartArea:false}, ticks:{color:'#F59E0B',font:{family:"'JetBrains Mono',monospace",size:11},callback:v=>v+'°K'}, title:{display:true,text:'Temp °K',color:'#F59E0B',font:{family:"'Space Grotesk'",size:12,weight:'600'}} },
-                // Y3: RGB (Kanan, tidak ada grid agar tidak berantakan)
-                y3: { position:'right', min:0, max:260, grid:{drawOnChartArea:false}, ticks:{color:tc,font:{family:"'JetBrains Mono',monospace",size:10}}, title:{display:true,text:'RGB (0-255)',color:tc,font:{family:"'Space Grotesk'",size:11,weight:'600'}} },
+                // Kiri: nilai mentah RGB & Lux
+                yRaw: { position:'left', beginAtZero:true, grid:{color:bc}, ticks:{color:tc,font:{family:"'JetBrains Mono',monospace",size:11}}, title:{display:true,text:'RGB / Lux (raw)',color:tc,font:{family:"'Space Grotesk'",size:12,weight:'600'}} },
+                // Kanan: Color Temperature (Kelvin)
+                yK:   { position:'right', beginAtZero:false, grid:{drawOnChartArea:false}, ticks:{color:'#A855F7',font:{family:"'JetBrains Mono',monospace",size:11},callback:v=>v+'K'}, title:{display:true,text:'Color Temp (K)',color:'#A855F7',font:{family:"'Space Grotesk'",size:12,weight:'600'}} },
                 // X: Waktu
-                x:  { grid:{color:bc}, ticks:{color:tc,font:{family:"'JetBrains Mono',monospace",size:10},maxRotation:45}, title:{display:true,text:'Time',color:tc,font:{family:"'Space Grotesk'",size:12,weight:'600'}} }
+                x:    { grid:{color:bc}, ticks:{color:tc,font:{family:"'JetBrains Mono',monospace",size:10},maxRotation:45}, title:{display:true,text:'Time',color:tc,font:{family:"'Space Grotesk'",size:12,weight:'600'}} }
             },
             interaction:{ intersect:false, mode:'index' }
         }
     });
+}
+
+function pushChartPoint(d){
+    if(!chart) return;
+    chartData.push(chartPoint(d));
+    if(chartData.length > 30) chartData.shift();
+    chart.data.labels           = chartData.map(p=>p.time);
+    chart.data.datasets[0].data = chartData.map(p=>p.r);
+    chart.data.datasets[1].data = chartData.map(p=>p.g);
+    chart.data.datasets[2].data = chartData.map(p=>p.b);
+    chart.data.datasets[3].data = chartData.map(p=>p.lux);
+    chart.data.datasets[4].data = chartData.map(p=>p.temp);
+    chart.update('none');
 }
 
 function updateChartTheme(){
@@ -1756,8 +1805,7 @@ function updateChartTheme(){
     const tc=cs.getPropertyValue('--tx').trim();
     const bc=cs.getPropertyValue('--border').trim();
     chart.options.plugins.legend.labels.color=tc;
-    // Tambahkan y3 agar temanya ikut berubah
-    ['x','y','y3'].forEach(a=>{ chart.options.scales[a].grid.color=bc; chart.options.scales[a].ticks.color=tc; chart.options.scales[a].title.color=tc; });
+    ['x','yRaw','yK'].forEach(a=>{ chart.options.scales[a].grid.color=bc; chart.options.scales[a].ticks.color=tc; chart.options.scales[a].title.color=tc; });
     chart.update('none');
 }
 window.addEventListener('resize',()=>{ if(chart) chart.resize(); });
@@ -2093,7 +2141,7 @@ async function refreshExperiments() {
         cardsHtml += data.experiments.map(e => `
             <div class="experiment-card ${e.id == currentExp ? 'active' : ''}" data-exp-id="${e.id}">
                 <div class="card-actions">
-                    <button class="exp-action-btn view" onclick="showExpDetail(${e.id}, '${e.name.replace(/'/g, "\\'") || 'Unnamed'}')" title="View Data">
+                    <button class="exp-action-btn view" onclick="showExpDetail(${e.id}, '${escJsStr(e.name) || 'Unnamed'}')" title="View Data">
                         <i class="fa-solid fa-eye"></i>
                     </button>
                     <button class="exp-action-btn edit" onclick="event.stopPropagation(); editExp(${e.id})" title="Edit">
@@ -2103,7 +2151,7 @@ async function refreshExperiments() {
                         <i class="fa-solid fa-trash-can"></i>
                     </button>
                 </div>
-                <h3><i class="fa-solid fa-flask" style="color:var(--cyan);font-size:0.9rem;"></i> ${e.name || 'Unnamed Experiment'}</h3>
+                <h3><i class="fa-solid fa-flask" style="color:var(--cyan);font-size:0.9rem;"></i> ${escJsStr(e.name) || 'Unnamed Experiment'}</h3>
                 <div class="meta">
                     <span><i class="fa-solid fa-microchip"></i> ${e.device_name || 'No Device'}</span>
                 </div>
@@ -2151,6 +2199,17 @@ async function updateDefaultCount() {
 }
 
 /* ─────────────────────────────────────────────
+   HELPER: Escape string for JS single-quoted literal
+───────────────────────────────────────────── */
+function escJsStr(s) {
+    return (s == null ? '' : String(s))
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, "\\'")
+        .replace(/\n/g, '\\n')
+        .replace(/\r/g, '\\r');
+}
+
+/* ─────────────────────────────────────────────
    EXPERIMENT DETAIL VIEW
 ───────────────────────────────────────────── */
 let currentExpId = null;
@@ -2188,8 +2247,9 @@ const edPg = {
             const dash='<span style="opacity:.3;">—</span>';
             const phVal=d.ph!=null?parseFloat(d.ph):null;
             const phTd=phVal!=null?`<span class="${phClass(phVal)}">${phVal.toFixed(2)}</span>`:dash;
-            const wqLabel=hasColor?`<span style="display:inline-flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:50%;background:rgb(${r},${g},${b});flex-shrink:0;display:inline-block;"></span> ${wqLabel(r,g,b)}</span>`:dash;
+            const wqLabelHtml=hasColor?`<span style="display:inline-flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:50%;background:rgb(${r},${g},${b});flex-shrink:0;display:inline-block;"></span> ${wqLabel(r,g,b)}</span>`:dash;
             const status=hasColor?(isPure(r,g,b)?'<span class="pill pill-ok">Purified ✓</span>':'<span class="pill pill-proc">On Process</span>'):'<span class="pill pill-bad">No Data</span>';
+            const dStr=encodeURIComponent(JSON.stringify(d));
             html+=`<tr>
                 <td>${d.created}</td>
                 <td>${d.temp!=null?parseFloat(d.temp).toFixed(2):dash}</td>
@@ -2198,13 +2258,9 @@ const edPg = {
                 <td>${hasColor?g:dash}</td>
                 <td>${hasColor?b:dash}</td>
                 <td>${d.lux!=null?parseFloat(d.lux).toFixed(1):dash}</td>
-                <td style="font-family:var(--font-body);font-size:0.78rem;">${wqLabel}</td>
+                <td style="font-family:var(--font-body);font-size:0.78rem;">${wqLabelHtml}</td>
                 <td>${status}</td>
-                <td>
-                    <button class="ed-assign-chip" onclick="assignSingleData(${d.id})" title="Assign to experiment">
-                        <i class="fa-solid fa-tag"></i> ${currentExpId===0?'Assign':'Move'}
-                    </button>
-                </td>
+                <td><button class="ed-detail-btn" data-sensor='${dStr}' onclick="showSensorDetail(this)"><i class="fa-solid fa-eye"></i></button></td>
             </tr>`;
         });
         tbody.innerHTML=html;
@@ -2235,6 +2291,45 @@ const edPg = {
     }
 };
 
+function showSensorDetail(btn) {
+    const d = JSON.parse(decodeURIComponent(btn.dataset.sensor));
+    if (!d) { iziToast.error({ title:'Error', message:'Sensor data not found', position:'topRight' }); return; }
+    const rawR = parseFloat(d.red||0), rawG = parseFloat(d.green||0), rawB = parseFloat(d.blue||0);
+    const hasColor = d.red && d.green && d.blue;
+    let r=0,g=0,b=0;
+    if (hasColor) { const tc = getTrueColor(rawR,rawG,rawB); r=tc.r; g=tc.g; b=tc.b; }
+    const phVal = d.ph != null ? parseFloat(d.ph) : null;
+    const wq = hasColor ? wqLabel(r,g,b) : '—';
+    const status = hasColor ? (isPure(r,g,b) ? 'Purified ✓' : 'On Process') : 'No Data';
+    const statusClass = hasColor ? (isPure(r,g,b) ? 'pill-ok' : 'pill-proc') : 'pill-bad';
+
+    const el = document.getElementById('modal-sensor-detail');
+    el.querySelector('.sd-ts').textContent = d.created;
+    el.querySelector('.sd-temp').textContent = d.temp != null ? parseFloat(d.temp).toFixed(2) + ' °K' : '—';
+    el.querySelector('.sd-ph').textContent = phVal != null ? phVal.toFixed(2) : '—';
+    el.querySelector('.sd-ph').className = 'sd-value' + (phVal != null ? ' ' + phClass(phVal) : '');
+    el.querySelector('.sd-rawlight').textContent = d.raw_light != null ? parseFloat(d.raw_light).toFixed(2) : '—';
+    el.querySelector('.sd-lux').textContent = d.lux != null ? parseFloat(d.lux).toFixed(1) + ' lx' : '—';
+    el.querySelector('.sd-rgb-raw').textContent = hasColor ? `${rawR.toFixed(0)}, ${rawG.toFixed(0)}, ${rawB.toFixed(0)}` : '—';
+    el.querySelector('.sd-rgb-true').textContent = hasColor ? `${r}, ${g}, ${b}` : '—';
+    el.querySelector('.sd-id').textContent = d.id;
+
+    const swatch = el.querySelector('.sd-swatch');
+    if (hasColor) { swatch.style.display = 'inline-block'; swatch.style.background = `rgb(${r},${g},${b})`; }
+    else swatch.style.display = 'none';
+    el.querySelector('.sd-wq').textContent = wq;
+
+    const statusEl = el.querySelector('.sd-status');
+    statusEl.textContent = status;
+    statusEl.className = 'sd-value ' + statusClass;
+
+    el.classList.add('on');
+}
+
+function closeSensorDetail() {
+    document.getElementById('modal-sensor-detail').classList.remove('on');
+}
+
 async function showExpDetail(id, name) {
     currentExpId = id;
     currentExpName = name;
@@ -2242,13 +2337,9 @@ async function showExpDetail(id, name) {
     document.getElementById('exp-detail-sub').textContent = id===0 ? 'Unassigned sensor data' : `Experiment #${id} sensor data`;
     document.getElementById('ed-table-title').textContent = `Sensor Data - ${name}`;
 
-    // Show/hide monitoring button and assign section
+    // Show/hide monitoring button
     const monBtn = document.getElementById('exp-detail-mon-btn');
-    monBtn.style.display = id!==0 ? 'inline-flex' : 'none';
-    document.getElementById('exp-assign-section').style.display = id===0 ? 'flex' : 'none';
-
-    // Reset select to default
-    document.getElementById('ed-assign-select').value = '';
+    if (monBtn) monBtn.style.display = id!==0 ? 'inline-flex' : 'none';
 
     switchView('exp-detail');
 
@@ -2256,11 +2347,20 @@ async function showExpDetail(id, name) {
         const res = await fetch(`/api/experiments/${id}/data/`, {
             headers: { 'Authorization': 'Token ' + API_TOKEN }
         });
-        if (!res.ok) throw new Error('Failed');
+        if (!res.ok) {
+            const errBody = await res.json().catch(() => ({}));
+            const detail = errBody.detail || errBody.message || `HTTP ${res.status}`;
+            throw new Error(detail);
+        }
         const data = await res.json();
 
         // Update metric cards
         const records = data.sensor_data || [];
+
+        if (!edPg) {
+            iziToast.error({ title: 'Error', message: 'Pagination not initialized', position: 'topRight' });
+            return;
+        }
         edPg.setData(records);
         document.getElementById('ed-total-records').textContent = records.length;
 
@@ -2280,8 +2380,12 @@ async function showExpDetail(id, name) {
                 document.getElementById('ed-color-name').textContent = wqLabel(tc.r, tc.g, tc.b);
             }
         }
-    } catch {
-        iziToast.error({ title: 'Error', message: 'Failed to load experiment data', position: 'topRight' });
+    } catch (e) {
+        const msg = e.message || 'Unknown error';
+        console.error('showExpDetail error:', msg);
+        if (window.iziToast) {
+            iziToast.error({ title: 'Gagal Muat Data', message: msg, position: 'topRight' });
+        }
     }
 }
 
@@ -2289,58 +2393,6 @@ function goToMonitoringView() {
     const url = new URL(window.location);
     url.searchParams.set('experiment', currentExpId);
     window.location.href = url.toString();
-}
-
-async function assignSingleData(id) {
-    const newExpId = document.getElementById('ed-assign-select').value;
-    const targetId = newExpId ? parseInt(newExpId) : null;
-
-    try {
-        const res = await fetch(`/api/sensor-data/${id}/assign/`, {
-            method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Token ' + API_TOKEN
-            },
-            body: JSON.stringify({ experiment_id: targetId })
-        });
-        if (res.ok) {
-            iziToast.success({ title: 'Assigned', message: 'Data point moved', position: 'topRight' });
-            // Refresh the detail view
-            showExpDetail(currentExpId, currentExpName);
-            refreshExperiments();
-        } else {
-            const err = await res.json();
-            iziToast.error({ title: 'Error', message: err.message || 'Failed', position: 'topRight' });
-        }
-    } catch { iziToast.error({ title: 'Error', message: 'Network error', position: 'topRight' }); }
-}
-
-async function assignAllToExperiment() {
-    const newExpId = document.getElementById('ed-assign-select').value;
-    const targetId = newExpId ? parseInt(newExpId) : null;
-    const records = edPg.data;
-
-    if (!records.length) return;
-    let success = 0;
-
-    for (const r of records) {
-        try {
-            const res = await fetch(`/api/sensor-data/${r.id}/assign/`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Token ' + API_TOKEN
-                },
-                body: JSON.stringify({ experiment_id: targetId })
-            });
-            if (res.ok) success++;
-        } catch {}
-    }
-
-    iziToast.success({ title: 'Done', message: `${success} of ${records.length} data points assigned`, position: 'topRight' });
-    showExpDetail(currentExpId, currentExpName);
-    refreshExperiments();
 }
 
 /* ─────────────────────────────────────────────

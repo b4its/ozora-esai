@@ -7,9 +7,6 @@ urlpatterns = [
     path('experiments/<int:pk>/',    views.experiment_detail,   name='experimentDetail'),
     path('experiments/<int:pk>/data/', views.experiment_data,   name='experimentData'),
 
-    # Assign sensor data to experiment
-    path('sensor-data/<int:pk>/assign/', views.assign_sensor_data, name='assignSensorData'),
-
     # Data sensor dari ESP32
     path('receive-data/',      views.receive_iot_data, name='receiveData'),
 
@@ -20,6 +17,9 @@ urlpatterns = [
 
     # ENDPOINT BARU UNTUK KONTROL DARI WEB
     path('device/control/',        views.toggle_device_status, name='deviceControl'),
+
+    # Eksperimen aktif per-device (auto-tag data masuk)
+    path('device/active-experiment/', views.set_active_experiment, name='setActiveExperiment'),
 
     # ENDPOINT STERIL / AUTO-OFF
     path('device/sterile-check/',  views.sterile_check,  name='sterileCheck'),
