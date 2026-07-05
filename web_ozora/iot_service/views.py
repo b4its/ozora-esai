@@ -10,8 +10,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 
-from .serializers import SensorDataSerializer, IoTDeviceSerializer
-from .models import SensorData, IoTDevice
+from .serializers import SensorDataSerializer, IoTDeviceSerializer, ExperimentRoomSerializer, ExperimentDataSerializer
+from .models import SensorData, IoTDevice, ExperimentRoom
 
 
 # ============================================================
@@ -44,6 +44,105 @@ def calculate_ph(red, green, blue, temp, lux):
     final_ph        = estimated_ph + temp_correction
 
     return round(max(0, min(14, final_ph)), 2)
+
+
+# ============================================================
+#  EXPERIMENT ROOM CRUD
+# ============================================================
+@api_view(['GET', 'POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def experiment_list(request):
+    if request.method == 'GET':
+        rooms = ExperimentRoom.objects.filter(user=request.user).order_by('-created')
+        serializer = ExperimentRoomSerializer(rooms, many=True)
+        return Response({'experiments': serializer.data})
+    
+    elif request.method == 'POST':
+        serializer = ExperimentRoomSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(user=request.user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET', 'PUT', 'DELETE'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def experiment_detail(request, pk):
+    room = get_object_or_404(ExperimentRoom, pk=pk, user=request.user)
+
+    if request.method == 'GET':
+        serializer = ExperimentRoomSerializer(room)
+        return Response(serializer.data)
+
+    elif request.method == 'PUT':
+        serializer = ExperimentRoomSerializer(room, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    elif request.method == 'DELETE':
+        room.delete()
+        return Response({'status': 'deleted'}, status=status.HTTP_204_NO_CONTENT)
+
+
+# ============================================================
+#  ENDPOINT: Lihat data sensor milik experiment room
+#  GET /api/experiments/<id>/data/
+#  GET /api/experiments/0/data/  -> data yang tidak punya experiment (default)
+# ============================================================
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def experiment_data(request, pk):
+    queryset = SensorData.objects.filter(user=request.user)
+
+    pk = int(pk)
+    if pk == 0:
+        # Virtual "Default" experiment: data tanpa experiment
+        queryset = queryset.filter(experiment__isnull=True)
+        exp_name = "Eksperimen Default"
+    else:
+        room = get_object_or_404(ExperimentRoom, pk=pk, user=request.user)
+        queryset = queryset.filter(experiment=room)
+        exp_name = room.name or "Unnamed"
+
+    queryset = queryset.order_by('-created')[:200]
+
+    serializer = ExperimentDataSerializer(queryset, many=True)
+    return Response({
+        'experiment_id':   pk if pk != 0 else None,
+        'experiment_name': exp_name,
+        'sensor_data':     serializer.data,
+        'count':           len(serializer.data),
+    })
+
+
+# ============================================================
+#  ENDPOINT: Pindahkan sensor data ke experiment room
+#  PATCH /api/sensor-data/<id>/assign/
+# ============================================================
+@api_view(['PATCH'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def assign_sensor_data(request, pk):
+    record = get_object_or_404(SensorData, pk=pk, user=request.user)
+    experiment_id = request.data.get('experiment_id')
+
+    if experiment_id:
+        room = get_object_or_404(ExperimentRoom, pk=experiment_id, user=request.user)
+        record.experiment = room
+    else:
+        record.experiment = None  # Kembalikan ke default
+
+    record.save()
+    return Response({
+        'status': 'success',
+        'message': f"Data {pk} dipindahkan ke {'experiment #' + str(experiment_id) if experiment_id else 'Default'}",
+        'experiment_id': experiment_id,
+    })
 
 
 # ============================================================
@@ -101,6 +200,7 @@ def device_heartbeat(request):
         'status':        'ok',
         'device_id':     device.device_id,
         'target_status': device.target_status,
+        'is_sterile':    device.is_sterile,
         'registered':    created,
         'message':       'Device registered' if created else 'Heartbeat received'
     }, status=status.HTTP_200_OK)
@@ -120,12 +220,98 @@ def toggle_device_status(request):
 
     device = get_object_or_404(IoTDevice, user=request.user, device_id=device_id)
     device.target_status = new_status
+    # Kalau dinyalakan kembali manual, reset status steril supaya bisa deteksi ulang
+    if new_status:
+        device.is_sterile = False
+        device.sterile_current_count = 0
     device.save()
 
     return Response({
         'status': 'success',
         'message': f"Device {device_id} diset ke {'ON' if new_status else 'OFF'}",
         'target_status': device.target_status
+    })
+
+
+# ============================================================
+#  ENDPOINT BARU: ESP32 kirim data sensor untuk cek steril
+#  POST /api/device/sterile-check/
+#  Dipanggil firmware setelah kirim data sensor.
+#  Response berisi apakah mesin harus mati.
+# ============================================================
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def sterile_check(request):
+    device_id = request.data.get('device_id', '').strip()
+    if not device_id:
+        return Response({'error': 'device_id wajib diisi'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        red       = float(request.data.get('red',       0))
+        green     = float(request.data.get('green',     0))
+        blue      = float(request.data.get('blue',      0))
+        lux       = float(request.data.get('lux',       0))
+        raw_light = float(request.data.get('raw_light', 0))
+    except (TypeError, ValueError):
+        return Response({'error': 'Data sensor tidak valid'}, status=status.HTTP_400_BAD_REQUEST)
+
+    device = get_object_or_404(IoTDevice, user=request.user, device_id=device_id)
+
+    just_sterile = device.check_sterile(red, green, blue, lux, raw_light)
+
+    return Response({
+        'status':          'ok',
+        'device_id':       device.device_id,
+        'target_status':   device.target_status,
+        'is_sterile':      device.is_sterile,
+        'just_triggered':  just_sterile,        # True = baru saja mencapai threshold
+        'confirm_count':   device.sterile_current_count,
+        'confirm_needed':  device.sterile_confirm_count,
+        'message':         'Air sudah jernih! Mesin dimatikan.' if just_sterile else
+                           f'Belum jernih ({device.sterile_current_count}/{device.sterile_confirm_count})',
+    }, status=status.HTTP_200_OK)
+
+
+# ============================================================
+#  ENDPOINT BARU: Konfigurasi threshold steril dari dashboard
+#  PATCH /api/device/sterile-config/
+# ============================================================
+@api_view(['GET', 'PATCH'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def sterile_config(request):
+    device_id = request.query_params.get('device_id') or request.data.get('device_id')
+    device = get_object_or_404(IoTDevice, user=request.user, device_id=device_id)
+
+    if request.method == 'GET':
+        return Response({
+            'device_id':            device.device_id,
+            'sterile_lux_min':      device.sterile_lux_min,
+            'sterile_raw_min':      device.sterile_raw_min,
+            'sterile_balance_max':  device.sterile_balance_max,
+            'sterile_confirm_count': device.sterile_confirm_count,
+            'is_sterile':           device.is_sterile,
+            'sterile_current_count': device.sterile_current_count,
+        })
+
+    # PATCH: update threshold
+    fields = ['sterile_lux_min', 'sterile_raw_min', 'sterile_balance_max', 'sterile_confirm_count']
+    updated = []
+    for field in fields:
+        if field in request.data:
+            setattr(device, field, float(request.data[field]))
+            updated.append(field)
+    if updated:
+        device.save(update_fields=updated)
+
+    return Response({
+        'status':  'updated',
+        'updated': updated,
+        'sterile_lux_min':       device.sterile_lux_min,
+        'sterile_raw_min':       device.sterile_raw_min,
+        'sterile_balance_max':   device.sterile_balance_max,
+        'sterile_confirm_count': device.sterile_confirm_count,
     })
 
 
@@ -150,7 +336,10 @@ def devices_online(request):
         'ssid':               d.ssid,
         'rssi':               d.rssi,
         'firmware':           d.firmware,
-        'target_status':      d.target_status, 
+        'target_status':      d.target_status,
+        'is_sterile':         d.is_sterile,
+        'sterile_current_count': d.sterile_current_count,
+        'sterile_confirm_count': d.sterile_confirm_count,
         'last_seen':          d.last_seen.strftime('%H:%M:%S'),
         'seconds_since_seen': d.seconds_since_seen,
         'source':             'registry',

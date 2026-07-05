@@ -13,19 +13,291 @@
                     </button>
                 </div>
                 <p class="connect-hint" id="conn-hint">Click to scan for IoT devices</p>
+
+                <!-- ═══ API TOKEN — salin penuh untuk portal ESP32 (desktop & mobile) ═══ -->
+                <div class="token-panel">
+                    <div class="token-panel-head">
+                        <span><i class="fa-solid fa-key" style="color:var(--cyan);margin-right:6px;"></i>API Token</span>
+                        <button type="button" class="token-reveal-btn" onclick="toggleTokenReveal()" id="token-reveal-btn" title="Tampilkan / sembunyikan token">
+                            <i class="fa-regular fa-eye" id="token-reveal-ico"></i>
+                        </button>
+                    </div>
+                    <p class="token-panel-sub">Paste token ini ke portal WiFi ESP32 untuk mengkalibrasikan perangkat dengan akun Anda.</p>
+                    <div class="token-input-row">
+                        <input type="password" id="token-field" class="token-field" value="{{ api_token }}" readonly onclick="this.type='text';this.select();">
+                        <button type="button" class="token-copy-btn" onclick="copyApiToken()" title="Salin token">
+                            <i class="fa-regular fa-copy"></i>
+                        </button>
+                    </div>
+                    <button type="button" class="token-copy-fmt" onclick="copyApiTokenPrefixed()">
+                        <i class="fa-solid fa-clipboard-check"></i> Salin format IoT (Token …)
+                    </button>
+                </div>
             </div>
         </section>
+
+        <section id="view-experiments" class="view">
+            <div class="experiment-stage">
+                <div class="experiment-header">
+                    <div>
+                        <h2>Experiment Rooms</h2>
+                        <p>Manage your experiment sessions and view sensor data</p>
+                    </div>
+                    <button class="create-exp-btn" onclick="openExpForm()">
+                        <i class="fa-solid fa-plus"></i> New Experiment
+                    </button>
+                </div>
+
+                <div class="experiment-grid" id="experiment-grid">
+                    <!-- Default Experiment Card (data tanpa experiment) -->
+                    <div class="experiment-card" data-exp-id="0"
+                         style="border-color:var(--border);border-style:dashed;">
+                        <div class="card-actions">
+                            <button class="exp-action-btn view" onclick="showExpDetail(0, 'Eksperimen Default')" title="View Data">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+                        </div>
+                        <h3><i class="fa-solid fa-inbox" style="color:var(--amber);font-size:0.9rem;"></i> Eksperimen Default</h3>
+                        <div class="meta">
+                            <span><i class="fa-solid fa-database"></i> Unassigned sensor data</span>
+                        </div>
+                        <div class="stats">
+                            <div class="stat-item">
+                                <span class="stat-num" id="default-count">{{ default_count }}</span>
+                                <span class="stat-label">Records</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% for e in experiments %}
+                    <div class="experiment-card" data-exp-id="{{ e.id }}">
+                        <div class="card-actions">
+                            <button class="exp-action-btn view" onclick="showExpDetail({{ e.id }}, '{{ e.name|escapejs|default:'Unnamed' }}')" title="View Data">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+                            <button class="exp-action-btn edit" onclick="event.stopPropagation(); editExp({{ e.id }})" title="Edit">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+                            <button class="exp-action-btn" onclick="event.stopPropagation(); deleteExp({{ e.id }})" title="Delete">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                        <h3><i class="fa-solid fa-flask" style="color:var(--cyan);font-size:0.9rem;"></i> {{ e.name|default:"Unnamed Experiment" }}</h3>
+                        <div class="meta">
+                            <span><i class="fa-solid fa-microchip"></i> {{ e.device_id.device_name|default:"No Device" }}</span>
+                            <span><i class="fa-solid fa-calendar"></i> {{ e.created|date:"Y-m-d H:i" }}</span>
+                        </div>
+                        <div class="stats">
+                            <div class="stat-item">
+                                <span class="stat-num">{{ e.experiment_sensor.count }}</span>
+                                <span class="stat-label">Records</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="exp-empty">
+                        <i class="fa-solid fa-flask"></i>
+                        <h3>No Experiments Yet</h3>
+                        <p>Create your first experiment room to start organizing sensor data</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+
+        <!-- ═══ EXPERIMENT DETAIL VIEW ═══ -->
+        <section id="view-exp-detail" class="view">
+            <div class="exp-detail-stage">
+                <div class="exp-detail-header">
+                    <button class="exp-back-btn" onclick="switchView('experiments')">
+                        <i class="fa-solid fa-arrow-left"></i> Back
+                    </button>
+                    <div>
+                        <h2 id="exp-detail-title">Experiment</h2>
+                        <p id="exp-detail-sub">Sensor data overview</p>
+                    </div>
+                    <div class="exp-detail-actions">
+                        <button class="exp-filter-btn" id="exp-detail-mon-btn" onclick="goToMonitoringView()" style="display:none;">
+                            <i class="fa-solid fa-chart-line"></i> View in Monitoring
+                        </button>
+                    </div>
+                </div>
+
+                <div class="exp-detail-metrics" id="exp-detail-metrics">
+                    <div class="metric-card mc-temp">
+                        <div>
+                            <div class="mc-label">Temperature</div>
+                            <div class="mc-value"><span id="ed-temp">—</span><span class="mc-unit">°K</span></div>
+                        </div>
+                    </div>
+                    <div class="metric-card mc-ph">
+                        <div>
+                            <div class="mc-label">pH Level</div>
+                            <div class="mc-value"><span id="ed-ph">—</span><span class="mc-unit"> pH</span></div>
+                        </div>
+                    </div>
+                    <div class="metric-card mc-color" style="display:flex;flex-direction:column;">
+                        <div class="mc-label" style="color:var(--tx-2);">Latest Water Quality</div>
+                        <div class="color-name-txt" id="ed-color-name">—</div>
+                        <div class="color-bar" id="ed-color-bar" style="background:rgb(30,64,175);height:40px;"></div>
+                        <div class="rgb-row">
+                            <div class="rgb-chip"><span class="rgb-num" id="ed-r">—</span><span class="rgb-ch cr">RED</span></div>
+                            <div class="rgb-chip"><span class="rgb-num" id="ed-g">—</span><span class="rgb-ch cg">GRN</span></div>
+                            <div class="rgb-chip"><span class="rgb-num" id="ed-b">—</span><span class="rgb-ch cb">BLU</span></div>
+                            <div class="rgb-chip"><span class="rgb-num" id="ed-lux">—</span><span class="rgb-ch" style="color:var(--amber);">LUX</span></div>
+                            <div class="rgb-chip"><span class="rgb-num" id="ed-temp-chip">—</span><span class="rgb-ch" style="color:var(--rose);">TEMP</span></div>
+                        </div>
+                    </div>
+                    <div class="metric-card mc-timer">
+                        <div>
+                            <div class="mc-label">Total Records</div>
+                            <div class="timer-big" id="ed-total-records" style="font-size:2rem;">0</div>
+                            <div class="timer-sub">Data points collected</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="log-card" style="margin-bottom:20px;">
+                    <div class="log-head">
+                        <div class="log-head-left">
+                            <div class="card-title"><i class="fa-solid fa-database"></i> <span id="ed-table-title">Sensor Data</span></div>
+                            <div class="rt-badge live" id="ed-rt-badge">
+                                <div class="rt-dot" id="ed-rt-dot"></div>
+                                <span id="ed-rt-lbl">LOADED</span>
+                            </div>
+                        </div>
+                        <div class="log-head-right">
+                            <div class="rpp-sel">
+                                <label for="ed-rpp">Rows:</label>
+                                <select id="ed-rpp" onchange="edPg.setPerPage(+this.value)">
+                                    <option value="5">5</option>
+                                    <option value="10" selected>10</option>
+                                    <option value="25">25</option>
+                                    <option value="50">50</option>
+                                </select>
+                            </div>
+                            <div class="tbl-meta" id="ed-tbl-meta">0 records</div>
+                        </div>
+                    </div>
+                    <div class="tbl-scroll">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Temp °K</th>
+                                    <th>pH</th>
+                                    <th>Red</th>
+                                    <th>Green</th>
+                                    <th>Blue</th>
+                                    <th>Lux</th>
+                                    <th>Water Quality</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ed-tbl-body">
+                                <tr id="ed-empty-row">
+                                    <td colspan="10">
+                                        <div class="empty-state">
+                                            <i class="fa-solid fa-wave-square"></i>
+                                            <p>No sensor data in this experiment</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="pg-bar" id="ed-pg-bar" style="display:none;">
+                        <div class="pg-info" id="ed-pg-info"></div>
+                        <div class="pg-btns">
+                            <button class="pbt" id="ed-pg-first" onclick="edPg.go(1)"       title="First"><i class="fa-solid fa-angles-left"></i></button>
+                            <button class="pbt" id="ed-pg-prev"  onclick="edPg.go(edPg.p-1)"  title="Prev"><i class="fa-solid fa-angle-left"></i></button>
+                            <div id="ed-pg-nums" style="display:flex;gap:3px;"></div>
+                            <button class="pbt" id="ed-pg-next"  onclick="edPg.go(edPg.p+1)"  title="Next"><i class="fa-solid fa-angle-right"></i></button>
+                            <button class="pbt" id="ed-pg-last"  onclick="edPg.go(edPg.tot)"  title="Last"><i class="fa-solid fa-angles-right"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="exp-assign-section" id="exp-assign-section" style="display:none;">
+                    <div class="card-title" style="margin-bottom:12px;"><i class="fa-solid fa-arrow-right-arrow-left"></i> Assign to Experiment</div>
+                    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                        <select id="ed-assign-select" style="flex:1;min-width:200px;padding:8px 12px;border-radius:8px;background:var(--bg-3);border:1px solid var(--border);color:var(--tx);font-family:var(--font-body);font-size:0.82rem;outline:none;">
+                            <option value="">Eksperimen Default (unassign)</option>
+                            {% for e in experiments %}
+                            <option value="{{ e.id }}">{{ e.name|default:"Unnamed" }}</option>
+                            {% endfor %}
+                        </select>
+                        <button onclick="assignAllToExperiment()" style="padding:8px 16px;border-radius:8px;background:linear-gradient(135deg,var(--cyan),var(--indigo));border:none;color:#fff;font-weight:600;cursor:pointer;font-size:0.82rem;">
+                            Assign All Visible
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Experiment Form Modal -->
+        <div class="exp-form-overlay" id="exp-form-overlay">
+            <div class="exp-form-box">
+                <h3 id="exp-form-title">New Experiment</h3>
+                <form id="exp-form" onsubmit="saveExp(event)">
+                    <input type="hidden" id="exp-id" value="">
+                    <div class="exp-form-group">
+                        <label for="exp-name">Experiment Name</label>
+                        <input type="text" id="exp-name" placeholder="e.g. Batch Treatment #1" required>
+                    </div>
+                    <div class="exp-form-group">
+                        <label for="exp-device">Device</label>
+                        <select id="exp-device">
+                            <option value="">No device (optional)</option>
+                            {% for d in user_devices %}
+                            <option value="{{ d.pk }}">{{ d.device_name }} ({{ d.device_id }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="exp-form-actions">
+                        <button type="button" class="exp-form-cancel" onclick="closeExpForm()">Cancel</button>
+                        <button type="submit" class="exp-form-submit" id="exp-form-btn">Create</button>
+                    </div>
+                </form>
+            </div>
+        </div>
 
         <section id="view-monitoring" class="view">
 
             <div class="proc-bar">
                 <div class="proc-bar-info">
                     <h3>Treatment Process Control</h3>
-                    <p>Toggle real-time wastewater treatment monitoring</p>
+                    <p id="mon-status-text">Real-time monitoring — <span style="color:var(--tx-3);">no device connected</span></p>
                 </div>
-                <button id="proc-btn" class="proc-btn proc-standby" onclick="toggleProcess()">
-                    <i class="fa-solid fa-power-off"></i>
-                </button>
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                    <span id="mon-device-badge" style="display:none;font-size:0.7rem;padding:4px 10px;border-radius:20px;background:rgba(16,185,129,0.12);color:var(--emerald);white-space:nowrap;">
+                        <i class="fa-solid fa-link"></i> <span id="mon-device-name">—</span>
+                    </span>
+
+                    <!-- Badge status steril -->
+                    <span id="sterile-badge" style="display:none;font-size:0.7rem;padding:4px 12px;border-radius:20px;font-weight:700;letter-spacing:0.5px;white-space:nowrap;">
+                        <i class="fa-solid fa-droplet" id="sterile-badge-ico"></i>
+                        <span id="sterile-badge-txt">Checking…</span>
+                    </span>
+
+                    <!-- Progress jernih -->
+                    <span id="sterile-progress" style="display:none;font-size:0.7rem;padding:4px 10px;border-radius:20px;background:rgba(56,189,248,0.1);color:var(--cyan);border:1px solid rgba(56,189,248,0.2);white-space:nowrap;font-family:var(--font-mono);">
+                        <i class="fa-solid fa-hourglass-half"></i>
+                        <span id="sterile-progress-txt">0/3</span>
+                    </span>
+
+                    <!-- Tombol konfigurasi threshold -->
+                    <button id="sterile-cfg-btn" onclick="openSterileConfig()" title="Konfigurasi threshold deteksi steril"
+                        style="display:none;height:36px;padding:0 12px;border-radius:10px;border:1px solid var(--border);background:var(--bg-3);color:var(--tx-2);cursor:pointer;font-size:0.75rem;font-weight:600;gap:5px;align-items:center;transition:all 0.2s;">
+                        <i class="fa-solid fa-sliders"></i>
+                    </button>
+
+                    <!-- Tombol ON/OFF utama -->
+                    <button id="proc-btn" class="proc-btn proc-standby" onclick="toggleProcess()" title="Toggle relay (requires connected device)">
+                        <i class="fa-solid fa-power-off"></i>
+                    </button>
+                </div>
             </div>
 
             <div class="metrics">
@@ -56,7 +328,7 @@
                         <path fill="white" d="M0,35 C150,0 350,70 500,35 L500,70 L0,70 Z"/>
                     </svg>
                 </div>
-                
+
                 <div class="metric-card mc-color" style="display:flex;flex-direction:column;">
                     <div class="mc-label" style="color:var(--tx-2);">Water Quality Sensor</div>
                     <div class="color-name-txt" id="color-name">Detecting…</div>
@@ -88,6 +360,12 @@
             <div class="chart-card">
                 <div class="card-head">
                     <div class="card-title"><i class="fa-solid fa-chart-line"></i>pH & Temperature Trend</div>
+                    <div id="mon-exp-badge" style="display:none;">
+                        <span style="font-size:0.7rem;padding:4px 10px;border-radius:20px;background:rgba(56,189,248,0.12);color:var(--cyan);border:1px solid rgba(56,189,248,0.2);white-space:nowrap;">
+                            <i class="fa-solid fa-flask"></i> <span id="mon-exp-name">—</span>
+                            <a href="/tools/" style="color:var(--tx-3);margin-left:6px;text-decoration:none;" title="Clear filter">&times;</a>
+                        </span>
+                    </div>
                 </div>
                 <canvas id="phChart"></canvas>
             </div>
@@ -188,4 +466,48 @@
 
         </section>
     </main>
+
+    <!-- ═══ MODAL: KONFIGURASI THRESHOLD STERIL ═══ -->
+    <div class="exp-form-overlay" id="sterile-config-modal">
+        <div class="exp-form-box" style="max-width:500px;">
+            <h3><i class="fa-solid fa-sliders" style="color:var(--cyan);margin-right:8px;"></i>Konfigurasi Deteksi Steril</h3>
+            <p style="font-size:0.8rem;color:var(--tx-2);margin-bottom:20px;">
+                Sesuaikan parameter deteksi air jernih. Mesin akan dimatikan otomatis oleh server jika kondisi terpenuhi berturut-turut.
+            </p>
+            <input type="hidden" id="sterile-cfg-device-id">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                <div class="exp-form-group">
+                    <label>Lux Minimum</label>
+                    <input type="number" id="cfg-lux-min" placeholder="300" min="0" step="10">
+                </div>
+                <div class="exp-form-group">
+                    <label>Raw Light Minimum</label>
+                    <input type="number" id="cfg-raw-min" placeholder="800" min="0" step="50">
+                </div>
+                <div class="exp-form-group">
+                    <label>Max Selisih RGB (0.0–1.0)</label>
+                    <input type="number" id="cfg-balance-max" placeholder="0.15" min="0" max="1" step="0.01">
+                </div>
+                <div class="exp-form-group">
+                    <label>Konfirmasi Berturut-turut</label>
+                    <input type="number" id="cfg-confirm-count" placeholder="3" min="1" max="20" step="1"
+                           oninput="document.getElementById('cfg-confirm-preview').textContent=this.value||3">
+                </div>
+            </div>
+            <div style="background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.2);border-radius:10px;padding:12px 14px;margin-top:4px;font-size:0.78rem;color:var(--tx-2);line-height:1.6;">
+                <i class="fa-solid fa-circle-info" style="color:var(--cyan);margin-right:6px;"></i>
+                Air dianggap <strong style="color:var(--tx);">jernih</strong> jika: Lux ≥ min, Raw Light ≥ min, dan selisih R/G/B ≤ max balance.
+                Server akan mematikan mesin otomatis setelah kondisi ini terpenuhi
+                <strong style="color:var(--cyan);" id="cfg-confirm-preview">3</strong>× berturut-turut.
+            </div>
+            <div id="sterile-cfg-status" style="display:none;margin-top:10px;font-size:0.78rem;padding:8px 12px;border-radius:8px;"></div>
+            <div class="exp-form-actions">
+                <button type="button" class="exp-form-cancel" onclick="closeSterileConfig()">Batal</button>
+                <button type="button" class="exp-form-submit" onclick="saveSterileConfig()">
+                    <i class="fa-solid fa-floppy-disk" style="margin-right:6px;"></i>Simpan
+                </button>
+            </div>
+        </div>
+    </div>
+
 {% endblock content %}

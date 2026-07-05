@@ -2,6 +2,14 @@ from django.urls import path
 from .import views
 
 urlpatterns = [
+    # Experiment Room CRUD
+    path('experiments/',            views.experiment_list,     name='experimentList'),
+    path('experiments/<int:pk>/',    views.experiment_detail,   name='experimentDetail'),
+    path('experiments/<int:pk>/data/', views.experiment_data,   name='experimentData'),
+
+    # Assign sensor data to experiment
+    path('sensor-data/<int:pk>/assign/', views.assign_sensor_data, name='assignSensorData'),
+
     # Data sensor dari ESP32
     path('receive-data/',      views.receive_iot_data, name='receiveData'),
 
@@ -11,5 +19,9 @@ urlpatterns = [
     path('devices/probe/',     views.probe_devices,    name='probeDevices'),
 
     # ENDPOINT BARU UNTUK KONTROL DARI WEB
-    path('device/control/',    views.toggle_device_status, name='deviceControl'),
+    path('device/control/',        views.toggle_device_status, name='deviceControl'),
+
+    # ENDPOINT STERIL / AUTO-OFF
+    path('device/sterile-check/',  views.sterile_check,  name='sterileCheck'),
+    path('device/sterile-config/', views.sterile_config, name='sterileConfig'),
 ]

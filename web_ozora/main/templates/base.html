@@ -192,8 +192,11 @@
     .tbtn { width:28px; height:28px; border:none; background:transparent; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--tx-3); font-size:11px; transition:all 0.2s; }
     .tbtn:hover { color:var(--tx); }
     .tbtn.on { background:var(--bg-1); color:var(--cyan); box-shadow:0 2px 8px rgba(0,0,0,0.2); }
-    .token-chip { background:var(--bg-3); border:1px solid var(--border); border-radius:8px; padding:4px 10px; font-family:var(--font-mono); font-size:0.66rem; color:var(--tx-2); display:none; }
-    @media (min-width:640px) { .token-chip { display:block; } }
+    .token-chip { display:inline-flex; align-items:center; gap:6px; background:var(--bg-3); border:1px solid var(--border); border-radius:8px; padding:5px 10px; font-family:var(--font-mono); font-size:0.66rem; color:var(--tx-2); cursor:pointer; max-width:180px; transition:border-color .2s,color .2s; }
+    .token-chip:hover { border-color:var(--cyan); color:var(--cyan); }
+    .token-chip code { max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .token-chip i { flex-shrink:0; }
+    @media (max-width:480px) { .token-chip code { max-width:70px; } }
     .status-badge { display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:50px; font-size:0.68rem; font-weight:700; letter-spacing:0.5px; white-space:nowrap; }
     .status-badge::before { content:''; width:5px; height:5px; border-radius:50%; background:currentColor; }
     .badge-ok  { background:rgba(16,185,129,0.12); color:var(--emerald); }
@@ -207,6 +210,254 @@
     .view.on { display:block; animation:slideUp 0.4s var(--ease); }
     @keyframes slideUp { from{opacity:0;transform:translateY(20px);} to{opacity:1;transform:translateY(0);} }
     @keyframes fadeIn  { from{opacity:0;} to{opacity:1;} }
+
+    /* ══ EXPERIMENT DETAIL VIEW ══ */
+    .exp-detail-stage { min-height: calc(100vh - var(--top-h) - 48px); }
+    .exp-detail-header {
+        display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+        margin-bottom: 24px; padding-bottom: 16px;
+        border-bottom: 1px solid var(--border);
+    }
+    .exp-detail-header h2 { font-family: var(--font-display); font-size: 1.1rem; font-weight: 700; }
+    .exp-detail-header p  { font-size: 0.75rem; color: var(--tx-2); }
+    .exp-detail-actions { margin-left: auto; }
+    .exp-back-btn {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 8px 14px; border-radius: 10px;
+        background: var(--bg-3); border: 1px solid var(--border);
+        color: var(--tx-2); cursor: pointer; font-family: var(--font-body);
+        font-size: 0.8rem; font-weight: 600; transition: all 0.2s; flex-shrink:0;
+    }
+    .exp-back-btn:hover { background: var(--bg-4); color: var(--cyan); border-color: var(--cyan); }
+    .exp-filter-btn {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 8px 14px; border-radius: 10px;
+        background: linear-gradient(135deg, var(--cyan), var(--indigo));
+        border: none; color: #fff; cursor: pointer; font-family: var(--font-body);
+        font-size: 0.8rem; font-weight: 600; transition: transform 0.2s;
+    }
+    .exp-filter-btn:hover { transform: translateY(-2px); }
+    .exp-detail-metrics {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 14px; margin-bottom: 20px;
+    }
+    @media (max-width: 640px) { .exp-detail-metrics { grid-template-columns: 1fr 1fr; gap: 10px; } }
+    @media (max-width: 480px) { .exp-detail-metrics { grid-template-columns: 1fr; } }
+    .exp-assign-section {
+        background: var(--bg-1); border: 1px solid var(--border);
+        border-radius: 18px; padding: 18px 20px; margin-bottom: 20px;
+    }
+    .ed-assign-chip {
+        display: inline-flex; align-items: center; gap: 6px;
+        font-size: 0.7rem; padding: 3px 8px; border-radius: 6px;
+        background: rgba(56,189,248,0.1); color: var(--cyan);
+        border: 1px solid rgba(56,189,248,0.2);
+    }
+
+    /* ══ RESPONSIVE BREAKPOINTS ══ */
+    @media (max-width: 480px) {
+        .shell { margin-left: 0 !important; }
+        .sidebar { width: 100% !important; max-width: 300px; }
+        .topbar { padding: 0 10px; }
+        .topbar-right { gap: 4px; }
+        .theme-row { gap: 0; }
+        .tbtn { width: 24px; height: 24px; font-size: 9px; }
+        .token-chip { max-width: 120px; padding: 4px 8px; }
+        .page-info h1 { font-size: 0.85rem; }
+        main { padding: 10px; }
+        .chart-card { padding: 14px; }
+        .card-head { flex-direction: column; align-items: flex-start; }
+        .log-head { flex-direction: column; align-items: flex-start; }
+        .log-head-right { width: 100%; justify-content: space-between; }
+        .proc-bar { flex-direction: column; align-items: flex-start; gap: 10px; }
+        .hw-btn { width: 140px; height: 140px; font-size: 0.7rem; }
+        .hw-btn i { font-size: 2.2rem; }
+        .ring-1 { width: 190px; height: 190px; }
+        .ring-2 { width: 220px; height: 220px; }
+        .metrics { grid-template-columns: 1fr; gap: 10px; }
+        .metric-card { padding: 16px; min-height: 140px; }
+        .mc-value { font-size: 2rem; }
+        .timer-big { font-size: 1.6rem; }
+        .rgb-row { grid-template-columns: repeat(5, 1fr); gap: 2px; }
+        .rgb-chip { padding: 4px 0; }
+        .rgb-num { font-size: 0.65rem; }
+        .connect-stage { min-height: calc(100vh - var(--top-h) - 20px); }
+        .experiment-grid { grid-template-columns: 1fr !important; }
+    }
+
+    @media (min-width: 481px) and (max-width: 768px) {
+        .shell { margin-left: 0 !important; }
+        main { padding: 14px; }
+        .metrics { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        .metric-card { min-height: 150px; }
+        .proc-bar { flex-direction: column; align-items: flex-start; }
+        .experiment-grid { grid-template-columns: repeat(2, 1fr) !important; }
+    }
+
+    @media (min-width: 769px) and (max-width: 1024px) {
+        .metrics { grid-template-columns: repeat(3, 1fr); }
+        main { padding: 18px; }
+        .experiment-grid { grid-template-columns: repeat(2, 1fr) !important; }
+    }
+
+    @media (min-width: 1025px) and (max-width: 1280px) {
+        .metrics { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    @media (min-width: 1281px) {
+        .metrics { grid-template-columns: repeat(5, 1fr); }
+    }
+
+    /* ══ EXPERIMENTS VIEW ══ */
+    .experiment-stage { min-height: calc(100vh - var(--top-h) - 48px); }
+    .experiment-header {
+        display: flex; align-items: center; justify-content: space-between;
+        flex-wrap: wrap; gap: 16px; margin-bottom: 24px;
+    }
+    .experiment-header h2 {
+        font-family: var(--font-display); font-size: 1.2rem; font-weight: 700;
+    }
+    .experiment-header p { font-size: 0.8rem; color: var(--tx-2); }
+    .experiment-grid {
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 16px; margin-bottom: 24px;
+    }
+    .experiment-card {
+        background: var(--bg-1); border: 1px solid var(--border); border-radius: 18px;
+        padding: 22px; position: relative; overflow: hidden;
+        transition: transform 0.25s var(--ease), box-shadow 0.25s;
+        cursor: pointer;
+    }
+    .experiment-card:hover { transform: translateY(-3px); box-shadow: 0 8px 32px rgba(0,0,0,0.15); }
+    .experiment-card::before {
+        content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+        background: linear-gradient(90deg, var(--cyan), var(--violet));
+    }
+    .experiment-card.active {
+        border-color: var(--cyan); box-shadow: 0 0 20px var(--glow-a);
+    }
+    .experiment-card.active::before {
+        background: linear-gradient(90deg, var(--emerald), var(--cyan));
+    }
+    .experiment-card h3 {
+        font-family: var(--font-display); font-size: 1rem; font-weight: 700;
+        margin-bottom: 4px;
+    }
+    .experiment-card .meta {
+        font-size: 0.72rem; color: var(--tx-2); display: flex;
+        flex-wrap: wrap; gap: 8px; margin-bottom: 12px;
+    }
+    .experiment-card .meta i { width: 14px; text-align: center; }
+    .experiment-card .stats {
+        display: flex; gap: 16px; padding-top: 12px;
+        border-top: 1px solid var(--border);
+    }
+    .experiment-card .stat-item { text-align: center; }
+    .experiment-card .stat-num {
+        font-family: var(--font-mono); font-size: 1.2rem; font-weight: 600;
+        color: var(--cyan); display: block;
+    }
+    .experiment-card .stat-label {
+        font-size: 0.58rem; font-weight: 600; text-transform: uppercase;
+        letter-spacing: 1px; color: var(--tx-3);
+    }
+    .experiment-card .card-actions {
+        position: absolute; top: 12px; right: 12px; display: flex; gap: 6px;
+        opacity: 0; transition: opacity 0.2s;
+    }
+    .experiment-card:hover .card-actions { opacity: 1; }
+    .exp-action-btn {
+        width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border);
+        background: var(--bg-3); color: var(--tx-2); cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 11px; transition: all 0.2s;
+    }
+    .exp-action-btn:hover { color: var(--rose); border-color: var(--rose); }
+    .exp-action-btn.edit:hover { color: var(--cyan); border-color: var(--cyan); }
+    .exp-action-btn.view { color: var(--emerald); }
+    .exp-action-btn.view:hover { background: rgba(16,185,129,0.1); border-color: var(--emerald); }
+    .exp-empty {
+        text-align: center; padding: 60px 20px; color: var(--tx-3);
+        grid-column: 1 / -1;
+    }
+    .exp-empty i { font-size: 3rem; margin-bottom: 16px; display: block; opacity: 0.4; }
+    .exp-empty h3 { font-family: var(--font-display); font-size: 1.1rem; font-weight: 600; margin-bottom: 6px; }
+    .exp-empty p { font-size: 0.85rem; }
+    .create-exp-btn {
+        display: inline-flex; align-items: center; gap: 8px;
+        background: linear-gradient(135deg, var(--cyan), var(--indigo));
+        border: none; border-radius: 12px; padding: 10px 20px;
+        color: #fff; font-family: var(--font-body); font-size: 0.85rem;
+        font-weight: 600; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .create-exp-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 16px var(--glow-a); }
+    .exp-form-overlay {
+        display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+        backdrop-filter: blur(16px); z-index: 9999;
+        align-items: center; justify-content: center; padding: 20px;
+    }
+    .exp-form-overlay.on { display: flex; animation: fadeIn 0.25s; }
+    .exp-form-box {
+        background: var(--bg-2); border: 1px solid var(--border-2);
+        border-radius: 24px; padding: 36px; max-width: 420px; width: 100%;
+        position: relative; overflow: hidden;
+    }
+    .exp-form-box::before {
+        content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+        background: linear-gradient(90deg, var(--cyan), var(--violet));
+    }
+    .exp-form-box h3 {
+        font-family: var(--font-display); font-size: 1.1rem; font-weight: 700;
+        margin-bottom: 20px;
+    }
+    .exp-form-group { margin-bottom: 16px; }
+    .exp-form-group label {
+        display: block; font-size: 0.75rem; font-weight: 600;
+        color: var(--tx-2); margin-bottom: 6px;
+    }
+    .exp-form-group input, .exp-form-group select {
+        width: 100%; padding: 10px 14px; border-radius: 10px;
+        background: var(--bg-3); border: 1px solid var(--border);
+        color: var(--tx); font-family: var(--font-body); font-size: 0.85rem;
+        outline: none; transition: border-color 0.2s;
+    }
+    .exp-form-group input:focus, .exp-form-group select:focus {
+        border-color: var(--cyan);
+    }
+    .exp-form-actions {
+        display: flex; gap: 10px; margin-top: 24px;
+    }
+    .exp-form-actions button {
+        flex: 1; padding: 10px; border-radius: 10px;
+        font-family: var(--font-body); font-size: 0.85rem; font-weight: 600;
+        cursor: pointer; transition: all 0.2s;
+    }
+    .exp-form-submit {
+        background: linear-gradient(135deg, var(--cyan), var(--indigo));
+        border: none; color: #fff;
+    }
+    .exp-form-submit:hover { transform: translateY(-2px); box-shadow: 0 4px 12px var(--glow-a); }
+    .exp-form-cancel {
+        background: var(--bg-3); border: 1px solid var(--border); color: var(--tx-2);
+    }
+    .exp-form-cancel:hover { border-color: var(--rose); color: var(--rose); }
+
+    .exp-filters {
+        display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+        background: var(--bg-1); border: 1px solid var(--border);
+        border-radius: 14px; padding: 14px 18px; margin-bottom: 20px;
+    }
+    .exp-filters label { font-size: 0.75rem; font-weight: 600; color: var(--tx-2); white-space: nowrap; }
+    .exp-filters select {
+        padding: 8px 12px; border-radius: 8px; background: var(--bg-3);
+        border: 1px solid var(--border); color: var(--tx);
+        font-family: var(--font-body); font-size: 0.82rem; outline: none;
+        min-width: 200px;
+    }
+    @media (max-width: 480px) {
+        .exp-filters select { min-width: 0; flex: 1; }
+        .exp-form-box { padding: 24px 20px; }
+    }
 
     /* ══ CONNECTION VIEW ══ */
     .connect-stage {
@@ -234,6 +485,20 @@
     .hw-linked   { background:linear-gradient(145deg, var(--cyan), var(--indigo)); box-shadow:0 0 40px var(--glow-a), 0 16px 40px rgba(0,0,0,0.4); }
     .hw-done     { background:linear-gradient(145deg, var(--emerald), #059669); box-shadow:0 0 40px rgba(16,185,129,0.3), 0 16px 40px rgba(0,0,0,0.4); }
     .connect-hint { color:var(--tx-2); font-size:0.9rem; max-width:320px; line-height:1.5; }
+
+    /* ══ TOKEN PANEL (Connection view) ══ */
+    .token-panel { width:100%; max-width:440px; background:var(--bg-1); border:1px solid var(--border); border-radius:16px; padding:18px 20px; margin-top:8px; text-align:left; }
+    .token-panel-head { display:flex; align-items:center; justify-content:space-between; font-family:var(--font-display); font-weight:700; font-size:0.9rem; }
+    .token-panel-sub { font-size:0.75rem; color:var(--tx-2); margin:6px 0 14px; line-height:1.5; }
+    .token-reveal-btn { width:30px; height:30px; border-radius:8px; border:1px solid var(--border); background:var(--bg-3); color:var(--tx-2); cursor:pointer; transition:all .2s; }
+    .token-reveal-btn:hover { color:var(--cyan); border-color:var(--cyan); }
+    .token-input-row { display:flex; gap:8px; }
+    .token-field { flex:1; min-width:0; padding:10px 12px; border-radius:10px; background:var(--bg-3); border:1px solid var(--border-2); color:var(--tx); font-family:var(--font-mono); font-size:0.78rem; outline:none; letter-spacing:0.5px; }
+    .token-field:focus { border-color:var(--cyan); }
+    .token-copy-btn { width:42px; flex-shrink:0; border-radius:10px; border:none; background:linear-gradient(135deg,var(--cyan),var(--indigo)); color:#fff; cursor:pointer; font-size:0.9rem; transition:transform .15s; }
+    .token-copy-btn:hover { transform:translateY(-1px); }
+    .token-copy-fmt { width:100%; margin-top:10px; padding:9px; border-radius:10px; border:1px solid var(--border); background:var(--bg-3); color:var(--tx-2); font-family:var(--font-body); font-size:0.78rem; font-weight:600; cursor:pointer; transition:all .2s; }
+    .token-copy-fmt:hover { border-color:var(--cyan); color:var(--cyan); }
 
     /* ══ MONITORING ══ */
     .proc-bar {
@@ -381,7 +646,9 @@
                 <button class="tbtn" id="tbtn-system" onclick="setTheme('system')" title="System"><i class="fa-solid fa-desktop"></i></button>
                 <button class="tbtn on" id="tbtn-dark" onclick="setTheme('dark')"  title="Dark"><i class="fa-solid fa-moon"></i></button>
             </div>
-            <div class="token-chip"><code>{{ api_token }}…</code></div>
+            <div class="token-chip" onclick="copyApiToken()" title="Klik untuk menyalin token penuh">
+                <i class="fa-solid fa-key"></i><code>{{ api_token }}</code><i class="fa-regular fa-copy"></i>
+            </div>
             <div class="status-badge badge-err" id="hdr-status">DISCONNECTED</div>
         </div>
     </header>
@@ -462,6 +729,52 @@
     </div>
 </div>
 
+<!-- ═══ MODAL: KALIBRASI BERHASIL → PILIH EKSPERIMEN ═══ -->
+<div class="modal" id="modal-calibration-exp">
+    <div class="modal-box" style="max-width:440px;text-align:left;padding:30px 26px;">
+        <div style="text-align:center;margin-bottom:6px;">
+            <i class="fa-solid fa-circle-check modal-ico" style="color:var(--emerald);"></i>
+        </div>
+        <h3 style="text-align:center;">Kalibrasi Berhasil</h3>
+        <p style="font-size:0.82rem;color:var(--tx-2);text-align:center;margin-bottom:18px;">
+            Perangkat <strong style="color:var(--tx);" id="calib-device-name">—</strong> terhubung dengan kontrol penuh.
+            Pilih eksperimen untuk mulai memonitoring.
+        </p>
+
+        <!-- Buat eksperimen baru -->
+        <div style="background:var(--bg-3);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;">
+            <div style="font-weight:600;font-size:0.82rem;margin-bottom:8px;"><i class="fa-solid fa-plus" style="color:var(--cyan);margin-right:6px;"></i>Buat Eksperimen Baru</div>
+            <input type="text" id="calib-new-name" placeholder="mis. Batch Treatment #1"
+                style="width:100%;padding:9px 12px;border-radius:9px;background:var(--bg-1);border:1px solid var(--border-2);color:var(--tx);font-family:var(--font-body);font-size:0.82rem;outline:none;margin-bottom:8px;">
+            <button onclick="calibCreateExperiment()" id="calib-create-btn"
+                style="width:100%;padding:10px;border-radius:9px;border:none;background:linear-gradient(135deg,var(--cyan),var(--indigo));color:#fff;font-weight:600;font-size:0.82rem;cursor:pointer;">
+                Buat & Masuk Monitoring
+            </button>
+        </div>
+
+        <!-- Lanjut eksperimen lama -->
+        <div style="background:var(--bg-3);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;">
+            <div style="font-weight:600;font-size:0.82rem;margin-bottom:8px;"><i class="fa-solid fa-clock-rotate-left" style="color:var(--violet);margin-right:6px;"></i>Lanjutkan Eksperimen Lama</div>
+            <div style="display:flex;gap:8px;">
+                <select id="calib-existing-select"
+                    style="flex:1;min-width:0;padding:9px 12px;border-radius:9px;background:var(--bg-1);border:1px solid var(--border-2);color:var(--tx);font-family:var(--font-body);font-size:0.82rem;outline:none;">
+                    <option value="">Memuat…</option>
+                </select>
+                <button onclick="calibEnterExisting()"
+                    style="flex-shrink:0;padding:9px 16px;border-radius:9px;border:1px solid var(--border);background:var(--bg-1);color:var(--tx);font-weight:600;font-size:0.82rem;cursor:pointer;">
+                    Masuk
+                </button>
+            </div>
+        </div>
+
+        <button onclick="calibSkipToMonitoring()"
+            style="width:100%;background:transparent;border:none;color:var(--tx-3);cursor:pointer;font-family:var(--font-body);font-size:0.8rem;padding:6px;"
+            onmouseover="this.style.color='var(--tx)'" onmouseout="this.style.color='var(--tx-3)'">
+            Lewati — langsung ke Monitoring
+        </button>
+    </div>
+</div>
+
 <script>
 /* ─────────────────────────────────────────────
    DJANGO DATA INJECTION
@@ -482,6 +795,69 @@ const DB_DATA = [
 ];
 
 const API_TOKEN = "{{ api_token }}";
+
+// Peta device_id (MAC) -> primary key DB, untuk mengaitkan eksperimen ke
+// perangkat IoT yang sedang terhubung saat kalibrasi.
+const DEVICE_PK_MAP = {
+    {% for d in user_devices %}"{{ d.device_id }}": {{ d.pk }}{% if not forloop.last %},{% endif %}
+    {% endfor %}
+};
+
+/* ─────────────────────────────────────────────
+   COPY TOKEN — salin token PENUH (desktop & mobile)
+   Dipakai IoT: paste ke portal WiFiManager (format "Token xxxxx")
+───────────────────────────────────────────── */
+function fallbackCopy(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.top = '-9999px';
+    document.body.appendChild(ta);
+    ta.focus(); ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    return ok;
+}
+
+async function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+        try { await navigator.clipboard.writeText(text); return true; }
+        catch (e) { return fallbackCopy(text); }
+    }
+    return fallbackCopy(text);
+}
+
+async function copyApiToken() {
+    const ok = await copyText(API_TOKEN);
+    if (window.iziToast) {
+        iziToast[ok ? 'success' : 'error']({
+            title: ok ? 'Token Disalin' : 'Gagal Menyalin',
+            message: ok ? 'Token lengkap sudah tersalin ke clipboard.' : 'Salin manual dari kolom token.',
+            position: 'topRight'
+        });
+    }
+}
+
+function toggleTokenReveal() {
+    const f   = document.getElementById('token-field');
+    const ico = document.getElementById('token-reveal-ico');
+    if (!f) return;
+    if (f.type === 'password') { f.type = 'text';     if (ico) ico.className = 'fa-regular fa-eye-slash'; }
+    else                       { f.type = 'password'; if (ico) ico.className = 'fa-regular fa-eye'; }
+}
+
+// Salin token dengan prefix "Token " agar langsung siap di-paste ke portal ESP32
+async function copyApiTokenPrefixed() {
+    const ok = await copyText('Token ' + API_TOKEN);
+    if (window.iziToast) {
+        iziToast[ok ? 'success' : 'error']({
+            title: ok ? 'Disalin (format IoT)' : 'Gagal Menyalin',
+            message: ok ? 'Format "Token xxxx" siap di-paste ke portal ESP32.' : 'Salin manual.',
+            position: 'topRight'
+        });
+    }
+}
 
 /* ─────────────────────────────────────────────
    ENVIRONMENTAL COLOR CORRECTION (ALGORITHMIC)
@@ -628,6 +1004,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
     RT.init();
     initTheme();
     initSidebar();
+    updateMonExpBadge();
+    updateNavAccess();  // Kunci menu sampai pengguna memilih mode koneksi
 });
 
 /* ─────────────────────────────────────────────
@@ -728,13 +1106,16 @@ function handleMainButton() {
     if (linked || viewOnly) {
         // Logika Disconnect / Keluar dari mode View Only
         if (procOn) stopProcessUI();
-        setLinked(false, null);
-        viewOnly = false;
-        
+        viewOnly = false;           // reset dulu agar menu terkunci kembali
+        setLinked(false, null);     // else branch → updateNavAccess() mengunci menu
+
         // Bersihkan inline style jika sebelumnya dalam mode View Only
         document.getElementById('hw-btn').style.background = '';
         document.getElementById('hdr-status').style.background = '';
         document.getElementById('hdr-status').style.color = '';
+
+        // Kembali ke halaman Connection
+        switchView('connection');
         return;
     }
 
@@ -785,9 +1166,23 @@ function viewMonitoringOnly() {
     hdrBadge.style.background = 'rgba(168,85,247,0.12)';
     hdrBadge.style.color = 'var(--violet)';
     hdrBadge.textContent = 'VIEW ONLY';
-    
-    // Izinkan akses ke sidebar monitoring
-    document.getElementById('nl-mon').classList.remove('disabled');
+
+    // Update monitoring bar
+    const monBadge = document.getElementById('mon-device-badge');
+    const monName  = document.getElementById('mon-device-name');
+    const monText  = document.getElementById('mon-status-text');
+    if (monBadge) { monBadge.style.display = 'inline-flex';
+        monBadge.style.background = 'rgba(168,85,247,0.12)';
+        monBadge.style.color = 'var(--violet)'; }
+    if (monName)  { monName.textContent = 'View Only'; }
+    if (monText)  { monText.innerHTML = 'Real-time monitoring — <span style="color:var(--violet);">view only · no control</span>'; }
+
+    // View Only = TANPA kontrol: kunci tombol proses secara visual
+    const procBtn = document.getElementById('proc-btn');
+    if (procBtn) { procBtn.disabled = true; procBtn.style.opacity = '0.4'; procBtn.style.cursor = 'not-allowed'; procBtn.title = 'Mode View Only — tidak ada akses kontrol'; }
+
+    updateNavAccess();  // View Only tetap membuka menu Experiments & Monitoring
+
     setTimeout(() => { switchView('monitoring'); initChart(); }, 600);
 }
 
@@ -821,13 +1216,135 @@ async function handleConnect() {
     }
 }
 
-function connectToDevice(device) {
+function connectToDevice(device, isRestore = false) {
     window.activeDevice = device;
-    setLinked(true, device);
-    
+    // Simpan sesi agar TIDAK terputus meski halaman reload (mis. saat
+    // memfilter eksperimen lewat URL). Pengguna terkalibrasi = kontrol penuh.
+    try { sessionStorage.setItem('ozora_active_device', JSON.stringify(device)); } catch (e) {}
+
+    // autoNav hanya saat restore (langsung ke monitoring). Pada koneksi baru,
+    // kita tampilkan pemilihan eksperimen dulu.
+    setLinked(true, device, isRestore);
+
     if (device.target_status === true) {
-        startProcessUI(false); 
+        startProcessUI(false);
     }
+
+    if (!isRestore) {
+        openCalibrationExperiment(device);
+    }
+}
+
+/* ─────────────────────────────────────────────
+   ALUR PASCA-KALIBRASI: pilih / buat eksperimen
+   memakai perangkat IoT yang sedang terhubung.
+   Navigasi memakai ?experiment=<id> — sesi tetap
+   tersambung karena dipulihkan dari sessionStorage.
+───────────────────────────────────────────── */
+async function openCalibrationExperiment(device) {
+    const modal = document.getElementById('modal-calibration-exp');
+    if (!modal) return;
+
+    const nameEl = document.getElementById('calib-device-name');
+    if (nameEl) nameEl.textContent = device.device_name || device.device_id || 'IoT Device';
+
+    const input = document.getElementById('calib-new-name');
+    if (input) input.value = '';
+
+    // Muat daftar eksperimen lama
+    const sel = document.getElementById('calib-existing-select');
+    if (sel) sel.innerHTML = '<option value="">Memuat…</option>';
+    try {
+        const res = await fetch('/api/experiments/', { headers: { 'Authorization': 'Token ' + API_TOKEN } });
+        if (res.ok) {
+            const data = await res.json();
+            const exps = data.experiments || [];
+            if (sel) {
+                sel.innerHTML = exps.length
+                    ? exps.map(e => `<option value="${e.id}">${(e.name || 'Unnamed')} — ${e.sensor_count} data</option>`).join('')
+                    : '<option value="">Belum ada eksperimen</option>';
+            }
+        }
+    } catch (e) {
+        if (sel) sel.innerHTML = '<option value="">Gagal memuat</option>';
+    }
+
+    modal.classList.add('on');
+}
+
+function closeCalibrationExperiment() {
+    const modal = document.getElementById('modal-calibration-exp');
+    if (modal) modal.classList.remove('on');
+}
+
+function _gotoMonitoringWithExperiment(expId) {
+    const url = new URL(window.location);
+    url.searchParams.delete('experiment');
+    if (expId) url.searchParams.set('experiment', expId);
+    // Reload: sesi perangkat dipulihkan otomatis dari sessionStorage.
+    window.location.href = url.toString();
+}
+
+async function calibCreateExperiment() {
+    const name = (document.getElementById('calib-new-name').value || '').trim();
+    if (!name) { iziToast.warning({ title: 'Nama kosong', message: 'Isi nama eksperimen dulu.', position: 'topRight' }); return; }
+
+    const btn = document.getElementById('calib-create-btn');
+    if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
+
+    // Kaitkan ke perangkat yang sedang terhubung (jika terdaftar di DB)
+    let devicePk = null;
+    const dev = window.activeDevice;
+    if (dev && dev.device_id && DEVICE_PK_MAP[dev.device_id] != null) {
+        devicePk = DEVICE_PK_MAP[dev.device_id];
+    }
+
+    try {
+        const res = await fetch('/api/experiments/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Token ' + API_TOKEN },
+            body: JSON.stringify({ name, device_id: devicePk })
+        });
+        if (res.ok) {
+            const created = await res.json();
+            closeCalibrationExperiment();
+            _gotoMonitoringWithExperiment(created.id);
+        } else {
+            const err = await res.json();
+            iziToast.error({ title: 'Gagal', message: Object.values(err).flat().join(', '), position: 'topRight' });
+            if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+        }
+    } catch (e) {
+        iziToast.error({ title: 'Network Error', message: 'Gagal membuat eksperimen.', position: 'topRight' });
+        if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+    }
+}
+
+function calibEnterExisting() {
+    const sel = document.getElementById('calib-existing-select');
+    const val = sel ? sel.value : '';
+    if (!val) { iziToast.warning({ title: 'Belum dipilih', message: 'Pilih eksperimen dulu.', position: 'topRight' }); return; }
+    closeCalibrationExperiment();
+    _gotoMonitoringWithExperiment(val);
+}
+
+function calibSkipToMonitoring() {
+    closeCalibrationExperiment();
+    switchView('monitoring');
+    initChart();
+}
+
+/* Pulihkan sesi perangkat terkalibrasi setelah reload halaman */
+function restoreDeviceSession() {
+    let saved = null;
+    try { saved = sessionStorage.getItem('ozora_active_device'); } catch (e) {}
+    if (!saved) return;
+    try {
+        const dev = JSON.parse(saved);
+        if (dev && (dev.device_id || dev.ip)) {
+            connectToDevice(dev, true);   // restore: langsung ke monitoring, tanpa modal
+        }
+    } catch (e) {}
 }
 
 function showDevicePicker(devices) {
@@ -872,7 +1389,7 @@ function closeDevicePicker() {
 /* ─────────────────────────────────────────────
    SET LINKED STATE
 ───────────────────────────────────────────── */
-function setLinked(v, device) {
+function setLinked(v, device, autoNav = true) {
     linked = v;
     const btn  = document.getElementById('hw-btn');
     const ico  = document.getElementById('hw-ico');
@@ -906,8 +1423,22 @@ function setLinked(v, device) {
         r2.classList.add('pulse');
         document.getElementById('hdr-status').className   = 'status-badge badge-ok';
         document.getElementById('hdr-status').textContent = 'CONNECTED';
-        document.getElementById('nl-mon').classList.remove('disabled');
-        setTimeout(() => { switchView('monitoring'); initChart(); }, 600);
+
+        // Update monitoring bar
+        const monBadge = document.getElementById('mon-device-badge');
+        const monName  = document.getElementById('mon-device-name');
+        const monText  = document.getElementById('mon-status-text');
+        if (monBadge) { monBadge.style.display = 'inline-flex'; }
+        if (monName)  { monName.textContent = device.device_name || device.device_id || 'Device'; }
+        if (monText)  { monText.innerHTML = 'Real-time monitoring — <span style="color:var(--emerald);">device connected · full control</span>'; }
+
+        // Pengguna terkalibrasi = KONTROL PENUH: aktifkan tombol proses
+        const procBtn = document.getElementById('proc-btn');
+        if (procBtn) { procBtn.disabled = false; procBtn.style.opacity = '1'; procBtn.style.cursor = 'pointer'; procBtn.title = 'Nyalakan / matikan proses (kontrol penuh)'; }
+
+        updateNavAccess();  // Buka menu Experiments & Monitoring
+
+        if (autoNav) setTimeout(() => { switchView('monitoring'); initChart(); }, 600);
 
     } else {
         btn.className   = 'hw-btn hw-unlinked';
@@ -918,8 +1449,17 @@ function setLinked(v, device) {
         r2.classList.remove('pulse');
         document.getElementById('hdr-status').className   = 'status-badge badge-err';
         document.getElementById('hdr-status').textContent = 'DISCONNECTED';
-        document.getElementById('nl-mon').classList.add('disabled');
+
+        // Update monitoring bar
+        const monBadge = document.getElementById('mon-device-badge');
+        const monText  = document.getElementById('mon-status-text');
+        if (monBadge) { monBadge.style.display = 'none'; }
+        if (monText)  { monText.innerHTML = 'Real-time monitoring — <span style="color:var(--tx-3);">no device connected</span>'; }
+
         window.activeDevice = null;
+        try { sessionStorage.removeItem('ozora_active_device'); } catch (e) {}
+
+        updateNavAccess();  // Kunci lagi menu sampai pengguna memilih mode
     }
 }
 
@@ -1088,12 +1628,17 @@ function updateMetricCards(s) {
         document.getElementById('color-name').textContent = wqLabel(trueCol.r, trueCol.g, trueCol.b);
 
         // ========================================================
-        // LOGIKA AUTO-STOP: MATIKAN PROSES JIKA STATUS "PURIFIED"
+        // LOGIKA AUTO-STOP (FRONTEND = SUMBER KEBENARAN):
+        // Jika status prediksi sudah "Clean Transparent Water" atau
+        // "Purified", frontend mengirim sinyal OFF ke IoT. IoT lalu
+        // menjalankan sekuens mematikan alat bertahap (5 detik/alat).
         // ========================================================
-        if (isPure(trueCol.r, trueCol.g, trueCol.b)) {
-            // Panggil toggleProcess dengan mode forceOff (true)
+        const cleanNow = isPure(trueCol.r, trueCol.g, trueCol.b) ||
+                         wqLabel(trueCol.r, trueCol.g, trueCol.b) === "Clean Transparent Water";
+        if (!window._frontendAutoStopDisabled && cleanNow) {
+            // Hanya untuk pengguna terkalibrasi (kontrol penuh), bukan view-only
             if (procOn && window.activeDevice && !viewOnly) {
-                toggleProcess(true);
+                toggleProcess(true);  // forceOff → target_status=false → IoT shutdown bertahap
             }
         }
     }
@@ -1349,18 +1894,453 @@ function closeMobile(){
     document.getElementById('backdrop').classList.remove('visible');
 }
 
-function switchView(v){
-    // Izinkan masuk jika hardware terkoneksi ATAU dalam mode monitoring saja
-    if(v==='monitoring' && !linked && !viewOnly) return; 
+/* Akses menu: dikunci sampai pengguna memilih mode
+   (Hubungkan Perangkat IoT / View Only). Hanya Connection yang terbuka. */
+function hasAccess(){ return linked || viewOnly; }
 
-    ['connection','monitoring'].forEach(id=>{
-        document.getElementById('view-'+id).classList.toggle('on', id===v);
+function updateNavAccess(){
+    const locked = !hasAccess();
+    const exp = document.getElementById('nl-experiments');
+    const mon = document.getElementById('nl-mon');
+    if (exp) exp.classList.toggle('disabled', locked);
+    if (mon) mon.classList.toggle('disabled', locked);
+}
+
+function switchView(v){
+    // Kunci navigasi selain Connection sampai mode dipilih
+    if (!hasAccess() && v !== 'connection') {
+        if (window.iziToast) {
+            iziToast.warning({
+                title: 'Pilih Mode Dulu',
+                message: 'Hubungkan perangkat IoT atau pilih View Only untuk membuka menu ini.',
+                position: 'topRight'
+            });
+        }
+        v = 'connection';
+    }
+
+    ['connection','experiments','exp-detail','monitoring'].forEach(id=>{
+        const el=document.getElementById('view-'+id);
+        if(el) el.classList.toggle('on', id===v);
     });
     document.getElementById('nl-conn').classList.toggle('active', v==='connection');
-    document.getElementById('nl-mon').classList.toggle('active',  v==='monitoring');
-    document.getElementById('page-title').textContent = v==='connection' ? 'Device Connection' : 'Monitoring Dashboard';
-    document.getElementById('page-sub').textContent   = v==='connection' ? 'Textile Wastewater Treatment System' : 'Real-time Treatment Process Analysis';
+    document.getElementById('nl-experiments').classList.toggle('active', v==='experiments' || v==='exp-detail');
+    document.getElementById('nl-mon').classList.toggle('active', v==='monitoring');
+
+    const titles = {
+        connection:  { t: 'Device Connection',    s: 'Textile Wastewater Treatment System' },
+        experiments: { t: 'Experiment Rooms',     s: 'Manage & filter experiment sessions' },
+        'exp-detail':{ t: 'Experiment Detail',    s: 'Viewing experiment sensor data' },
+        monitoring:  { t: 'Monitoring Dashboard', s: 'Real-time Treatment Process Analysis' }
+    };
+    const info = titles[v] || titles.connection;
+    document.getElementById('page-title').textContent = info.t;
+    document.getElementById('page-sub').textContent   = info.s;
     closeMobile();
+
+    if(v==='monitoring') {
+        if(chartData.length) initChart();
+        updateMonExpBadge();
+    }
+    if(v==='experiments') refreshExperiments();
+}
+
+/* ─────────────────────────────────────────────
+   EXPERIMENT ROOM CRUD (Client-side)
+───────────────────────────────────────────── */
+function openExpForm(data) {
+    document.getElementById('exp-form-overlay').classList.add('on');
+    if (data) {
+        document.getElementById('exp-form-title').textContent = 'Edit Experiment';
+        document.getElementById('exp-form-btn').textContent = 'Update';
+        document.getElementById('exp-id').value = data.id;
+        document.getElementById('exp-name').value = data.name;
+        document.getElementById('exp-device').value = data.device_id;
+    } else {
+        document.getElementById('exp-form-title').textContent = 'New Experiment';
+        document.getElementById('exp-form-btn').textContent = 'Create';
+        document.getElementById('exp-id').value = '';
+        document.getElementById('exp-name').value = '';
+        document.getElementById('exp-device').value = '';
+    }
+}
+
+function closeExpForm() {
+    document.getElementById('exp-form-overlay').classList.remove('on');
+}
+
+async function saveExp(e) {
+    e.preventDefault();
+    const id = document.getElementById('exp-id').value;
+    const name = document.getElementById('exp-name').value.trim();
+    const deviceVal = document.getElementById('exp-device').value;
+    const device_id = deviceVal ? parseInt(deviceVal) : null;
+
+    const method = id ? 'PUT' : 'POST';
+    const url = id ? `/api/experiments/${id}/` : '/api/experiments/';
+
+    try {
+        const res = await fetch(url, {
+            method,
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Token ' + API_TOKEN,
+            },
+            body: JSON.stringify({ name, device_id })
+        });
+        if (res.ok) {
+            closeExpForm();
+            refreshExperiments();
+            iziToast.success({ title: id ? 'Updated' : 'Created', message: `Experiment ${id ? 'updated' : 'created'} successfully`, position: 'topRight' });
+        } else {
+            const err = await res.json();
+            iziToast.error({ title: 'Error', message: Object.values(err).flat().join(', '), position: 'topRight' });
+        }
+    } catch (err) {
+        iziToast.error({ title: 'Network Error', message: 'Failed to save experiment', position: 'topRight' });
+    }
+}
+
+async function deleteExp(id) {
+    if (!confirm('Delete this experiment?')) return;
+    try {
+        const res = await fetch(`/api/experiments/${id}/`, {
+            method: 'DELETE',
+            headers: { 'Authorization': 'Token ' + API_TOKEN }
+        });
+        if (res.ok) {
+            refreshExperiments();
+            iziToast.success({ title: 'Deleted', message: 'Experiment removed', position: 'topRight' });
+        }
+    } catch { iziToast.error({ title: 'Error', message: 'Failed to delete', position: 'topRight' }); }
+}
+
+async function editExp(id) {
+    try {
+        const res = await fetch(`/api/experiments/${id}/`, {
+            headers: { 'Authorization': 'Token ' + API_TOKEN }
+        });
+        if (res.ok) {
+            const data = await res.json();
+            openExpForm(data);
+        }
+    } catch { iziToast.error({ title: 'Error', message: 'Failed to load experiment', position: 'topRight' }); }
+}
+
+function switchExperiment(id) {
+    const url = new URL(window.location);
+    if (id) url.searchParams.set('experiment', id);
+    else url.searchParams.delete('experiment');
+    window.location.href = url.toString();
+}
+
+async function refreshExperiments() {
+    try {
+        const res = await fetch('/api/experiments/', {
+            headers: { 'Authorization': 'Token ' + API_TOKEN }
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const grid = document.getElementById('experiment-grid');
+        const filterBar = document.getElementById('exp-filters-bar');
+        const filterSelect = document.getElementById('exp-filter-select');
+        
+        const currentExp = new URLSearchParams(window.location.search).get('experiment');
+
+        if (filterSelect) {
+            filterSelect.innerHTML = '<option value="">All Data (no filter)</option>' +
+                (data.experiments || []).map(e =>
+                    `<option value="${e.id}" ${e.id == currentExp ? 'selected' : ''}>${e.name || 'Unnamed'}</option>`
+                ).join('');
+        }
+
+        // Build HTML: default card + experiment cards
+        let cardsHtml = `
+            <div class="experiment-card" data-exp-id="0" style="border-color:var(--border);border-style:dashed;">
+                <div class="card-actions">
+                    <button class="exp-action-btn view" onclick="showExpDetail(0, 'Eksperimen Default')" title="View Data">
+                        <i class="fa-solid fa-eye"></i>
+                    </button>
+                </div>
+                <h3><i class="fa-solid fa-inbox" style="color:var(--amber);font-size:0.9rem;"></i> Eksperimen Default</h3>
+                <div class="meta">
+                    <span><i class="fa-solid fa-database"></i> Unassigned sensor data</span>
+                </div>
+                <div class="stats">
+                    <div class="stat-item">
+                        <span class="stat-num" id="default-count">0</span>
+                        <span class="stat-label">Records</span>
+                    </div>
+                </div>
+            </div>`;
+
+        if (!data.experiments || !data.experiments.length) {
+            cardsHtml += `
+                <div class="exp-empty">
+                    <i class="fa-solid fa-flask"></i>
+                    <h3>No Experiments Yet</h3>
+                    <p>Create your first experiment room to start organizing sensor data</p>
+                </div>`;
+            grid.innerHTML = cardsHtml;
+            if (filterBar) filterBar.style.display = 'none';
+            // Update default count from API
+            updateDefaultCount();
+            return;
+        }
+
+        if (filterBar) filterBar.style.display = 'flex';
+
+        cardsHtml += data.experiments.map(e => `
+            <div class="experiment-card ${e.id == currentExp ? 'active' : ''}" data-exp-id="${e.id}">
+                <div class="card-actions">
+                    <button class="exp-action-btn view" onclick="showExpDetail(${e.id}, '${e.name.replace(/'/g, "\\'") || 'Unnamed'}')" title="View Data">
+                        <i class="fa-solid fa-eye"></i>
+                    </button>
+                    <button class="exp-action-btn edit" onclick="event.stopPropagation(); editExp(${e.id})" title="Edit">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                    <button class="exp-action-btn" onclick="event.stopPropagation(); deleteExp(${e.id})" title="Delete">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </div>
+                <h3><i class="fa-solid fa-flask" style="color:var(--cyan);font-size:0.9rem;"></i> ${e.name || 'Unnamed Experiment'}</h3>
+                <div class="meta">
+                    <span><i class="fa-solid fa-microchip"></i> ${e.device_name || 'No Device'}</span>
+                </div>
+                <div class="stats">
+                    <div class="stat-item">
+                        <span class="stat-num">${e.sensor_count}</span>
+                        <span class="stat-label">Records</span>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+        grid.innerHTML = cardsHtml;
+    } catch {}
+}
+
+function updateMonExpBadge() {
+    const params = new URLSearchParams(window.location.search);
+    const expId = params.get('experiment');
+    const badge = document.getElementById('mon-exp-badge');
+    const nameEl = document.getElementById('mon-exp-name');
+    if (!badge || !nameEl) return;
+
+    if (expId) {
+        // Try to find the experiment name from the page
+        const card = document.querySelector(`.experiment-card[data-exp-id="${expId}"]`);
+        const name = card ? card.querySelector('h3')?.textContent?.trim() : null;
+        nameEl.textContent = name ? name.replace(/^.*?\s/, '') : `Experiment #${expId}`;
+        badge.style.display = 'inline-flex';
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
+async function updateDefaultCount() {
+    try {
+        const res = await fetch('/api/experiments/0/data/', {
+            headers: { 'Authorization': 'Token ' + API_TOKEN }
+        });
+        if (res.ok) {
+            const data = await res.json();
+            const el = document.getElementById('default-count');
+            if (el) el.textContent = data.count || 0;
+        }
+    } catch {}
+}
+
+/* ─────────────────────────────────────────────
+   EXPERIMENT DETAIL VIEW
+───────────────────────────────────────────── */
+let currentExpId = null;
+let currentExpName = '';
+
+const edPg = {
+    p:1, pp:10, tot:1, data:[],
+    setData(arr){ this.data=arr; this.p=1; this.render(); },
+    setPerPage(n){ this.pp=n; this.p=1; this.render(); },
+    go(n){
+        this.tot=Math.max(1,Math.ceil(this.data.length/this.pp));
+        if(n<1||n>this.tot) return; this.p=n; this.render();
+    },
+    render(){
+        const all=this.data, total=all.length;
+        this.tot=Math.max(1,Math.ceil(total/this.pp));
+        if(this.p>this.tot) this.p=this.tot;
+        if(this.p<1) this.p=1;
+        const s=(this.p-1)*this.pp, e=s+this.pp;
+        const tbody=document.getElementById('ed-tbl-body');
+        const emptyR=document.getElementById('ed-empty-row');
+        if(total===0){
+            tbody.innerHTML='<tr id="ed-empty-row"><td colspan="10"><div class="empty-state"><i class="fa-solid fa-wave-square"></i><p>No sensor data in this experiment</p></div></td></tr>';
+            document.getElementById('ed-pg-bar').style.display='none';
+            document.getElementById('ed-tbl-meta').textContent='0 records';
+            return;
+        }
+        const pageData=all.slice(s,e);
+        let html='';
+        pageData.forEach(d=>{
+            const rawR=parseFloat(d.red||0), rawG=parseFloat(d.green||0), rawB=parseFloat(d.blue||0);
+            const hasColor=d.red&&d.green&&d.blue;
+            let r=0,g=0,b=0;
+            if(hasColor){ const tc=getTrueColor(rawR,rawG,rawB); r=tc.r; g=tc.g; b=tc.b; }
+            const dash='<span style="opacity:.3;">—</span>';
+            const phVal=d.ph!=null?parseFloat(d.ph):null;
+            const phTd=phVal!=null?`<span class="${phClass(phVal)}">${phVal.toFixed(2)}</span>`:dash;
+            const wqLabel=hasColor?`<span style="display:inline-flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:50%;background:rgb(${r},${g},${b});flex-shrink:0;display:inline-block;"></span> ${wqLabel(r,g,b)}</span>`:dash;
+            const status=hasColor?(isPure(r,g,b)?'<span class="pill pill-ok">Purified ✓</span>':'<span class="pill pill-proc">On Process</span>'):'<span class="pill pill-bad">No Data</span>';
+            html+=`<tr>
+                <td>${d.created}</td>
+                <td>${d.temp!=null?parseFloat(d.temp).toFixed(2):dash}</td>
+                <td class="ph-cell">${phTd}</td>
+                <td>${hasColor?r:dash}</td>
+                <td>${hasColor?g:dash}</td>
+                <td>${hasColor?b:dash}</td>
+                <td>${d.lux!=null?parseFloat(d.lux).toFixed(1):dash}</td>
+                <td style="font-family:var(--font-body);font-size:0.78rem;">${wqLabel}</td>
+                <td>${status}</td>
+                <td>
+                    <button class="ed-assign-chip" onclick="assignSingleData(${d.id})" title="Assign to experiment">
+                        <i class="fa-solid fa-tag"></i> ${currentExpId===0?'Assign':'Move'}
+                    </button>
+                </td>
+            </tr>`;
+        });
+        tbody.innerHTML=html;
+        document.getElementById('ed-tbl-meta').textContent=`${total} record${total!==1?'s':''}`;
+        document.getElementById('ed-pg-info').textContent=
+            total===0?'No records':`Showing ${s+1}–${Math.min(e,total)} of ${total} records`;
+        document.getElementById('ed-pg-bar').style.display=(total<=this.pp&&this.tot<=1)?'none':'flex';
+        ['ed-pg-first','ed-pg-prev'].forEach(id=>document.getElementById(id).disabled=this.p<=1);
+        ['ed-pg-next','ed-pg-last'].forEach(id=>document.getElementById(id).disabled=this.p>=this.tot);
+        this.renderNums();
+    },
+    renderNums(){
+        const c=document.getElementById('ed-pg-nums');
+        c.innerHTML='';
+        const cur=this.p, tot=this.tot;
+        const pages=new Set([1,tot]);
+        for(let i=cur-1;i<=cur+1;i++) if(i>=1&&i<=tot) pages.add(i);
+        const sorted=[...pages].sort((a,b)=>a-b);
+        let prev=0;
+        sorted.forEach(n=>{
+            if(n-prev>1){ const s=document.createElement('span'); s.className='pellipsis'; s.textContent='…'; c.appendChild(s); }
+            const b=document.createElement('button');
+            b.className='pnum'+(n===cur?' on':'');
+            b.textContent=n; b.onclick=()=>edPg.go(n);
+            c.appendChild(b);
+            prev=n;
+        });
+    }
+};
+
+async function showExpDetail(id, name) {
+    currentExpId = id;
+    currentExpName = name;
+    document.getElementById('exp-detail-title').textContent = name;
+    document.getElementById('exp-detail-sub').textContent = id===0 ? 'Unassigned sensor data' : `Experiment #${id} sensor data`;
+    document.getElementById('ed-table-title').textContent = `Sensor Data - ${name}`;
+
+    // Show/hide monitoring button and assign section
+    const monBtn = document.getElementById('exp-detail-mon-btn');
+    monBtn.style.display = id!==0 ? 'inline-flex' : 'none';
+    document.getElementById('exp-assign-section').style.display = id===0 ? 'flex' : 'none';
+
+    // Reset select to default
+    document.getElementById('ed-assign-select').value = '';
+
+    switchView('exp-detail');
+
+    try {
+        const res = await fetch(`/api/experiments/${id}/data/`, {
+            headers: { 'Authorization': 'Token ' + API_TOKEN }
+        });
+        if (!res.ok) throw new Error('Failed');
+        const data = await res.json();
+
+        // Update metric cards
+        const records = data.sensor_data || [];
+        edPg.setData(records);
+        document.getElementById('ed-total-records').textContent = records.length;
+
+        if (records.length > 0) {
+            const latest = records[0];
+            document.getElementById('ed-temp').textContent = latest.temp != null ? parseFloat(latest.temp).toFixed(1) : '—';
+            document.getElementById('ed-ph').textContent = latest.ph != null ? parseFloat(latest.ph).toFixed(2) : '—';
+
+            if (latest.red && latest.green && latest.blue) {
+                const tc = getTrueColor(parseInt(latest.red), parseInt(latest.green), parseInt(latest.blue));
+                document.getElementById('ed-r').textContent = tc.r;
+                document.getElementById('ed-g').textContent = tc.g;
+                document.getElementById('ed-b').textContent = tc.b;
+                document.getElementById('ed-lux').textContent = latest.lux != null ? parseFloat(latest.lux).toFixed(0) : '—';
+                document.getElementById('ed-temp-chip').textContent = latest.temp != null ? parseFloat(latest.temp).toFixed(1) : '—';
+                document.getElementById('ed-color-bar').style.backgroundColor = `rgb(${tc.r},${tc.g},${tc.b})`;
+                document.getElementById('ed-color-name').textContent = wqLabel(tc.r, tc.g, tc.b);
+            }
+        }
+    } catch {
+        iziToast.error({ title: 'Error', message: 'Failed to load experiment data', position: 'topRight' });
+    }
+}
+
+function goToMonitoringView() {
+    const url = new URL(window.location);
+    url.searchParams.set('experiment', currentExpId);
+    window.location.href = url.toString();
+}
+
+async function assignSingleData(id) {
+    const newExpId = document.getElementById('ed-assign-select').value;
+    const targetId = newExpId ? parseInt(newExpId) : null;
+
+    try {
+        const res = await fetch(`/api/sensor-data/${id}/assign/`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Token ' + API_TOKEN
+            },
+            body: JSON.stringify({ experiment_id: targetId })
+        });
+        if (res.ok) {
+            iziToast.success({ title: 'Assigned', message: 'Data point moved', position: 'topRight' });
+            // Refresh the detail view
+            showExpDetail(currentExpId, currentExpName);
+            refreshExperiments();
+        } else {
+            const err = await res.json();
+            iziToast.error({ title: 'Error', message: err.message || 'Failed', position: 'topRight' });
+        }
+    } catch { iziToast.error({ title: 'Error', message: 'Network error', position: 'topRight' }); }
+}
+
+async function assignAllToExperiment() {
+    const newExpId = document.getElementById('ed-assign-select').value;
+    const targetId = newExpId ? parseInt(newExpId) : null;
+    const records = edPg.data;
+
+    if (!records.length) return;
+    let success = 0;
+
+    for (const r of records) {
+        try {
+            const res = await fetch(`/api/sensor-data/${r.id}/assign/`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Token ' + API_TOKEN
+                },
+                body: JSON.stringify({ experiment_id: targetId })
+            });
+            if (res.ok) success++;
+        } catch {}
+    }
+
+    iziToast.success({ title: 'Done', message: `${success} of ${records.length} data points assigned`, position: 'topRight' });
+    showExpDetail(currentExpId, currentExpName);
+    refreshExperiments();
 }
 
 /* ─────────────────────────────────────────────
@@ -1387,6 +2367,267 @@ window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change',()=>{
 
 
 <script src="{% static 'js/iziToast.min.js' %}"></script>
+
+<!-- ═══ IoT DEVICE STATUS POLLING & STERILE CONFIG ═══ -->
+<script>
+/* ──────────────────────────────────────────────────────────
+   DEVICE STATUS POLLING — sync target_status & is_sterile
+   dari server ke UI setiap 5 detik.
+   Website adalah sumber kebenaran (source of truth) untuk
+   kapan mesin harus ON/OFF. IoT hanya menjalankan perintah.
+──────────────────────────────────────────────────────────── */
+let _lastTargetStatus = null;
+let _lastIsSterile    = null;
+let _deviceStatusTimer = null;
+
+function startDeviceStatusPolling() {
+    if (_deviceStatusTimer) clearInterval(_deviceStatusTimer);
+    _deviceStatusTimer = setInterval(pollDeviceStatus, 5000);
+    pollDeviceStatus(); // segera poll sekali
+}
+
+function stopDeviceStatusPolling() {
+    if (_deviceStatusTimer) { clearInterval(_deviceStatusTimer); _deviceStatusTimer = null; }
+    hideSterileBadges();
+}
+
+async function pollDeviceStatus() {
+    if (!window.activeDevice) return;
+    try {
+        const res = await fetch('/api/devices/online/', {
+            headers: { 'Authorization': 'Token ' + API_TOKEN, 'Accept': 'application/json' },
+            credentials: 'same-origin'
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const device = (data.devices || []).find(d => d.device_id === window.activeDevice.device_id);
+        if (!device) return;
+
+        const target  = device.target_status;
+        const sterile = device.is_sterile;
+
+        // Sinkronisasi tombol ON/OFF dengan state server
+        if (target !== _lastTargetStatus) {
+            _lastTargetStatus = target;
+            if (target && !procOn) {
+                startProcessUI(false); // nyalakan UI tanpa reset timer
+            } else if (!target && procOn) {
+                stopProcessUI();
+                // Hanya tampilkan notifikasi jika dimatikan karena steril (bukan manual)
+                if (sterile) {
+                    iziToast.success({
+                        title: '✅ Air Sudah Jernih!',
+                        message: 'Server mendeteksi air steril — mesin dimatikan otomatis.',
+                        position: 'topRight',
+                        timeout: 6000
+                    });
+                }
+            }
+        }
+
+        // Update badge steril
+        if (sterile !== _lastIsSterile) {
+            _lastIsSterile = sterile;
+            updateSterileBadge(sterile, device.sterile_current_count, device.sterile_confirm_count);
+        }
+
+    } catch(e) { /* silent fail */ }
+}
+
+function updateSterileBadge(isSterile, currentCount, neededCount) {
+    const badge    = document.getElementById('sterile-badge');
+    const badgeTxt = document.getElementById('sterile-badge-txt');
+    const badgeIco = document.getElementById('sterile-badge-ico');
+    const progress = document.getElementById('sterile-progress');
+    const progTxt  = document.getElementById('sterile-progress-txt');
+
+    if (!badge) return;
+    badge.style.display = 'inline-flex';
+    badge.style.alignItems = 'center';
+    badge.style.gap = '5px';
+
+    if (isSterile) {
+        badge.style.background = 'rgba(16,185,129,0.15)';
+        badge.style.color      = 'var(--emerald)';
+        badge.style.border     = '1px solid rgba(16,185,129,0.3)';
+        badgeTxt.textContent   = 'AIR JERNIH';
+        badgeIco.className     = 'fa-solid fa-droplet';
+        if (progress) progress.style.display = 'none';
+    } else {
+        badge.style.background = 'rgba(245,158,11,0.12)';
+        badge.style.color      = 'var(--amber)';
+        badge.style.border     = '1px solid rgba(245,158,11,0.25)';
+        badgeTxt.textContent   = 'Memfilter…';
+        badgeIco.className     = 'fa-solid fa-filter';
+
+        // Tampilkan progress jika ada data
+        if (progress && currentCount != null && neededCount != null) {
+            progress.style.display = 'inline-flex';
+            progress.style.alignItems = 'center';
+            progress.style.gap = '5px';
+            if (progTxt) progTxt.textContent = `${currentCount}/${neededCount}`;
+        }
+    }
+}
+
+function hideSterileBadges() {
+    const badge    = document.getElementById('sterile-badge');
+    const progress = document.getElementById('sterile-progress');
+    const cfgBtn   = document.getElementById('sterile-cfg-btn');
+    if (badge)    badge.style.display    = 'none';
+    if (progress) progress.style.display = 'none';
+    if (cfgBtn)   cfgBtn.style.display   = 'none';
+    _lastTargetStatus = null;
+    _lastIsSterile    = null;
+}
+
+// Hook ke connectToDevice & setLinked yang sudah ada
+const _origConnectToDevice = window.connectToDevice;
+// Override agar polling mulai saat device terhubung
+if (typeof connectToDevice === 'function') {
+    const _origConnect = connectToDevice;
+    window._origConnectToDevice = _origConnect;
+}
+
+/* Patch setLinked untuk start/stop polling */
+const _origSetLinked = typeof setLinked === 'function' ? setLinked : null;
+
+/* Lebih aman: hook lewat DOMContentLoaded setelah semua script siap */
+document.addEventListener('DOMContentLoaded', function() {
+    // Patch setLinked
+    if (typeof setLinked === 'function') {
+        const origSetLinked = setLinked;
+        window.setLinked = function(v, device, autoNav) {
+            origSetLinked(v, device, autoNav);
+            if (v && device) {
+                // Tampilkan tombol config sterile
+                const cfgBtn = document.getElementById('sterile-cfg-btn');
+                if (cfgBtn) { cfgBtn.style.display = 'inline-flex'; cfgBtn.style.gap = '5px'; }
+                startDeviceStatusPolling();
+            } else {
+                stopDeviceStatusPolling();
+                const cfgBtn = document.getElementById('sterile-cfg-btn');
+                if (cfgBtn) cfgBtn.style.display = 'none';
+            }
+        };
+    }
+
+    // Pulihkan sesi perangkat terkalibrasi (dipanggil setelah setLinked di-patch
+    // agar polling status & tombol kontrol ikut aktif). Sesi tidak terputus
+    // meski halaman reload saat memfilter eksperimen.
+    if (typeof restoreDeviceSession === 'function') {
+        restoreDeviceSession();
+    }
+});
+
+/* ──────────────────────────────────────────────────────────
+   KONFIGURASI THRESHOLD STERIL
+──────────────────────────────────────────────────────────── */
+async function openSterileConfig() {
+    if (!window.activeDevice) {
+        alert('Hubungkan perangkat terlebih dahulu.');
+        return;
+    }
+    const modal = document.getElementById('sterile-config-modal');
+    const statusEl = document.getElementById('sterile-cfg-status');
+    if (!modal) return;
+
+    document.getElementById('sterile-cfg-device-id').value = window.activeDevice.device_id;
+
+    // Load config saat ini dari server
+    statusEl.style.display = 'block';
+    statusEl.style.background = 'rgba(56,189,248,0.08)';
+    statusEl.style.color = 'var(--cyan)';
+    statusEl.textContent = '⏳ Memuat konfigurasi…';
+
+    try {
+        const res = await fetch(`/api/device/sterile-config/?device_id=${encodeURIComponent(window.activeDevice.device_id)}`, {
+            headers: { 'Authorization': 'Token ' + API_TOKEN }
+        });
+        if (res.ok) {
+            const cfg = await res.json();
+            document.getElementById('cfg-lux-min').value      = cfg.sterile_lux_min;
+            document.getElementById('cfg-raw-min').value      = cfg.sterile_raw_min;
+            document.getElementById('cfg-balance-max').value  = cfg.sterile_balance_max;
+            document.getElementById('cfg-confirm-count').value = cfg.sterile_confirm_count;
+            const prev = document.getElementById('cfg-confirm-preview');
+            if (prev) prev.textContent = cfg.sterile_confirm_count;
+            statusEl.style.display = 'none';
+        } else {
+            statusEl.textContent = '⚠ Gagal memuat konfigurasi.';
+        }
+    } catch(e) {
+        statusEl.textContent = '⚠ Error: ' + e.message;
+    }
+
+    modal.classList.add('on');
+}
+
+function closeSterileConfig() {
+    const modal = document.getElementById('sterile-config-modal');
+    if (modal) modal.classList.remove('on');
+}
+
+async function saveSterileConfig() {
+    const deviceId = document.getElementById('sterile-cfg-device-id').value;
+    const statusEl = document.getElementById('sterile-cfg-status');
+    if (!deviceId) { alert('Device ID tidak ditemukan.'); return; }
+
+    const payload = {
+        device_id:            deviceId,
+        sterile_lux_min:      parseFloat(document.getElementById('cfg-lux-min').value)     || 300,
+        sterile_raw_min:      parseFloat(document.getElementById('cfg-raw-min').value)     || 800,
+        sterile_balance_max:  parseFloat(document.getElementById('cfg-balance-max').value) || 0.15,
+        sterile_confirm_count: parseInt(document.getElementById('cfg-confirm-count').value) || 3,
+    };
+
+    statusEl.style.display    = 'block';
+    statusEl.style.background = 'rgba(56,189,248,0.08)';
+    statusEl.style.color      = 'var(--cyan)';
+    statusEl.textContent      = '💾 Menyimpan…';
+
+    try {
+        const res = await fetch('/api/device/sterile-config/', {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Token ' + API_TOKEN
+            },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (res.ok) {
+            statusEl.style.background = 'rgba(16,185,129,0.1)';
+            statusEl.style.color      = 'var(--emerald)';
+            statusEl.textContent      = '✅ Konfigurasi berhasil disimpan!';
+            setTimeout(closeSterileConfig, 1500);
+            iziToast.success({ title: 'Threshold Steril Disimpan', message: 'Konfigurasi deteksi air jernih telah diperbarui.', position: 'topRight' });
+        } else {
+            statusEl.style.background = 'rgba(244,63,94,0.1)';
+            statusEl.style.color      = 'var(--rose)';
+            statusEl.textContent      = '❌ Gagal: ' + JSON.stringify(data);
+        }
+    } catch(e) {
+        statusEl.style.background = 'rgba(244,63,94,0.1)';
+        statusEl.style.color      = 'var(--rose)';
+        statusEl.textContent      = '❌ Error: ' + e.message;
+    }
+}
+
+/* ──────────────────────────────────────────────────────────
+   OVERRIDE toggleProcess: Hapus logika forceOff dari frontend
+   (server yang memutuskan, bukan client-side color detection)
+   Fungsi ini tetap bisa dipanggil manual oleh user.
+──────────────────────────────────────────────────────────── */
+// AKTIFKAN auto-stop dari frontend: sesuai permintaan, FRONTEND adalah
+// sumber kebenaran. Saat status prediksi mencapai "Clean Transparent
+// Water"/"Purified", frontend mengirim OFF ke IoT (target_status=false),
+// dan IoT menjalankan sekuens shutdown bertahap 5 detik/alat.
+// Toggle manual dari tombol proc-btn juga tetap berfungsi (active→standby
+// memicu shutdown yang sama).
+window._frontendAutoStopDisabled = false;
+</script>
+
 {% if messages %}
 {% for message in messages %}
 <script>
