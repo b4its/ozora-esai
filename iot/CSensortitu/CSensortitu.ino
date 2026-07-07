@@ -59,9 +59,9 @@
 const char* AP_SSID       = "ESP32_Ozora_Portal";
 const char* AP_PASSWORD   = "Admin1234";
 const char* MDNS_NAME     = "esp32sensor";
-const char* SERVER_URL    = "http://192.168.101.6:8000/api/receive-data/";
-const char* HEARTBEAT_URL = "http://192.168.101.6:8000/api/device/heartbeat/";
-const char* STERILE_URL   = "http://192.168.101.6:8000/api/device/sterile-check/";
+const char* SERVER_URL    = "https://ozora.b4its.cloud/api/receive-data/";
+const char* HEARTBEAT_URL = "https://ozora.b4its.cloud/api/device/heartbeat/";
+const char* STERILE_URL   = "https://ozora.b4its.cloud/api/device/sterile-check/";
 
 #define SDA_PIN                 21
 #define SCL_PIN                 22
