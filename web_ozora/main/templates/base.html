@@ -766,6 +766,23 @@
             <div style="font-weight:600;font-size:0.82rem;margin-bottom:8px;"><i class="fa-solid fa-plus" style="color:var(--cyan);margin-right:6px;"></i>Buat Eksperimen Baru</div>
             <input type="text" id="calib-new-name" placeholder="mis. Batch Treatment #1"
                 style="width:100%;padding:9px 12px;border-radius:9px;background:var(--bg-1);border:1px solid var(--border-2);color:var(--tx);font-family:var(--font-body);font-size:0.82rem;outline:none;margin-bottom:8px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px;">
+                <div>
+                    <label style="font-size:0.65rem;color:var(--tx-2);display:block;margin-bottom:2px;">Suhu (°C)</label>
+                    <input type="number" id="calib-new-suhu" placeholder="30"
+                        style="width:100%;padding:7px 8px;border-radius:7px;background:var(--bg-1);border:1px solid var(--border-2);color:var(--tx);font-family:var(--font-body);font-size:0.78rem;outline:none;">
+                </div>
+                <div>
+                    <label style="font-size:0.65rem;color:var(--tx-2);display:block;margin-bottom:2px;">Flow (L/s)</label>
+                    <input type="number" id="calib-new-flow" placeholder="2.5" step="0.1"
+                        style="width:100%;padding:7px 8px;border-radius:7px;background:var(--bg-1);border:1px solid var(--border-2);color:var(--tx);font-family:var(--font-body);font-size:0.78rem;outline:none;">
+                </div>
+                <div>
+                    <label style="font-size:0.65rem;color:var(--tx-2);display:block;margin-bottom:2px;">pH Target</label>
+                    <input type="number" id="calib-new-ph" placeholder="7.0" step="0.1"
+                        style="width:100%;padding:7px 8px;border-radius:7px;background:var(--bg-1);border:1px solid var(--border-2);color:var(--tx);font-family:var(--font-body);font-size:0.78rem;outline:none;">
+                </div>
+            </div>
             <button onclick="calibCreateExperiment()" id="calib-create-btn"
                 style="width:100%;padding:10px;border-radius:9px;border:none;background:linear-gradient(135deg,var(--cyan),var(--indigo));color:#fff;font-weight:600;font-size:0.82rem;cursor:pointer;">
                 Buat & Masuk Monitoring
@@ -1312,6 +1329,11 @@ async function calibCreateExperiment() {
     const btn = document.getElementById('calib-create-btn');
     if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
 
+    // Ambil parameter suhu, flow speed, pH
+    const suhu = parseFloat(document.getElementById('calib-new-suhu')?.value) || null;
+    const flowSpeed = parseFloat(document.getElementById('calib-new-flow')?.value) || null;
+    const phTarget = parseFloat(document.getElementById('calib-new-ph')?.value) || null;
+
     // Kaitkan ke perangkat yang sedang terhubung (jika terdaftar di DB)
     let devicePk = null;
     const dev = window.activeDevice;
@@ -1323,7 +1345,7 @@ async function calibCreateExperiment() {
         const res = await fetch('/api/experiments/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Token ' + API_TOKEN },
-            body: JSON.stringify({ name, device_id: devicePk })
+            body: JSON.stringify({ name, device_id: devicePk, suhu, flow_speed: flowSpeed, ph_target: phTarget })
         });
         if (res.ok) {
             const created = await res.json();
@@ -1616,6 +1638,66 @@ const RT = (function(){
 })();
 
 /* ─────────────────────────────────────────────
+   LOAD EXPERIMENT PARAMETERS (suhu, flow, pH)
+   dari API dan tampilkan di kartu monitoring
+───────────────────────────────────────────── */
+let expParams = { suhu: null, flow_speed: null, ph_target: null };
+
+async function loadExperimentParams() {
+    const params = new URLSearchParams(window.location.search);
+    const expId = params.get('experiment');
+    if (!expId) {
+        expParams = { suhu: null, flow_speed: null, ph_target: null };
+        ['v-temp-target','v-ph-target','v-speed-target'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = 'none';
+        });
+        return;
+    }
+    try {
+        const res = await fetch(`/api/experiments/${expId}/`, {
+            headers: { 'Authorization': 'Token ' + API_TOKEN }
+        });
+        if (res.ok) {
+            const data = await res.json();
+            expParams = {
+                suhu: data.suhu || null,
+                flow_speed: data.flow_speed || null,
+                ph_target: data.ph_target || null
+            };
+            // Update target labels
+            const tempEl = document.getElementById('v-temp-target');
+            if (tempEl) {
+                if (expParams.suhu) {
+                    tempEl.textContent = `─ target ${expParams.suhu}°C`;
+                    tempEl.style.display = 'inline';
+                } else {
+                    tempEl.style.display = 'none';
+                }
+            }
+            const phEl = document.getElementById('v-ph-target');
+            if (phEl) {
+                if (expParams.ph_target) {
+                    phEl.textContent = `─ target ${expParams.ph_target}`;
+                    phEl.style.display = 'inline';
+                } else {
+                    phEl.style.display = 'none';
+                }
+            }
+            const speedEl = document.getElementById('v-speed-target');
+            if (speedEl) {
+                if (expParams.flow_speed) {
+                    speedEl.textContent = `─ target ${expParams.flow_speed} L/s`;
+                    speedEl.style.display = 'inline';
+                } else {
+                    speedEl.style.display = 'none';
+                }
+            }
+        }
+    } catch (e) {}
+}
+
+/* ─────────────────────────────────────────────
    FUNGSI UPDATE NILAI CHIP/KARTU ATAS DARI JSON API
 ───────────────────────────────────────────── */
 function updateMetricCards(s) {
@@ -1627,7 +1709,7 @@ function updateMetricCards(s) {
 
     document.getElementById('v-temp').textContent = tempVal;
     document.getElementById('v-ph').textContent = s.ph != null ? parseFloat(s.ph).toFixed(2) : dash;
-    document.getElementById('v-speed').textContent = "2.5"; 
+    document.getElementById('v-speed').textContent = expParams.flow_speed ? expParams.flow_speed.toString() : "—";
     
     const rawR = parseInt(s.red || 0);
     const rawG = parseInt(s.green || 0);
@@ -1989,6 +2071,7 @@ function switchView(v){
     if(v==='monitoring') {
         if(chartData.length) initChart();
         updateMonExpBadge();
+        loadExperimentParams();
     }
     if(v==='experiments') refreshExperiments();
 }
@@ -2004,12 +2087,18 @@ function openExpForm(data) {
         document.getElementById('exp-id').value = data.id;
         document.getElementById('exp-name').value = data.name;
         document.getElementById('exp-device').value = data.device_id;
+        document.getElementById('exp-suhu').value = data.suhu ?? '';
+        document.getElementById('exp-flow').value = data.flow_speed ?? '';
+        document.getElementById('exp-ph').value = data.ph_target ?? '';
     } else {
         document.getElementById('exp-form-title').textContent = 'New Experiment';
         document.getElementById('exp-form-btn').textContent = 'Create';
         document.getElementById('exp-id').value = '';
         document.getElementById('exp-name').value = '';
         document.getElementById('exp-device').value = '';
+        document.getElementById('exp-suhu').value = '';
+        document.getElementById('exp-flow').value = '';
+        document.getElementById('exp-ph').value = '';
     }
 }
 
@@ -2023,6 +2112,9 @@ async function saveExp(e) {
     const name = document.getElementById('exp-name').value.trim();
     const deviceVal = document.getElementById('exp-device').value;
     const device_id = deviceVal ? parseInt(deviceVal) : null;
+    const suhu = parseFloat(document.getElementById('exp-suhu').value) || null;
+    const flowSpeed = parseFloat(document.getElementById('exp-flow').value) || null;
+    const phTarget = parseFloat(document.getElementById('exp-ph').value) || null;
 
     const method = id ? 'PUT' : 'POST';
     const url = id ? `/api/experiments/${id}/` : '/api/experiments/';
@@ -2034,7 +2126,7 @@ async function saveExp(e) {
                 'Content-Type': 'application/json',
                 'Authorization': 'Token ' + API_TOKEN,
             },
-            body: JSON.stringify({ name, device_id })
+            body: JSON.stringify({ name, device_id, suhu, flow_speed: flowSpeed, ph_target: phTarget })
         });
         if (res.ok) {
             closeExpForm();
@@ -2363,6 +2455,23 @@ async function showExpDetail(id, name) {
         }
         edPg.setData(records);
         document.getElementById('ed-total-records').textContent = records.length;
+
+        // Tampilkan parameter eksperimen (suhu, flow, pH)
+        const flowCard = document.getElementById('ed-card-flow');
+        const suhuCard = document.getElementById('ed-card-suhu');
+        const phTargetCard = document.getElementById('ed-card-phtarget');
+        if (data.suhu) {
+            document.getElementById('ed-suhu').textContent = parseFloat(data.suhu).toFixed(1);
+            if (suhuCard) suhuCard.style.display = 'flex';
+        } else if (suhuCard) suhuCard.style.display = 'none';
+        if (data.flow_speed) {
+            document.getElementById('ed-flow').textContent = parseFloat(data.flow_speed).toFixed(1);
+            if (flowCard) flowCard.style.display = 'flex';
+        } else if (flowCard) flowCard.style.display = 'none';
+        if (data.ph_target) {
+            document.getElementById('ed-phtarget').textContent = parseFloat(data.ph_target).toFixed(1);
+            if (phTargetCard) phTargetCard.style.display = 'flex';
+        } else if (phTargetCard) phTargetCard.style.display = 'none';
 
         if (records.length > 0) {
             const latest = records[0];

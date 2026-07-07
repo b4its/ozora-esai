@@ -27,10 +27,13 @@ class ExperimentRoomSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ExperimentRoom
-        fields = ['id', 'user', 'device_id', 'device_name', 'name', 'created', 'sensor_count']
+        fields = ['id', 'user', 'device_id', 'device_name', 'name', 'suhu', 'flow_speed', 'ph_target', 'created', 'sensor_count']
         read_only_fields = ['user', 'created', 'sensor_count']
         extra_kwargs = {
             'device_id': {'allow_null': True, 'required': False},
+            'suhu': {'required': False, 'allow_null': True},
+            'flow_speed': {'required': False, 'allow_null': True},
+            'ph_target': {'required': False, 'allow_null': True},
         }
 
     def get_sensor_count(self, obj):

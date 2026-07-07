@@ -136,6 +136,24 @@
                             <div class="mc-value"><span id="ed-ph">—</span><span class="mc-unit"> pH</span></div>
                         </div>
                     </div>
+                    <div class="metric-card mc-speed" id="ed-card-flow" style="display:none;">
+                        <div>
+                            <div class="mc-label">Flow Speed Target</div>
+                            <div class="mc-value" style="font-size:2rem;"><span id="ed-flow">—</span><span class="mc-unit"> L/s</span></div>
+                        </div>
+                    </div>
+                    <div class="metric-card mc-temp" id="ed-card-suhu" style="background:linear-gradient(145deg, #B91C1C 0%, #F59E0B 100%);display:none;">
+                        <div>
+                            <div class="mc-label">Suhu Target</div>
+                            <div class="mc-value" style="font-size:2rem;"><span id="ed-suhu">—</span><span class="mc-unit">°C</span></div>
+                        </div>
+                    </div>
+                    <div class="metric-card mc-ph" id="ed-card-phtarget" style="display:none;">
+                        <div>
+                            <div class="mc-label">pH Target</div>
+                            <div class="mc-value" style="font-size:2rem;"><span id="ed-phtarget">—</span><span class="mc-unit"> pH</span></div>
+                        </div>
+                    </div>
                     <div class="metric-card mc-color" style="display:flex;flex-direction:column;">
                         <div class="mc-label" style="color:var(--tx-2);">Latest Water Quality</div>
                         <div class="color-name-txt" id="ed-color-name">—</div>
@@ -241,6 +259,20 @@
                             {% endfor %}
                         </select>
                     </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+                        <div class="exp-form-group">
+                            <label for="exp-suhu">Suhu (°C)</label>
+                            <input type="number" id="exp-suhu" placeholder="30" step="0.1">
+                        </div>
+                        <div class="exp-form-group">
+                            <label for="exp-flow">Flow Speed (L/s)</label>
+                            <input type="number" id="exp-flow" placeholder="2.5" step="0.1">
+                        </div>
+                        <div class="exp-form-group">
+                            <label for="exp-ph">pH Target</label>
+                            <input type="number" id="exp-ph" placeholder="7.0" step="0.1">
+                        </div>
+                    </div>
                     <div class="exp-form-actions">
                         <button type="button" class="exp-form-cancel" onclick="closeExpForm()">Cancel</button>
                         <button type="submit" class="exp-form-submit" id="exp-form-btn">Create</button>
@@ -340,7 +372,7 @@
             <div class="metrics">
                 <div class="metric-card mc-temp">
                     <div>
-                        <div class="mc-label">Color Temperature</div>
+                        <div class="mc-label">Color Temperature <span id="v-temp-target" style="font-weight:400;opacity:0.6;display:none;"></span></div>
                         <div class="mc-value"><span id="v-temp">—</span><span class="mc-unit">°K</span></div>
                     </div>
                     <svg class="mc-wave" viewBox="0 0 500 70" preserveAspectRatio="none">
@@ -349,7 +381,7 @@
                 </div>
                 <div class="metric-card mc-ph">
                     <div>
-                        <div class="mc-label">pH Level</div>
+                        <div class="mc-label">pH Level <span id="v-ph-target" style="font-weight:400;opacity:0.6;display:none;"></span></div>
                         <div class="mc-value"><span id="v-ph">—</span><span class="mc-unit"> pH</span></div>
                     </div>
                     <svg class="mc-wave" viewBox="0 0 500 70" preserveAspectRatio="none">
@@ -358,7 +390,7 @@
                 </div>
                 <div class="metric-card mc-speed">
                     <div>
-                        <div class="mc-label">Flow Speed</div>
+                        <div class="mc-label">Flow Speed <span id="v-speed-target" style="font-weight:400;opacity:0.6;display:none;"></span></div>
                         <div class="mc-value"><span id="v-speed">—</span><span class="mc-unit"> L/s</span></div>
                     </div>
                     <svg class="mc-wave" viewBox="0 0 500 70" preserveAspectRatio="none">

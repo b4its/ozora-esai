@@ -7,6 +7,9 @@ class ExperimentRoom(models.Model):
     # Menggunakan string 'IoTDevice' agar tidak error NameError
     device_id = models.ForeignKey('IoTDevice', on_delete=models.CASCADE, related_name='experiment_device', null=True, blank=True)
     name = models.CharField(max_length=255, blank=True, help_text="Nama Eksperimen")
+    suhu = models.FloatField(null=True, blank=True, help_text="Suhu target (°C)")
+    flow_speed = models.FloatField(null=True, blank=True, help_text="Flow speed target (L/s)")
+    ph_target = models.FloatField(null=True, blank=True, help_text="pH target")
     created = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
