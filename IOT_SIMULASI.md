@@ -51,6 +51,64 @@ BASE="https://ozora.b4its.cloud"
 
 ---
 
+## Parameter Eksperimen: Suhu, pH, & Flow Speed
+
+Ketika membuat eksperimen baru, tiga parameter berikut dapat ditentukan sebagai **target/kondisi yang diinginkan**:
+
+| Parameter | Field API | Satuan | Contoh |
+|-----------|-----------|--------|--------|
+| **Suhu (Temperature)** | `suhu` | °C | 30 |
+| **Flow Speed** | `flow_speed` | L/s | 2.5 |
+| **pH Target** | `ph_target` | pH | 7.0 |
+
+Parameter ini disimpan di `ExperimentRoom` dan ditampilkan di:
+- **Monitoring Dashboard** — label target pada kartu suhu, pH, dan flow speed
+- **Experiment Detail** — kartu target suhu, target pH, target flow speed
+
+> **Catatan:** Sensor TCS34725 pada ESP32 hanya membaca RGB, color temperature (Kelvin), dan lux.  
+> pH dihitung dari RGB oleh server (`calculate_ph()`).  
+> Flow speed dan suhu (°C) adalah parameter target yang di-input manual saat pembuatan eksperimen.
+
+**Membuat eksperimen dengan parameter lengkap:**
+```bash
+curl -X POST "${BASE}/api/experiments/" \
+  -H "Authorization: Token ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Batch Treatment #1",
+    "suhu": 30,
+    "flow_speed": 2.5,
+    "ph_target": 7.0
+  }'
+```
+
+**Response (detail experiment) — perhatikan field `suhu`, `flow_speed`, `ph_target`:**
+```json
+{
+  "id": 1,
+  "user": 1,
+  "device_id": null,
+  "device_name": null,
+  "name": "Batch Treatment #1",
+  "suhu": 30.0,
+  "flow_speed": 2.5,
+  "ph_target": 7.0,
+  "created": "2026-07-07T12:00:00Z",
+  "sensor_count": 0
+}
+```
+
+**Memantau parameter di dashboard monitoring:**
+```
+┌─ Color Temperature ─────┐  ┌─ pH Level ────────────┐  ┌─ Flow Speed ───────────┐
+│                    °K   │  │                  pH   │  │                  L/s   │
+│                 4500    │  │     pH terhitung      │  │  flow_speed target     │
+│  ─ target 30°C          │  │  ─ target 7.0         │  │  ─ target 2.5 L/s      │
+└─────────────────────────┘  └───────────────────────┘  └────────────────────────┘
+```
+
+---
+
 ## Endpoint API & cURL Testing
 
 ### 1. Heartbeat (Auto-register Device)
@@ -329,35 +387,55 @@ curl -X POST "${BASE}/api/device/active-experiment/" \
 
 ## Skenario Simulasi Lengkap
 
-### Skenario 1: Aliran Normal (ON → Kirim Data → OFF Manual)
+### Skenario 0: Setup Awal — Buat Eksperimen + Daftarkan Device
 
 ```bash
-# 1. Register device via heartbeat
-#    (langkah ini cukup sekali, device otomatis online 30 detik)
+# 1. Buat eksperimen dengan parameter suhu, flow speed, pH target
+curl -X POST "${BASE}/api/experiments/" \
+  -H "Authorization: Token ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Batch Treatment #1",
+    "suhu": 30,
+    "flow_speed": 2.5,
+    "ph_target": 7.0
+  }'
+
+# 2. Register device via heartbeat
 curl -X POST "${BASE}/api/device/heartbeat/" \
   -H "Authorization: Token ${TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{"device_id":"C8:F0:9E:AA:BB:CC","device_name":"ESP32_Ozora_Portal","ip_local":"192.168.1.100","ssid":"MyWiFi","rssi":-65,"firmware":"5.3"}'
 
-# 2. Nyalakan mesin dari website
+# 3. Kaitkan device ke eksperimen
+curl -X POST "${BASE}/api/device/active-experiment/" \
+  -H "Authorization: Token ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{"device_id":"C8:F0:9E:AA:BB:CC","experiment_id":1}'
+```
+
+### Skenario 1: Aliran Normal (ON → Kirim Data → OFF Manual)
+
+```bash
+# 1. Nyalakan mesin dari website
 curl -X POST "${BASE}/api/device/control/" \
   -H "Authorization: Token ${TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{"device_id":"C8:F0:9E:AA:BB:CC","target_status":true}'
 
-# 3. Simulasi kirim data sensor (mesin menyala)
+# 2. Simulasi kirim data sensor (mesin menyala)
 curl -X POST "${BASE}/api/receive-data/" \
   -H "Authorization: Token ${TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{"device_id":"C8:F0:9E:AA:BB:CC","raw_light":42000,"red":28500,"green":14200,"blue":8300,"temp":4500,"lux":320,"experiment":1}'
 
-# 4. Cek kualitas air
+# 3. Cek kualitas air
 curl -X POST "${BASE}/api/device/sterile-check/" \
   -H "Authorization: Token ${TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{"device_id":"C8:F0:9E:AA:BB:CC","raw_light":42000,"red":28500,"green":14200,"blue":8300,"lux":320}'
 
-# 5. Matikan mesin dari website
+# 4. Matikan mesin dari website
 curl -X POST "${BASE}/api/device/control/" \
   -H "Authorization: Token ${TOKEN}" \
   -H "Content-Type: application/json" \

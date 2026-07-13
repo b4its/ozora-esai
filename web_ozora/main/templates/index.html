@@ -123,6 +123,27 @@
                     </div>
                 </div>
 
+                <!-- ═══ PARAMETER EKSPERIMEN: Suhu, pH, Flow Speed (exp-detail) ═══ -->
+                <div id="ed-exp-params-bar" style="display:none;background:var(--bg-1);border:1px solid var(--border);border-radius:14px;padding:12px 18px;margin-bottom:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+                    <div style="display:flex;align-items:center;gap:6px;font-size:0.72rem;font-weight:600;color:var(--tx-2);text-transform:uppercase;letter-spacing:0.5px;flex-shrink:0;">
+                        <i class="fa-solid fa-flask" style="color:var(--cyan);"></i> Parameter Eksperimen
+                    </div>
+                    <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;">
+                        <span style="display:inline-flex;align-items:center;gap:5px;background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.15);border-radius:8px;padding:4px 10px;font-size:0.78rem;">
+                            <i class="fa-solid fa-thermometer-half" style="color:var(--cyan);"></i>
+                            Suhu: <strong id="ed-p-suhu" style="font-family:var(--font-mono);">—</strong> °C
+                        </span>
+                        <span style="display:inline-flex;align-items:center;gap:5px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.15);border-radius:8px;padding:4px 10px;font-size:0.78rem;">
+                            <i class="fa-solid fa-droplet" style="color:var(--emerald);"></i>
+                            pH: <strong id="ed-p-ph" style="font-family:var(--font-mono);">—</strong>
+                        </span>
+                        <span style="display:inline-flex;align-items:center;gap:5px;background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.15);border-radius:8px;padding:4px 10px;font-size:0.78rem;">
+                            <i class="fa-solid fa-gauge-high" style="color:var(--violet);"></i>
+                            Flow: <strong id="ed-p-flow" style="font-family:var(--font-mono);">—</strong> L/s
+                        </span>
+                    </div>
+                </div>
+
                 <div class="exp-detail-metrics" id="exp-detail-metrics">
                     <div class="metric-card mc-temp">
                         <div>
@@ -130,28 +151,16 @@
                             <div class="mc-value"><span id="ed-temp">—</span><span class="mc-unit">°K</span></div>
                         </div>
                     </div>
-                    <div class="metric-card mc-ph">
-                        <div>
-                            <div class="mc-label">pH Level</div>
-                            <div class="mc-value"><span id="ed-ph">—</span><span class="mc-unit"> pH</span></div>
-                        </div>
-                    </div>
                     <div class="metric-card mc-speed" id="ed-card-flow" style="display:none;">
                         <div>
-                            <div class="mc-label">Flow Speed Target</div>
+                            <div class="mc-label">Flow Speed</div>
                             <div class="mc-value" style="font-size:2rem;"><span id="ed-flow">—</span><span class="mc-unit"> L/s</span></div>
                         </div>
                     </div>
                     <div class="metric-card mc-temp" id="ed-card-suhu" style="background:linear-gradient(145deg, #B91C1C 0%, #F59E0B 100%);display:none;">
                         <div>
-                            <div class="mc-label">Suhu Target</div>
+                            <div class="mc-label">Suhu</div>
                             <div class="mc-value" style="font-size:2rem;"><span id="ed-suhu">—</span><span class="mc-unit">°C</span></div>
-                        </div>
-                    </div>
-                    <div class="metric-card mc-ph" id="ed-card-phtarget" style="display:none;">
-                        <div>
-                            <div class="mc-label">pH Target</div>
-                            <div class="mc-value" style="font-size:2rem;"><span id="ed-phtarget">—</span><span class="mc-unit"> pH</span></div>
                         </div>
                     </div>
                     <div class="metric-card mc-color" style="display:flex;flex-direction:column;">
@@ -203,7 +212,6 @@
                                 <tr>
                                     <th>Timestamp</th>
                                     <th>Color Temp °K</th>
-                                    <th>pH</th>
                                     <th>Red</th>
                                     <th>Green</th>
                                     <th>Blue</th>
@@ -215,7 +223,7 @@
                             </thead>
                             <tbody id="ed-tbl-body">
                                 <tr id="ed-empty-row">
-                                    <td colspan="10">
+                                    <td colspan="9">
                                         <div class="empty-state">
                                             <i class="fa-solid fa-wave-square"></i>
                                             <p>No sensor data in this experiment</p>
@@ -269,7 +277,7 @@
                             <input type="number" id="exp-flow" placeholder="2.5" step="0.1">
                         </div>
                         <div class="exp-form-group">
-                            <label for="exp-ph">pH Target</label>
+                            <label for="exp-ph">pH</label>
                             <input type="number" id="exp-ph" placeholder="7.0" step="0.1">
                         </div>
                     </div>
@@ -295,10 +303,6 @@
                     <div class="sd-item">
                         <div class="sd-label">Color Temperature</div>
                         <div class="sd-value sd-temp">—</div>
-                    </div>
-                    <div class="sd-item">
-                        <div class="sd-label">pH</div>
-                        <div class="sd-value sd-ph">—</div>
                     </div>
                     <div class="sd-item">
                         <div class="sd-label">Raw Light</div>
@@ -369,28 +373,40 @@
                 </div>
             </div>
 
+            <!-- ═══ PARAMETER EKSPERIMEN: Suhu, pH, Flow Speed ═══ -->
+            <div id="exp-params-bar" style="display:none;background:var(--bg-1);border:1px solid var(--border);border-radius:14px;padding:12px 18px;margin-bottom:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+                <div style="display:flex;align-items:center;gap:6px;font-size:0.72rem;font-weight:600;color:var(--tx-2);text-transform:uppercase;letter-spacing:0.5px;flex-shrink:0;">
+                    <i class="fa-solid fa-flask" style="color:var(--cyan);"></i> Parameter Eksperimen
+                </div>
+                <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;">
+                    <span style="display:inline-flex;align-items:center;gap:5px;background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.15);border-radius:8px;padding:4px 10px;font-size:0.78rem;">
+                        <i class="fa-solid fa-thermometer-half" style="color:var(--cyan);"></i>
+                        Suhu: <strong id="p-suhu" style="font-family:var(--font-mono);">—</strong> °C
+                    </span>
+                    <span style="display:inline-flex;align-items:center;gap:5px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.15);border-radius:8px;padding:4px 10px;font-size:0.78rem;">
+                        <i class="fa-solid fa-droplet" style="color:var(--emerald);"></i>
+                        pH: <strong id="p-ph" style="font-family:var(--font-mono);">—</strong>
+                    </span>
+                    <span style="display:inline-flex;align-items:center;gap:5px;background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.15);border-radius:8px;padding:4px 10px;font-size:0.78rem;">
+                        <i class="fa-solid fa-gauge-high" style="color:var(--violet);"></i>
+                        Flow: <strong id="p-flow" style="font-family:var(--font-mono);">—</strong> L/s
+                    </span>
+                </div>
+            </div>
+
             <div class="metrics">
                 <div class="metric-card mc-temp">
                     <div>
-                        <div class="mc-label">Color Temperature <span id="v-temp-target" style="font-weight:400;opacity:0.6;display:none;"></span></div>
+                        <div class="mc-label">Color Temperature</div>
                         <div class="mc-value"><span id="v-temp">—</span><span class="mc-unit">°K</span></div>
                     </div>
                     <svg class="mc-wave" viewBox="0 0 500 70" preserveAspectRatio="none">
                         <path fill="white" d="M0,35 C100,70 200,0 300,35 C400,70 450,20 500,35 L500,70 L0,70 Z"/>
                     </svg>
                 </div>
-                <div class="metric-card mc-ph">
-                    <div>
-                        <div class="mc-label">pH Level <span id="v-ph-target" style="font-weight:400;opacity:0.6;display:none;"></span></div>
-                        <div class="mc-value"><span id="v-ph">—</span><span class="mc-unit"> pH</span></div>
-                    </div>
-                    <svg class="mc-wave" viewBox="0 0 500 70" preserveAspectRatio="none">
-                        <path fill="white" d="M0,35 C125,70 375,0 500,35 L500,70 L0,70 Z"/>
-                    </svg>
-                </div>
                 <div class="metric-card mc-speed">
                     <div>
-                        <div class="mc-label">Flow Speed <span id="v-speed-target" style="font-weight:400;opacity:0.6;display:none;"></span></div>
+                        <div class="mc-label">Flow Speed</div>
                         <div class="mc-value"><span id="v-speed">—</span><span class="mc-unit"> L/s</span></div>
                     </div>
                     <svg class="mc-wave" viewBox="0 0 500 70" preserveAspectRatio="none">
@@ -471,7 +487,6 @@
                             <tr>
                                 <th>Timestamp</th>
                                 <th>Color Temp °K</th>
-                                <th>pH</th>
                                 <th>Red</th>
                                 <th>Green</th>
                                 <th>Blue</th>
@@ -485,11 +500,6 @@
                             <tr class="db-row" data-id="{{ s.pk }}" style="display:none;">
                                 <td>{{ s.created|date:"Y-m-d H:i:s" }}</td>
                                 <td>{% if s.temp %}{{ s.temp|floatformat:2 }}{% else %}<span style="opacity:.3;">—</span>{% endif %}</td>
-                                <td class="ph-cell">
-                                    {% if s.ph %}
-                                        <span class="{% if s.ph < 6 %}ph-acidic{% elif s.ph > 8 %}ph-basic{% else %}ph-neutral{% endif %}">{{ s.ph|floatformat:2 }}</span>
-                                    {% else %}<span style="opacity:.3;">—</span>{% endif %}
-                                </td>
                                 <td>{% if s.red %}{{ s.red|floatformat:0 }}{% else %}<span style="opacity:.3;">—</span>{% endif %}</td>
                                 <td>{% if s.green %}{{ s.green|floatformat:0 }}{% else %}<span style="opacity:.3;">—</span>{% endif %}</td>
                                 <td>{% if s.blue %}{{ s.blue|floatformat:0 }}{% else %}<span style="opacity:.3;">—</span>{% endif %}</td>
@@ -510,7 +520,7 @@
                             </tr>
                             {% empty %}
                             <tr id="empty-row">
-                                <td colspan="9">
+                                <td colspan="8">
                                     <div class="empty-state">
                                         <i class="fa-solid fa-wave-square"></i>
                                         <p>No sensor data recorded yet. Waiting for IoT device data…</p>

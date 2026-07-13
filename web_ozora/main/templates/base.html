@@ -540,7 +540,6 @@
     .metric-card { border-radius:18px; padding:22px; position:relative; overflow:hidden; min-height:168px; display:flex; flex-direction:column; justify-content:space-between; border:1px solid rgba(255,255,255,0.06); transition:transform 0.25s var(--ease), box-shadow 0.25s; }
     .metric-card:hover { transform:translateY(-3px); }
     .mc-temp  { background:linear-gradient(145deg, #B91C1C 0%, #7C3AED 100%); box-shadow:0 8px 32px rgba(185,28,28,0.25); }
-    .mc-ph    { background:linear-gradient(145deg, #BE185D 0%, #7C3AED 100%); box-shadow:0 8px 32px rgba(190,24,93,0.25); }
     .mc-speed { background:linear-gradient(145deg, #1D4ED8 0%, #6D28D9 100%); box-shadow:0 8px 32px rgba(29,78,216,0.25); }
     .mc-color { background:var(--bg-1); border:1px solid var(--border); color:var(--tx); box-shadow:0 4px 16px rgba(0,0,0,0.1); }
     .mc-timer { background:linear-gradient(145deg, #0E7490 0%, #1D4ED8 100%); box-shadow:0 8px 32px rgba(14,116,144,0.25); }
@@ -595,10 +594,6 @@
     tbody tr:last-child td { border-bottom:none; }
     tbody tr { transition:background 0.15s; }
     tbody tr:hover { background:var(--glass-2); }
-    td.ph-cell { font-weight:600; }
-    .ph-acidic  { color:#F87171; }
-    .ph-neutral { color:#34D399; }
-    .ph-basic   { color:#60A5FA; }
     .pill { display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:50px; font-size:0.64rem; font-weight:700; letter-spacing:0.3px; white-space:nowrap; font-family:var(--font-body); }
     .pill-ok   { background:rgba(16,185,129,0.12); color:#10B981; }
     .pill-proc { background:rgba(56,189,248,0.12);  color:#38BDF8; }
@@ -778,7 +773,7 @@
                         style="width:100%;padding:7px 8px;border-radius:7px;background:var(--bg-1);border:1px solid var(--border-2);color:var(--tx);font-family:var(--font-body);font-size:0.78rem;outline:none;">
                 </div>
                 <div>
-                    <label style="font-size:0.65rem;color:var(--tx-2);display:block;margin-bottom:2px;">pH Target</label>
+                    <label style="font-size:0.65rem;color:var(--tx-2);display:block;margin-bottom:2px;">pH</label>
                     <input type="number" id="calib-new-ph" placeholder="7.0" step="0.1"
                         style="width:100%;padding:7px 8px;border-radius:7px;background:var(--bg-1);border:1px solid var(--border-2);color:var(--tx);font-family:var(--font-body);font-size:0.78rem;outline:none;">
                 </div>
@@ -825,8 +820,7 @@ const DB_DATA = [
         green:   {{ s.green|default:0 }},
         blue:    {{ s.blue|default:0 }},
         temp:    {{ s.temp|default:0 }},
-        lux:     {{ s.lux|default:0 }},
-        ph:      {% if s.ph %}{{ s.ph }}{% else %}null{% endif %}
+        lux:     {{ s.lux|default:0 }}
     }{% if not forloop.last %},{% endif %}
     {% endfor %}
 ];
@@ -978,12 +972,6 @@ function statusPill(r,g,b){
         : '<span class="pill pill-proc">On Process</span>';
 }
 
-function phClass(ph){
-    if(ph < 6) return 'ph-acidic';
-    if(ph > 8) return 'ph-basic';
-    return 'ph-neutral';
-}
-
 /* ─────────────────────────────────────────────
    BUILD ROW HTML
 ───────────────────────────────────────────── */
@@ -1000,14 +988,11 @@ function buildRow(s){
     }
 
     const dash = '<span style="opacity:.3;">—</span>';
-    const phVal = s.ph != null ? parseFloat(s.ph) : null;
-    const phTd  = phVal != null ? `<span class="${phClass(phVal)}">${phVal.toFixed(2)}</span>` : dash;
     
     return `
     <tr class="db-row" data-id="${s.id}">
         <td>${s.created}</td>
         <td>${s.temp!=null?parseFloat(s.temp).toFixed(2):dash}</td>
-        <td class="ph-cell">${phTd}</td>
         <td>${hasColor?r:dash}</td>
         <td>${hasColor?g:dash}</td>
         <td>${hasColor?b:dash}</td>
@@ -1017,7 +1002,11 @@ function buildRow(s){
                 <span style="width:8px;height:8px;border-radius:50%;background:rgb(${r},${g},${b});flex-shrink:0;display:inline-block;"></span>
                 ${wqLabel(r,g,b)}</span>`:dash}
         </td>
-        <td>${hasColor?statusPill(r,g,b):'<span class="pill pill-bad">No Data</span>'}</td>
+        <td style="font-family:var(--font-mono);font-size:0.68rem;color:var(--tx-3);">
+            <button class="row-view-btn" onclick="showSensorDetail(${s.id})" title="View Details">
+                <i class="fa-regular fa-eye"></i>
+            </button>
+        </td>
     </tr>`;
 }
 
@@ -1175,6 +1164,8 @@ function viewMonitoringOnly() {
     closeConnectOptions();
     viewOnly = true;
     linked = false; // Memastikan logic hardware tidak berjalan
+    // Simpan sesi agar View Only tetap aktif meski halaman di-reload
+    try { sessionStorage.setItem('ozora_view_only', 'true'); } catch (e) {}
     
     // Update UI tombol untuk merefleksikan mode "View Only"
     const btn  = document.getElementById('hw-btn');
@@ -1255,6 +1246,8 @@ async function handleConnect() {
 
 function connectToDevice(device, isRestore = false) {
     window.activeDevice = device;
+    // Kalau sebelumnya View Only, hapus flag-nya karena sekarang device nyata
+    try { sessionStorage.removeItem('ozora_view_only'); } catch (e) {}
     // Simpan sesi agar TIDAK terputus meski halaman reload (mis. saat
     // memfilter eksperimen lewat URL). Pengguna terkalibrasi = kontrol penuh.
     try { sessionStorage.setItem('ozora_active_device', JSON.stringify(device)); } catch (e) {}
@@ -1396,14 +1389,23 @@ async function syncActiveExperiment() {
 function restoreDeviceSession() {
     let saved = null;
     try { saved = sessionStorage.getItem('ozora_active_device'); } catch (e) {}
-    if (!saved) return;
-    try {
-        const dev = JSON.parse(saved);
-        if (dev && (dev.device_id || dev.ip)) {
-            connectToDevice(dev, true);   // restore: langsung ke monitoring, tanpa modal
-            syncActiveExperiment();       // tautkan data masuk ke eksperimen yang dibuka
-        }
-    } catch (e) {}
+    if (saved) {
+        try {
+            const dev = JSON.parse(saved);
+            if (dev && (dev.device_id || dev.ip)) {
+                connectToDevice(dev, true);   // restore: langsung ke monitoring, tanpa modal
+                syncActiveExperiment();       // tautkan data masuk ke eksperimen yang dibuka
+                return;
+            }
+        } catch (e) {}
+    }
+    // Jika tidak ada sesi perangkat, cek apakah View Only sebelumnya aktif
+    let vo = null;
+    try { vo = sessionStorage.getItem('ozora_view_only'); } catch (e) {}
+    if (vo) {
+        sessionStorage.removeItem('ozora_view_only');
+        viewMonitoringOnly();
+    }
 }
 
 function showDevicePicker(devices) {
@@ -1646,12 +1648,10 @@ let expParams = { suhu: null, flow_speed: null, ph_target: null };
 async function loadExperimentParams() {
     const params = new URLSearchParams(window.location.search);
     const expId = params.get('experiment');
+    const bar = document.getElementById('exp-params-bar');
     if (!expId) {
         expParams = { suhu: null, flow_speed: null, ph_target: null };
-        ['v-temp-target','v-ph-target','v-speed-target'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.style.display = 'none';
-        });
+        if (bar) bar.style.display = 'none';
         return;
     }
     try {
@@ -1665,33 +1665,18 @@ async function loadExperimentParams() {
                 flow_speed: data.flow_speed || null,
                 ph_target: data.ph_target || null
             };
-            // Update target labels
-            const tempEl = document.getElementById('v-temp-target');
-            if (tempEl) {
-                if (expParams.suhu) {
-                    tempEl.textContent = `─ target ${expParams.suhu}°C`;
-                    tempEl.style.display = 'inline';
-                } else {
-                    tempEl.style.display = 'none';
-                }
+            // Update parameter bar
+            document.getElementById('p-suhu').textContent = expParams.suhu ?? '—';
+            document.getElementById('p-ph').textContent = expParams.ph_target ?? '—';
+            document.getElementById('p-flow').textContent = expParams.flow_speed ?? '—';
+            if (bar) {
+                bar.style.display = expParams.suhu || expParams.ph_target || expParams.flow_speed
+                    ? 'flex' : 'none';
             }
-            const phEl = document.getElementById('v-ph-target');
-            if (phEl) {
-                if (expParams.ph_target) {
-                    phEl.textContent = `─ target ${expParams.ph_target}`;
-                    phEl.style.display = 'inline';
-                } else {
-                    phEl.style.display = 'none';
-                }
-            }
-            const speedEl = document.getElementById('v-speed-target');
-            if (speedEl) {
-                if (expParams.flow_speed) {
-                    speedEl.textContent = `─ target ${expParams.flow_speed} L/s`;
-                    speedEl.style.display = 'inline';
-                } else {
-                    speedEl.style.display = 'none';
-                }
+            // Update speed metric card langsung agar tidak menunggu polling
+            const speedEl = document.getElementById('v-speed');
+            if (speedEl && expParams.flow_speed) {
+                speedEl.textContent = expParams.flow_speed.toString();
             }
         }
     } catch (e) {}
@@ -1708,7 +1693,6 @@ function updateMetricCards(s) {
     const luxVal  = s.lux != null ? parseFloat(s.lux).toFixed(0) : dash;
 
     document.getElementById('v-temp').textContent = tempVal;
-    document.getElementById('v-ph').textContent = s.ph != null ? parseFloat(s.ph).toFixed(2) : dash;
     document.getElementById('v-speed').textContent = expParams.flow_speed ? expParams.flow_speed.toString() : "—";
     
     const rawR = parseInt(s.red || 0);
@@ -2337,15 +2321,12 @@ const edPg = {
             let r=0,g=0,b=0;
             if(hasColor){ const tc=getTrueColor(rawR,rawG,rawB); r=tc.r; g=tc.g; b=tc.b; }
             const dash='<span style="opacity:.3;">—</span>';
-            const phVal=d.ph!=null?parseFloat(d.ph):null;
-            const phTd=phVal!=null?`<span class="${phClass(phVal)}">${phVal.toFixed(2)}</span>`:dash;
             const wqLabelHtml=hasColor?`<span style="display:inline-flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:50%;background:rgb(${r},${g},${b});flex-shrink:0;display:inline-block;"></span> ${wqLabel(r,g,b)}</span>`:dash;
             const status=hasColor?(isPure(r,g,b)?'<span class="pill pill-ok">Purified ✓</span>':'<span class="pill pill-proc">On Process</span>'):'<span class="pill pill-bad">No Data</span>';
             const dStr=encodeURIComponent(JSON.stringify(d));
             html+=`<tr>
                 <td>${d.created}</td>
                 <td>${d.temp!=null?parseFloat(d.temp).toFixed(2):dash}</td>
-                <td class="ph-cell">${phTd}</td>
                 <td>${hasColor?r:dash}</td>
                 <td>${hasColor?g:dash}</td>
                 <td>${hasColor?b:dash}</td>
@@ -2390,7 +2371,6 @@ function showSensorDetail(btn) {
     const hasColor = d.red && d.green && d.blue;
     let r=0,g=0,b=0;
     if (hasColor) { const tc = getTrueColor(rawR,rawG,rawB); r=tc.r; g=tc.g; b=tc.b; }
-    const phVal = d.ph != null ? parseFloat(d.ph) : null;
     const wq = hasColor ? wqLabel(r,g,b) : '—';
     const status = hasColor ? (isPure(r,g,b) ? 'Purified ✓' : 'On Process') : 'No Data';
     const statusClass = hasColor ? (isPure(r,g,b) ? 'pill-ok' : 'pill-proc') : 'pill-bad';
@@ -2398,8 +2378,6 @@ function showSensorDetail(btn) {
     const el = document.getElementById('modal-sensor-detail');
     el.querySelector('.sd-ts').textContent = d.created;
     el.querySelector('.sd-temp').textContent = d.temp != null ? parseFloat(d.temp).toFixed(2) + ' °K' : '—';
-    el.querySelector('.sd-ph').textContent = phVal != null ? phVal.toFixed(2) : '—';
-    el.querySelector('.sd-ph').className = 'sd-value' + (phVal != null ? ' ' + phClass(phVal) : '');
     el.querySelector('.sd-rawlight').textContent = d.raw_light != null ? parseFloat(d.raw_light).toFixed(2) : '—';
     el.querySelector('.sd-lux').textContent = d.lux != null ? parseFloat(d.lux).toFixed(1) + ' lx' : '—';
     el.querySelector('.sd-rgb-raw').textContent = hasColor ? `${rawR.toFixed(0)}, ${rawG.toFixed(0)}, ${rawB.toFixed(0)}` : '—';
@@ -2436,15 +2414,22 @@ async function showExpDetail(id, name) {
     switchView('exp-detail');
 
     try {
-        const res = await fetch(`/api/experiments/${id}/data/`, {
-            headers: { 'Authorization': 'Token ' + API_TOKEN }
-        });
-        if (!res.ok) {
-            const errBody = await res.json().catch(() => ({}));
-            const detail = errBody.detail || errBody.message || `HTTP ${res.status}`;
+        // Fetch both sensor data AND experiment detail (for suhu/flow/ph params)
+        const [resData, resExp] = await Promise.all([
+            fetch(`/api/experiments/${id}/data/`, {
+                headers: { 'Authorization': 'Token ' + API_TOKEN }
+            }),
+            id !== 0 ? fetch(`/api/experiments/${id}/`, {
+                headers: { 'Authorization': 'Token ' + API_TOKEN }
+            }) : Promise.resolve(null)
+        ]);
+
+        if (!resData.ok) {
+            const errBody = await resData.json().catch(() => ({}));
+            const detail = errBody.detail || errBody.message || `HTTP ${resData.status}`;
             throw new Error(detail);
         }
-        const data = await res.json();
+        const data = await resData.json();
 
         // Update metric cards
         const records = data.sensor_data || [];
@@ -2456,27 +2441,42 @@ async function showExpDetail(id, name) {
         edPg.setData(records);
         document.getElementById('ed-total-records').textContent = records.length;
 
-        // Tampilkan parameter eksperimen (suhu, flow, pH)
+        // Tampilkan parameter eksperimen (suhu, flow, pH) dari endpoint detail
         const flowCard = document.getElementById('ed-card-flow');
         const suhuCard = document.getElementById('ed-card-suhu');
-        const phTargetCard = document.getElementById('ed-card-phtarget');
-        if (data.suhu) {
-            document.getElementById('ed-suhu').textContent = parseFloat(data.suhu).toFixed(1);
-            if (suhuCard) suhuCard.style.display = 'flex';
-        } else if (suhuCard) suhuCard.style.display = 'none';
-        if (data.flow_speed) {
-            document.getElementById('ed-flow').textContent = parseFloat(data.flow_speed).toFixed(1);
-            if (flowCard) flowCard.style.display = 'flex';
-        } else if (flowCard) flowCard.style.display = 'none';
-        if (data.ph_target) {
-            document.getElementById('ed-phtarget').textContent = parseFloat(data.ph_target).toFixed(1);
-            if (phTargetCard) phTargetCard.style.display = 'flex';
-        } else if (phTargetCard) phTargetCard.style.display = 'none';
+        const edParamsBar = document.getElementById('ed-exp-params-bar');
+
+        if (id !== 0 && resExp && resExp.ok) {
+            const expDetail = await resExp.json();
+            const suhu = expDetail.suhu || null;
+            const flowSpeed = expDetail.flow_speed || null;
+            const phTarget = expDetail.ph_target || null;
+
+            if (suhu) {
+                document.getElementById('ed-suhu').textContent = parseFloat(suhu).toFixed(1);
+                if (suhuCard) suhuCard.style.display = 'flex';
+            } else if (suhuCard) suhuCard.style.display = 'none';
+            if (flowSpeed) {
+                document.getElementById('ed-flow').textContent = parseFloat(flowSpeed).toFixed(1);
+                if (flowCard) flowCard.style.display = 'flex';
+            } else if (flowCard) flowCard.style.display = 'none';
+
+            // Update parameter bar (termasuk pH)
+            document.getElementById('ed-p-suhu').textContent = suhu ?? '—';
+            document.getElementById('ed-p-ph').textContent = phTarget ?? '—';
+            document.getElementById('ed-p-flow').textContent = flowSpeed ?? '—';
+            if (edParamsBar) {
+                edParamsBar.style.display = (suhu || flowSpeed || phTarget) ? 'flex' : 'none';
+            }
+        } else {
+            if (suhuCard) suhuCard.style.display = 'none';
+            if (flowCard) flowCard.style.display = 'none';
+            if (edParamsBar) edParamsBar.style.display = 'none';
+        }
 
         if (records.length > 0) {
             const latest = records[0];
             document.getElementById('ed-temp').textContent = latest.temp != null ? parseFloat(latest.temp).toFixed(1) : '—';
-            document.getElementById('ed-ph').textContent = latest.ph != null ? parseFloat(latest.ph).toFixed(2) : '—';
 
             if (latest.red && latest.green && latest.blue) {
                 const tc = getTrueColor(parseInt(latest.red), parseInt(latest.green), parseInt(latest.blue));

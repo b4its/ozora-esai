@@ -3,8 +3,6 @@ from django.contrib.auth.decorators import login_required
 from rest_framework.authtoken.models import Token
 from iot_service.models import SensorData, ExperimentRoom, IoTDevice
 from django.http import JsonResponse
-from iot_service.views import calculate_ph
-
 
 
 @login_required(login_url='customerLogin')
@@ -24,10 +22,6 @@ def home(request):
 
         data = []
         for s in queryset:
-            ph_val = calculate_ph(
-                float(s.red), float(s.green), float(s.blue),
-                float(s.temp), float(s.lux)
-            )
             data.append({
                 'id':      s.pk,
                 'created': s.created.strftime('%Y-%m-%d %H:%M:%S'),
@@ -36,7 +30,6 @@ def home(request):
                 'blue':    float(s.blue),
                 'temp':    float(s.temp),
                 'lux':     float(s.lux),
-                'ph':      ph_val,
             })
         return JsonResponse({'sensor_data': data})
 
@@ -45,12 +38,6 @@ def home(request):
     if experiment_id:
         raw_sensor_data = raw_sensor_data.filter(experiment_id=experiment_id)
     raw_sensor_data = raw_sensor_data.order_by('-created')[:100]
-
-    for s in raw_sensor_data:
-        s.ph = calculate_ph(
-            float(s.red), float(s.green), float(s.blue),
-            float(s.temp), float(s.lux)
-        )
 
     experiments = ExperimentRoom.objects.filter(user=request.user).order_by('-created')
     user_devices = IoTDevice.objects.filter(user=request.user).order_by('-last_seen')

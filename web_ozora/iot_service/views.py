@@ -15,38 +15,6 @@ from .models import SensorData, IoTDevice, ExperimentRoom
 
 
 # ============================================================
-#  HELPER: Kalkulasi pH dari data sensor warna
-# ============================================================
-def calculate_ph(red, green, blue, temp, lux):
-    total = red + green + blue
-    if total == 0:
-        return 7.0
-
-    r = red   / total
-    g = green / total
-    b = blue  / total
-
-    mx = max(r, g, b)
-    mn = min(r, g, b)
-    df = mx - mn
-
-    if mx == mn:
-        hue = 0
-    elif mx == r:
-        hue = (60 * ((g - b) / df) + 360) % 360
-    elif mx == g:
-        hue = (60 * ((b - r) / df) + 120) % 360
-    else:
-        hue = (60 * ((r - g) / df) + 240) % 360
-
-    estimated_ph   = 7.0 + (hue - 120) * (3 / 120)
-    temp_correction = (temp - 25) * 0.01
-    final_ph        = estimated_ph + temp_correction
-
-    return round(max(0, min(14, final_ph)), 2)
-
-
-# ============================================================
 #  EXPERIMENT ROOM CRUD
 # ============================================================
 @api_view(['GET', 'POST'])

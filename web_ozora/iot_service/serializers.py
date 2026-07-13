@@ -3,22 +3,10 @@ from .models import SensorData, IoTDevice, ExperimentRoom
 
 
 class ExperimentDataSerializer(serializers.ModelSerializer):
-    ph = serializers.SerializerMethodField()
-
     class Meta:
         model = SensorData
-        fields = ['id', 'experiment', 'raw_light', 'red', 'green', 'blue', 'temp', 'lux', 'ph', 'created']
+        fields = ['id', 'experiment', 'raw_light', 'red', 'green', 'blue', 'temp', 'lux', 'created']
         read_only_fields = ['created']
-
-    def get_ph(self, obj):
-        try:
-            from .views import calculate_ph
-            return calculate_ph(
-                float(obj.red), float(obj.green), float(obj.blue),
-                float(obj.temp), float(obj.lux)
-            )
-        except Exception:
-            return None
 
 
 class ExperimentRoomSerializer(serializers.ModelSerializer):
